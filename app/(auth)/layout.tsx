@@ -1,6 +1,12 @@
+import { ThemeChip } from "./ThemeChip";
+
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid min-h-screen md:grid-cols-2">
+    <div className="relative grid min-h-screen md:grid-cols-2">
+      <div className="absolute right-4 top-4 z-10">
+        <ThemeChip />
+      </div>
+
       <div className="relative hidden flex-col justify-between overflow-hidden bg-ink p-12 text-canvas md:flex">
         <div className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-canvas text-ink">
