@@ -14,6 +14,7 @@ import {
 } from "../lib/types";
 import { createPost, deletePost, listPosts, updatePost } from "../lib/storage";
 import { supabaseBrowser } from "../lib/supabase/client";
+import { useTheme, type Theme } from "../lib/theme";
 
 type View = "board" | "calendar" | "list";
 
@@ -363,7 +364,13 @@ function TopBar({
 
 function UserMenu({ email, onSignOut }: { email: string; onSignOut: () => void }) {
   const [open, setOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
   const initial = (email || "?").charAt(0).toUpperCase();
+  const themes: { value: Theme; label: string; icon: ReactNode }[] = [
+    { value: "light", label: "Light", icon: <SunIcon /> },
+    { value: "dark", label: "Dark", icon: <MoonIcon /> },
+    { value: "system", label: "System", icon: <MonitorIcon /> },
+  ];
   return (
     <div className="relative">
       <button
@@ -377,10 +384,31 @@ function UserMenu({ email, onSignOut }: { email: string; onSignOut: () => void }
       {open && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 z-40 mt-2 w-56 overflow-hidden rounded-lg border border-line bg-surface shadow-card-lg">
+          <div className="absolute right-0 z-40 mt-2 w-60 overflow-hidden rounded-lg border border-line bg-surface shadow-card-lg">
             <div className="border-b border-line px-3 py-2.5">
               <div className="text-[10px] uppercase tracking-wider text-muted">Signed in as</div>
               <div className="mt-0.5 truncate text-sm">{email || "—"}</div>
+            </div>
+            <div className="border-b border-line px-3 py-2.5">
+              <div className="mb-1.5 text-[10px] uppercase tracking-wider text-muted">Theme</div>
+              <div className="flex gap-1 rounded-md bg-surface-2 p-0.5">
+                {themes.map((t) => {
+                  const active = theme === t.value;
+                  return (
+                    <button
+                      key={t.value}
+                      onClick={() => setTheme(t.value)}
+                      className={`flex flex-1 items-center justify-center gap-1 rounded px-1.5 py-1 text-[11px] transition ${
+                        active ? "bg-surface text-ink shadow-card" : "text-ink-soft hover:text-ink"
+                      }`}
+                      aria-pressed={active}
+                    >
+                      {t.icon}
+                      {t.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <button
               onClick={() => {
@@ -1160,5 +1188,20 @@ function SparkIcon() {
 function SignOutIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+  );
+}
+function SunIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+  );
+}
+function MoonIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  );
+}
+function MonitorIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
   );
 }
