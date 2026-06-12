@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState, ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import {
   ContentItem,
   PLATFORMS,
@@ -11,26 +12,70 @@ import {
   Status,
   emptyItem,
 } from "../lib/types";
-import { loadItems, saveItems } from "../lib/storage";
+import { createPost, deletePost, listPosts, updatePost } from "../lib/storage";
+import { supabaseBrowser } from "../lib/supabase/client";
 
 type View = "board" | "calendar" | "list";
 
 export default function Home() {
+  const router = useRouter();
   const [items, setItems] = useState<ContentItem[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [view, setView] = useState<View>("board");
   const [platformFilter, setPlatformFilter] = useState<Platform | null>(null);
-  const [hydrated, setHydrated] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [userEmail, setUserEmail] = useState<string>("");
+
+  const pendingPatches = useRef<Record<string, Partial<ContentItem>>>({});
+  const flushTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   useEffect(() => {
-    setItems(loadItems());
-    setHydrated(true);
+    let cancelled = false;
+    (async () => {
+      const supabase = supabaseBrowser();
+      const { data: userData } = await supabase.auth.getUser();
+      if (cancelled) return;
+      setUserEmail(userData.user?.email ?? "");
+      const rows = await listPosts();
+      if (cancelled) return;
+      setItems(rows);
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
+  const flush = (id: string) => {
+    const patch = pendingPatches.current[id];
+    if (!patch) return;
+    delete pendingPatches.current[id];
+    updatePost(id, patch);
+  };
+
+  const scheduleFlush = (id: string, patch: Partial<ContentItem>) => {
+    pendingPatches.current[id] = { ...(pendingPatches.current[id] ?? {}), ...patch };
+    clearTimeout(flushTimers.current[id]);
+    flushTimers.current[id] = setTimeout(() => flush(id), 500);
+  };
+
   useEffect(() => {
-    if (hydrated) saveItems(items);
-  }, [items, hydrated]);
+    const flushAll = () => Object.keys(pendingPatches.current).forEach(flush);
+    window.addEventListener("beforeunload", flushAll);
+    return () => {
+      flushAll();
+      window.removeEventListener("beforeunload", flushAll);
+    };
+  }, []);
+
+  const signOut = async () => {
+    Object.keys(pendingPatches.current).forEach(flush);
+    const supabase = supabaseBrowser();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -48,22 +93,27 @@ export default function Home() {
 
   const editing = items.find((i) => i.id === editingId) ?? null;
 
-  const addRow = (preset?: Partial<ContentItem>) => {
-    const row = { ...emptyItem(), ...preset };
-    setItems((prev) => [...prev, row]);
-    setEditingId(row.id);
+  const addRow = async (preset?: Partial<ContentItem>) => {
+    const created = await createPost({ ...emptyItem(), ...preset });
+    if (!created) return;
+    setItems((prev) => [...prev, created]);
+    setEditingId(created.id);
   };
 
   const updateRow = (id: string, patch: Partial<ContentItem>) => {
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+    scheduleFlush(id, patch);
   };
 
-  const deleteRow = (id: string) => {
+  const deleteRow = async (id: string) => {
     setItems((prev) => prev.filter((i) => i.id !== id));
     if (editingId === id) setEditingId(null);
+    delete pendingPatches.current[id];
+    clearTimeout(flushTimers.current[id]);
+    await deletePost(id);
   };
 
-  const seed = () => {
+  const seed = async () => {
     const today = new Date();
     const iso = (d: Date) => d.toISOString().slice(0, 10);
     const offset = (n: number) => { const d = new Date(today); d.setDate(d.getDate() + n); return iso(d); };
@@ -74,7 +124,8 @@ export default function Home() {
       { title: "Behind the build: design system", date: offset(7), description: "Process video. Time-lapse of Figma + Linear screens.", platforms: ["Youtube", "TikTok"], status: "Idea" },
       { title: "Hot take: meeting culture", date: offset(2), description: "Hook: most teams confuse motion with progress.", platforms: ["X", "LinkedIn"], status: "Idea" },
     ];
-    samples.forEach((s) => setItems((prev) => [...prev, { ...emptyItem(), ...s }]));
+    const created = await Promise.all(samples.map((s) => createPost({ ...emptyItem(), ...s })));
+    setItems((prev) => [...prev, ...created.filter((c): c is ContentItem => !!c)]);
   };
 
   const stats = useMemo(() => {
@@ -99,10 +150,14 @@ export default function Home() {
           query={query}
           setQuery={setQuery}
           onAdd={() => addRow()}
+          userEmail={userEmail}
+          onSignOut={signOut}
         />
         <PageHeader stats={stats} />
 
-        {items.length === 0 ? (
+        {loading ? (
+          <div className="flex flex-1 items-center justify-center text-sm text-muted">Loading your workspace…</div>
+        ) : items.length === 0 ? (
           <EmptyState onSeed={seed} onAdd={() => addRow()} />
         ) : (
           <div className="flex-1 overflow-hidden">
@@ -266,10 +321,14 @@ function TopBar({
   query,
   setQuery,
   onAdd,
+  userEmail,
+  onSignOut,
 }: {
   query: string;
   setQuery: (v: string) => void;
   onAdd: () => void;
+  userEmail: string;
+  onSignOut: () => void;
 }) {
   return (
     <div className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-line bg-canvas/85 px-6 py-3 backdrop-blur-md">
@@ -296,7 +355,45 @@ function TopBar({
         >
           <PlusIcon /> New post
         </button>
+        <UserMenu email={userEmail} onSignOut={onSignOut} />
       </div>
+    </div>
+  );
+}
+
+function UserMenu({ email, onSignOut }: { email: string; onSignOut: () => void }) {
+  const [open, setOpen] = useState(false);
+  const initial = (email || "?").charAt(0).toUpperCase();
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-sm font-medium text-ink-soft ring-1 ring-line hover:ring-line-strong"
+        aria-label="Account menu"
+        title={email}
+      >
+        {initial}
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 z-40 mt-2 w-56 overflow-hidden rounded-lg border border-line bg-surface shadow-card-lg">
+            <div className="border-b border-line px-3 py-2.5">
+              <div className="text-[10px] uppercase tracking-wider text-muted">Signed in as</div>
+              <div className="mt-0.5 truncate text-sm">{email || "—"}</div>
+            </div>
+            <button
+              onClick={() => {
+                setOpen(false);
+                onSignOut();
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink-soft hover:bg-surface-2 hover:text-ink"
+            >
+              <SignOutIcon /> Sign out
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -1058,5 +1155,10 @@ function TrashIcon() {
 function SparkIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2 2M16.4 16.4l2 2M5.6 18.4l2-2M16.4 7.6l2-2"/></svg>
+  );
+}
+function SignOutIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
   );
 }
