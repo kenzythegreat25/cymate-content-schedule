@@ -64,6 +64,7 @@ export default function SettingsPage() {
         <Section title="Account" subtitle="Read-only info from your sign-up.">
           <Row label="Email" value={email} />
           <Row label="Member since" value={joinedAt ? new Date(joinedAt).toLocaleDateString(undefined, { dateStyle: "medium" }) : "—"} />
+          <ExportRow />
         </Section>
 
         <Section title="Theme" subtitle="Pick how the app looks.">
@@ -109,6 +110,79 @@ function Row({ label, value }: { label: string; value: string }) {
     <div className="flex items-center justify-between border-b border-line py-2.5 last:border-b-0">
       <span className="text-sm text-ink-soft">{label}</span>
       <span className="text-sm font-medium">{value || "—"}</span>
+    </div>
+  );
+}
+
+function csvCell(v: unknown) {
+  const s = v == null ? "" : Array.isArray(v) ? v.join("; ") : String(v);
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function ExportRow() {
+  const [busy, setBusy] = useState(false);
+  const [count, setCount] = useState<number | null>(null);
+
+  const onExport = async () => {
+    setBusy(true);
+    const supabase = supabaseBrowser();
+    const { data, error } = await supabase
+      .from("posts")
+      .select("*")
+      .order("created_at", { ascending: true });
+    setBusy(false);
+    if (error || !data) {
+      alert("Export failed. Please try again.");
+      return;
+    }
+    setCount(data.length);
+
+    const headers = [
+      "id",
+      "title",
+      "date",
+      "on_screen_text",
+      "description",
+      "platforms",
+      "status",
+      "attachments",
+      "performance_score",
+      "notes",
+      "created_at",
+    ];
+    const rows = data.map((r: Record<string, unknown>) =>
+      headers.map((h) => csvCell(r[h])).join(",")
+    );
+    const csv = [headers.join(","), ...rows].join("\r\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `content-schedule-${stamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="flex items-center justify-between border-b border-line py-2.5 last:border-b-0">
+      <div>
+        <div className="text-sm text-ink-soft">Your data</div>
+        {count !== null && (
+          <div className="mt-0.5 text-[11px] text-muted">{count} {count === 1 ? "post" : "posts"} exported</div>
+        )}
+      </div>
+      <button
+        onClick={onExport}
+        disabled={busy}
+        className="rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-ink-soft hover:border-line-strong hover:text-ink disabled:opacity-60"
+      >
+        {busy ? "Preparing…" : "Download CSV"}
+      </button>
     </div>
   );
 }
