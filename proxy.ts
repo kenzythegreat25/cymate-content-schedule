@@ -1,49 +1,48 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-const PUBLIC_PATHS = ["/login", "/signup", "/auth"];
+// Only these path prefixes require auth. Everything else is public.
+const PROTECTED_PREFIXES = ["/dashboard", "/settings"];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anon) return response; // unconfigured — let pages render
+  if (!url || !anon) return response;
 
-  const supabase = createServerClient(
-    url,
-    anon,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
-        },
+  const supabase = createServerClient(url, anon, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
       },
-    }
-  );
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        response = NextResponse.next({ request });
+        cookiesToSet.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, options)
+        );
+      },
+    },
+  });
 
   const { data: { user } } = await supabase.auth.getUser();
   const path = request.nextUrl.pathname;
-  const isPublic = PUBLIC_PATHS.some((p) => path === p || path.startsWith(p + "/"));
+  const isProtected = PROTECTED_PREFIXES.some(
+    (p) => path === p || path.startsWith(p + "/")
+  );
 
-  if (!user && !isPublic) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("next", path);
-    return NextResponse.redirect(url);
+  if (!user && isProtected) {
+    const u = request.nextUrl.clone();
+    u.pathname = "/login";
+    u.searchParams.set("next", path);
+    return NextResponse.redirect(u);
   }
 
-  if (user && (path === "/login" || path === "/signup")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/";
-    return NextResponse.redirect(url);
+  if (user && (path === "/login" || path === "/signup" || path === "/")) {
+    const u = request.nextUrl.clone();
+    u.pathname = "/dashboard";
+    return NextResponse.redirect(u);
   }
 
   return response;

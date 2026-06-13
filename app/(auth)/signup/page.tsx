@@ -26,7 +26,7 @@ export default function SignupPage() {
       return;
     }
     if (data.session) {
-      router.push("/");
+      router.push("/dashboard");
       router.refresh();
     } else {
       setInfo("Account created. Check your email to confirm, then sign in.");
