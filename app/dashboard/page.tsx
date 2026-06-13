@@ -137,22 +137,27 @@ export default function Home() {
     return { total, scheduled, posted, inProgress };
   }, [items]);
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
     <div className="flex min-h-screen bg-canvas">
       <Sidebar
         view={view}
-        setView={setView}
+        setView={(v) => { setView(v); setSidebarOpen(false); }}
         platformFilter={platformFilter}
-        setPlatformFilter={setPlatformFilter}
+        setPlatformFilter={(p) => { setPlatformFilter(p); setSidebarOpen(false); }}
         stats={stats}
+        mobileOpen={sidebarOpen}
+        onMobileClose={() => setSidebarOpen(false)}
       />
-      <main className="flex min-h-screen flex-1 flex-col">
+      <main className="flex min-h-screen min-w-0 flex-1 flex-col">
         <TopBar
           query={query}
           setQuery={setQuery}
           onAdd={() => addRow()}
           userEmail={userEmail}
           onSignOut={signOut}
+          onMenuOpen={() => setSidebarOpen(true)}
         />
         <PageHeader stats={stats} />
 
@@ -204,16 +209,32 @@ function Sidebar({
   platformFilter,
   setPlatformFilter,
   stats,
+  mobileOpen,
+  onMobileClose,
 }: {
   view: View;
   setView: (v: View) => void;
   platformFilter: Platform | null;
   setPlatformFilter: (p: Platform | null) => void;
   stats: { total: number; scheduled: number; posted: number; inProgress: number };
+  mobileOpen: boolean;
+  onMobileClose: () => void;
 }) {
   return (
-    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-line bg-surface-2/60 px-4 py-5 backdrop-blur md:flex">
-      <div className="mb-7 flex items-center gap-2.5 px-1">
+    <>
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-ink/30 md:hidden"
+          onClick={onMobileClose}
+        />
+      )}
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex h-screen w-64 shrink-0 flex-col border-r border-line bg-surface-2 px-4 py-5 transition-transform md:sticky md:top-0 md:z-auto md:bg-surface-2/60 md:backdrop-blur md:transition-none ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        }`}
+      >
+      <div className="mb-7 flex items-center justify-between gap-2.5 px-1">
+        <div className="flex items-center gap-2.5">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink text-canvas">
           <LogoMark />
         </div>
@@ -221,6 +242,14 @@ function Sidebar({
           <div className="text-sm font-semibold tracking-tight">Cymate</div>
           <div className="text-[11px] text-muted">Content Studio</div>
         </div>
+        </div>
+        <button
+          onClick={onMobileClose}
+          aria-label="Close menu"
+          className="rounded-md p-1 text-muted hover:bg-line/60 hover:text-ink md:hidden"
+        >
+          <CloseIcon />
+        </button>
       </div>
 
       <SidebarSection label="Workspace">
@@ -274,7 +303,8 @@ function Sidebar({
           <span className="text-right font-medium">{stats.posted}</span>
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }
 
@@ -324,37 +354,48 @@ function TopBar({
   onAdd,
   userEmail,
   onSignOut,
+  onMenuOpen,
 }: {
   query: string;
   setQuery: (v: string) => void;
   onAdd: () => void;
   userEmail: string;
   onSignOut: () => void;
+  onMenuOpen: () => void;
 }) {
   return (
-    <div className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-line bg-canvas/85 px-6 py-3 backdrop-blur-md">
-      <div className="flex items-center gap-2 text-xs text-muted">
-        <span>Workspace</span>
-        <span className="text-line-strong">›</span>
-        <span className="text-ink-soft">Content Studio</span>
-        <span className="text-line-strong">›</span>
-        <span className="text-ink">Schedule</span>
+    <div className="sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-line bg-canvas/85 px-4 py-3 backdrop-blur-md md:px-6">
+      <div className="flex min-w-0 items-center gap-2">
+        <button
+          onClick={onMenuOpen}
+          aria-label="Open menu"
+          className="-ml-1 rounded-md p-1.5 text-ink-soft hover:bg-line/60 hover:text-ink md:hidden"
+        >
+          <MenuIcon />
+        </button>
+        <div className="hidden items-center gap-2 text-xs text-muted md:flex">
+          <span>Workspace</span>
+          <span className="text-line-strong">›</span>
+          <span className="text-ink-soft">Content Studio</span>
+          <span className="text-line-strong">›</span>
+          <span className="text-ink">Schedule</span>
+        </div>
       </div>
       <div className="flex items-center gap-2">
-        <div className="relative">
+        <div className="relative hidden sm:block">
           <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search posts…"
-            className="h-9 w-64 rounded-lg border border-line bg-surface pl-8 pr-3 text-sm placeholder:text-muted focus:border-line-strong focus:outline-none focus:ring-2 focus:ring-accent-soft"
+            placeholder="Search…"
+            className="h-9 w-40 rounded-lg border border-line bg-surface pl-8 pr-3 text-sm placeholder:text-muted focus:border-line-strong focus:outline-none focus:ring-2 focus:ring-accent-soft md:w-64"
           />
         </div>
         <button
           onClick={onAdd}
           className="flex h-9 items-center gap-1.5 rounded-lg bg-ink px-3 text-sm font-medium text-canvas shadow-card transition-transform hover:scale-[1.02] active:scale-[0.98]"
         >
-          <PlusIcon /> New post
+          <PlusIcon /> <span className="hidden sm:inline">New post</span>
         </button>
         <UserMenu email={userEmail} onSignOut={onSignOut} />
       </div>
@@ -428,19 +469,19 @@ function UserMenu({ email, onSignOut }: { email: string; onSignOut: () => void }
 
 function PageHeader({ stats }: { stats: { total: number; scheduled: number; posted: number; inProgress: number } }) {
   return (
-    <div className="px-6 pb-6 pt-8">
-      <div className="flex items-end justify-between gap-6">
+    <div className="px-4 pb-4 pt-6 md:px-6 md:pb-6 md:pt-8">
+      <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-end md:gap-6">
         <div>
-          <div className="text-[11px] uppercase tracking-[0.16em] text-muted">June 2026 · this quarter</div>
-          <h1 className="serif mt-2 text-5xl font-normal leading-[1.05] tracking-tight">
+          <div className="text-[10px] uppercase tracking-[0.16em] text-muted md:text-[11px]">June 2026 · this quarter</div>
+          <h1 className="serif mt-2 text-3xl font-normal leading-[1.05] tracking-tight md:text-5xl">
             Content <em className="text-accent">in flight</em>
           </h1>
           <p className="mt-2 max-w-md text-sm text-ink-soft">
             One workspace for every post — from raw idea to performance lookback.
           </p>
         </div>
-        <div className="hidden gap-6 sm:flex">
-          <Metric label="Total posts" value={stats.total} />
+        <div className="flex gap-5 md:gap-6">
+          <Metric label="Total" value={stats.total} />
           <Metric label="Scheduled" value={stats.scheduled} accent />
           <Metric label="Posted" value={stats.posted} />
         </div>
@@ -750,9 +791,9 @@ function ListView({
   onDelete: (id: string) => void;
 }) {
   return (
-    <div className="px-6 pb-10">
+    <div className="px-4 pb-10 md:px-6">
       <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
-        <div className="grid grid-cols-[2fr_120px_120px_1.5fr_120px_60px] gap-4 border-b border-line bg-surface-2 px-5 py-3 text-[11px] uppercase tracking-wider text-muted">
+        <div className="hidden grid-cols-[2fr_120px_120px_1.5fr_120px_60px] gap-4 border-b border-line bg-surface-2 px-5 py-3 text-[11px] uppercase tracking-wider text-muted md:grid">
           <span>Title</span>
           <span>Date</span>
           <span>Status</span>
@@ -767,7 +808,7 @@ function ListView({
           <button
             key={it.id}
             onClick={() => onEdit(it.id)}
-            className="group grid w-full grid-cols-[2fr_120px_120px_1.5fr_120px_60px] items-center gap-4 border-b border-line px-5 py-3 text-left text-sm last:border-b-0 hover:bg-surface-2"
+            className="group flex w-full flex-col gap-2 border-b border-line px-4 py-3 text-left text-sm last:border-b-0 hover:bg-surface-2 md:grid md:grid-cols-[2fr_120px_120px_1.5fr_120px_60px] md:items-center md:gap-4 md:px-5"
           >
             <div className="flex min-w-0 items-center gap-3">
               {it.attachments ? (
@@ -783,19 +824,13 @@ function ListView({
                 {it.description && <div className="truncate text-xs text-ink-soft">{it.description}</div>}
               </div>
             </div>
-            <div className="text-xs text-ink-soft">
-              {it.date ? formatDate(it.date) : <span className="text-muted">—</span>}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-ink-soft md:contents">
+              <div className="md:block">{it.date ? formatDate(it.date) : <span className="text-muted">—</span>}</div>
+              <div><StatusBadge status={it.status} /></div>
+              <div><PlatformStack platforms={it.platforms} /></div>
+              <div className="md:block">{it.performanceScore || <span className="text-muted">—</span>}</div>
             </div>
-            <div>
-              <StatusBadge status={it.status} />
-            </div>
-            <div>
-              <PlatformStack platforms={it.platforms} />
-            </div>
-            <div className="text-xs text-ink-soft">
-              {it.performanceScore || <span className="text-muted">—</span>}
-            </div>
-            <div className="text-right">
+            <div className="hidden md:block md:text-right">
               <span
                 role="button"
                 onClick={(e) => {
@@ -1295,6 +1330,11 @@ function CheckIcon() {
 function CloseIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+  );
+}
+function MenuIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
   );
 }
 function TrashIcon() {
