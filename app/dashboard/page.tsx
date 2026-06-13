@@ -7,6 +7,7 @@ import {
   ContentItem,
   PLATFORMS,
   PLATFORM_META,
+  PLATFORM_LIMITS,
   STATUSES,
   STATUS_META,
   Platform,
@@ -181,6 +182,7 @@ export default function Home() {
                 items={filtered}
                 onEdit={setEditingId}
                 onAddOnDate={(d) => addRow({ date: d })}
+                onReschedule={(id, d) => updateRow(id, { date: d })}
               />
             )}
             {view === "list" && (
@@ -700,11 +702,15 @@ function CalendarView({
   items,
   onEdit,
   onAddOnDate,
+  onReschedule,
 }: {
   items: ContentItem[];
   onEdit: (id: string) => void;
   onAddOnDate: (date: string) => void;
+  onReschedule: (id: string, date: string) => void;
 }) {
+  const [dragOver, setDragOver] = useState<string | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     d.setDate(1);
@@ -766,12 +772,31 @@ function CalendarView({
             const iso = date.toISOString().slice(0, 10);
             const dayItems = byDate[iso] ?? [];
             const isToday = iso === today;
+            const isDropTarget = dragOver === iso;
             return (
               <div
                 key={idx}
-                className={`group min-h-28 border-b border-r border-line p-2 last:border-r-0 ${
+                className={`group min-h-28 border-b border-r border-line p-2 transition last:border-r-0 ${
                   inMonth ? "bg-surface" : "bg-surface-2 text-muted"
-                }`}
+                } ${isDropTarget ? "bg-accent-soft/60 ring-2 ring-inset ring-accent/40" : ""}`}
+                onDragOver={(e) => {
+                  if (!dragId || !inMonth) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                  if (dragOver !== iso) setDragOver(iso);
+                }}
+                onDragLeave={(e) => {
+                  if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                  if (dragOver === iso) setDragOver(null);
+                }}
+                onDrop={(e) => {
+                  if (!inMonth) return;
+                  e.preventDefault();
+                  const id = e.dataTransfer.getData("text/plain") || dragId;
+                  if (id) onReschedule(id, iso);
+                  setDragOver(null);
+                  setDragId(null);
+                }}
               >
                 <div className="flex items-center justify-between">
                   <span
@@ -796,7 +821,14 @@ function CalendarView({
                     <button
                       key={it.id}
                       onClick={() => onEdit(it.id)}
-                      className={`block w-full truncate rounded px-1.5 py-1 text-left text-[11px] ring-1 transition hover:scale-[1.02] ${STATUS_META[it.status].tint} ${STATUS_META[it.status].text} ${STATUS_META[it.status].ring}`}
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("text/plain", it.id);
+                        e.dataTransfer.effectAllowed = "move";
+                        setDragId(it.id);
+                      }}
+                      onDragEnd={() => { setDragId(null); setDragOver(null); }}
+                      className={`block w-full cursor-grab select-none truncate rounded px-1.5 py-1 text-left text-[11px] ring-1 transition hover:scale-[1.02] active:cursor-grabbing ${STATUS_META[it.status].tint} ${STATUS_META[it.status].text} ${STATUS_META[it.status].ring} ${dragId === it.id ? "opacity-50" : ""}`}
                     >
                       {it.title || "Untitled"}
                     </button>
@@ -1012,6 +1044,7 @@ function EditDrawer({
                 className="input min-h-24"
                 placeholder="The post copy"
               />
+              <CharCounter text={item.description} platforms={item.platforms} />
             </Field>
           </section>
 
@@ -1082,6 +1115,41 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
       <span className="mb-1.5 block text-[11px] font-medium uppercase tracking-[0.12em] text-muted">{label}</span>
       {children}
     </label>
+  );
+}
+
+function CharCounter({ text, platforms }: { text: string; platforms: Platform[] }) {
+  if (platforms.length === 0) {
+    return (
+      <div className="mt-1.5 text-[11px] text-muted">
+        {text.length} {text.length === 1 ? "character" : "characters"} · pick a platform to see its limit
+      </div>
+    );
+  }
+  const len = text.length;
+  return (
+    <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px]">
+      {platforms.map((p) => {
+        const limit = PLATFORM_LIMITS[p];
+        const over = len > limit;
+        const close = !over && len > limit * 0.9;
+        return (
+          <span
+            key={p}
+            className={
+              over
+                ? "font-medium text-red-600"
+                : close
+                ? "text-amber-600"
+                : "text-ink-soft"
+            }
+          >
+            {p}: {len}/{limit}
+            {over && ` (−${len - limit})`}
+          </span>
+        );
+      })}
+    </div>
   );
 }
 

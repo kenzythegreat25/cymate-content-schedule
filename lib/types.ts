@@ -48,3 +48,13 @@ export const PLATFORM_META: Record<Platform, { color: string; bg: string }> = {
   X:         { color: "#111111", bg: "#ececec" },
   Facebook:  { color: "#1877f2", bg: "#e7f0fe" },
 };
+
+// Approximate caption character limits per platform
+export const PLATFORM_LIMITS: Record<Platform, number> = {
+  X:         280,
+  Instagram: 2200,
+  TikTok:    2200,
+  LinkedIn:  3000,
+  Youtube:   5000,
+  Facebook:  63206,
+};
