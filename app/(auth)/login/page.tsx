@@ -60,6 +60,11 @@ function LoginForm() {
             className="auth-input"
             placeholder="••••••••"
           />
+          <div className="mt-1.5 text-right">
+            <Link href="/forgot-password" className="text-[11px] text-ink-soft hover:text-ink">
+              Forgot password?
+            </Link>
+          </div>
         </Field>
 
         {error && (
