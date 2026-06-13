@@ -7,6 +7,8 @@ import { supabaseBrowser } from "../../../lib/supabase/client";
 
 export default function SignupPage() {
   const router = useRouter();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +21,19 @@ export default function SignupPage() {
     setInfo(null);
     setLoading(true);
     const supabase = supabaseBrowser();
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const first = firstName.trim();
+    const last = lastName.trim();
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          first_name: first,
+          last_name: last,
+          full_name: [first, last].filter(Boolean).join(" "),
+        },
+      },
+    });
     setLoading(false);
     if (error) {
       setError(error.message);
@@ -42,6 +56,28 @@ export default function SignupPage() {
       </div>
 
       <form onSubmit={onSubmit} className="space-y-4">
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="First name">
+            <input
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              required
+              autoComplete="given-name"
+              className="auth-input"
+              placeholder="Alex"
+            />
+          </Field>
+          <Field label="Last name">
+            <input
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              required
+              autoComplete="family-name"
+              className="auth-input"
+              placeholder="Rivera"
+            />
+          </Field>
+        </div>
         <Field label="Email">
           <input
             type="email"
