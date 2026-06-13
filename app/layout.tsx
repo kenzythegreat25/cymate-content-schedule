@@ -14,9 +14,40 @@ const instrumentSerif = Instrument_Serif({
   subsets: ["latin"],
 });
 
+const SITE_URL = "https://content-schedule-studio.vercel.app";
+
 export const metadata: Metadata = {
-  title: "Content Studio — Cymate",
-  description: "A premium content scheduling workspace",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Content Studio — the calmer way to plan what you post",
+    template: "%s · Content Studio",
+  },
+  description:
+    "Board, calendar, and list — three views over one workspace. From raw idea to performance recap, in one place. Free for solo creators.",
+  applicationName: "Content Studio",
+  keywords: [
+    "content calendar",
+    "social media scheduler",
+    "content planning",
+    "creator tools",
+    "kanban content board",
+  ],
+  authors: [{ name: "Cymate" }],
+  openGraph: {
+    type: "website",
+    url: SITE_URL,
+    siteName: "Content Studio",
+    title: "Content Studio — the calmer way to plan what you post",
+    description:
+      "Board, calendar, and list — three views over one workspace. From raw idea to performance recap, in one place.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Content Studio — the calmer way to plan what you post",
+    description:
+      "Board, calendar, and list — three views over one workspace. From raw idea to performance recap, in one place.",
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({
