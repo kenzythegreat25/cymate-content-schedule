@@ -544,15 +544,39 @@ function BoardView({
   onMove: (id: string, s: Status) => void;
   onAdd: (s: Status) => void;
 }) {
+  const [dragOver, setDragOver] = useState<Status | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+
   return (
-    <div className="h-full overflow-x-auto px-6 pb-10">
+    <div className="h-full overflow-x-auto px-4 pb-10 md:px-6">
       <div className="flex min-h-full gap-4">
         {STATUSES.map((s) => {
           const cards = items.filter((i) => i.status === s);
           const meta = STATUS_META[s];
+          const isDropTarget = dragOver === s;
           return (
-            <div key={s} className="flex w-72 shrink-0 flex-col">
-              <div className="mb-2.5 flex items-center justify-between px-1">
+            <div
+              key={s}
+              className={`flex w-72 shrink-0 flex-col rounded-xl transition ${isDropTarget ? "bg-accent-soft/60 ring-2 ring-accent/40" : ""}`}
+              onDragOver={(e) => {
+                if (!dragId) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                if (dragOver !== s) setDragOver(s);
+              }}
+              onDragLeave={(e) => {
+                if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                if (dragOver === s) setDragOver(null);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const id = e.dataTransfer.getData("text/plain") || dragId;
+                if (id) onMove(id, s);
+                setDragOver(null);
+                setDragId(null);
+              }}
+            >
+              <div className="mb-2.5 flex items-center justify-between px-2 pt-2">
                 <div className="flex items-center gap-2">
                   <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
                   <span className="text-sm font-medium">{meta.label}</span>
@@ -567,7 +591,7 @@ function BoardView({
                   <PlusIcon size={14} />
                 </button>
               </div>
-              <div className="flex flex-1 flex-col gap-2.5">
+              <div className="flex flex-1 flex-col gap-2.5 px-2 pb-2">
                 {cards.length === 0 && (
                   <button
                     onClick={() => onAdd(s)}
@@ -577,7 +601,15 @@ function BoardView({
                   </button>
                 )}
                 {cards.map((c) => (
-                  <BoardCard key={c.id} item={c} onClick={() => onEdit(c.id)} onMove={onMove} />
+                  <BoardCard
+                    key={c.id}
+                    item={c}
+                    onClick={() => onEdit(c.id)}
+                    onMove={onMove}
+                    isDragging={dragId === c.id}
+                    onDragStart={() => setDragId(c.id)}
+                    onDragEnd={() => { setDragId(null); setDragOver(null); }}
+                  />
                 ))}
               </div>
             </div>
@@ -592,15 +624,28 @@ function BoardCard({
   item,
   onClick,
   onMove,
+  isDragging,
+  onDragStart,
+  onDragEnd,
 }: {
   item: ContentItem;
   onClick: () => void;
   onMove: (id: string, s: Status) => void;
+  isDragging?: boolean;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
 }) {
   return (
     <div
       onClick={onClick}
-      className="group cursor-pointer overflow-hidden rounded-xl border border-line bg-surface shadow-card transition-all hover:-translate-y-0.5 hover:shadow-card-lg"
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData("text/plain", item.id);
+        e.dataTransfer.effectAllowed = "move";
+        onDragStart?.();
+      }}
+      onDragEnd={() => onDragEnd?.()}
+      className={`group cursor-grab select-none overflow-hidden rounded-xl border border-line bg-surface shadow-card transition-all hover:-translate-y-0.5 hover:shadow-card-lg active:cursor-grabbing ${isDragging ? "rotate-1 opacity-50" : ""}`}
     >
       {item.attachments && (
         // eslint-disable-next-line @next/next/no-img-element
