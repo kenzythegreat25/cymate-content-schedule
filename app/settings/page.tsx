@@ -146,6 +146,7 @@ function ExportRow() {
       "description",
       "platforms",
       "status",
+      "content_type",
       "attachments",
       "performance_score",
       "notes",

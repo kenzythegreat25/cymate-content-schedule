@@ -10,8 +10,11 @@ import {
   PLATFORM_LIMITS,
   STATUSES,
   STATUS_META,
+  CONTENT_TYPES,
+  CONTENT_TYPE_META,
   Platform,
   Status,
+  ContentType,
   emptyItem,
 } from "../../lib/types";
 import { createPost, deletePost, listPosts, removeImage, updatePost, uploadImage } from "../../lib/storage";
@@ -683,6 +686,11 @@ function BoardCard({
           {item.description}
         </p>
       )}
+      {item.contentType && (
+        <div className="mt-2">
+          <ContentTypeChip type={item.contentType} />
+        </div>
+      )}
       <div className="mt-3 flex items-center justify-between">
         <PlatformStack platforms={item.platforms} />
         {item.performanceScore && (
@@ -911,7 +919,10 @@ function ListView({
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-ink-soft md:contents">
               <div className="md:block">{it.date ? formatDate(it.date) : <span className="text-muted">—</span>}</div>
-              <div><StatusBadge status={it.status} /></div>
+              <div className="flex items-center gap-1.5">
+                <StatusBadge status={it.status} />
+                {it.contentType && <ContentTypeChip type={it.contentType} />}
+              </div>
               <div><PlatformStack platforms={it.platforms} /></div>
               <div className="md:block">{it.performanceScore || <span className="text-muted">—</span>}</div>
             </div>
@@ -992,6 +1003,30 @@ function EditDrawer({
                 className="input"
                 placeholder="e.g. 12.4k views"
               />
+            </Field>
+          </section>
+
+          <section>
+            <Field label="Content type">
+              <div className="flex flex-wrap gap-1.5">
+                {CONTENT_TYPES.map((t) => {
+                  const active = item.contentType === t;
+                  const m = CONTENT_TYPE_META[t];
+                  return (
+                    <button
+                      key={t}
+                      onClick={() => onChange({ contentType: active ? "" : t })}
+                      className={`rounded-full px-2.5 py-1 text-xs transition ring-1 ${
+                        active
+                          ? `${m.tint} ${m.text} ${m.ring}`
+                          : "bg-surface text-ink-soft ring-line hover:ring-line-strong"
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  );
+                })}
+              </div>
             </Field>
           </section>
 
@@ -1263,6 +1298,15 @@ function StatusBadge({ status }: { status: Status }) {
     <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ${m.tint} ${m.text} ring-1 ${m.ring}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${m.dot}`} />
       {m.label}
+    </span>
+  );
+}
+
+function ContentTypeChip({ type }: { type: ContentType }) {
+  const m = CONTENT_TYPE_META[type];
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ${m.tint} ${m.text} ${m.ring}`}>
+      {type}
     </span>
   );
 }

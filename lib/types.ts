@@ -1,8 +1,18 @@
 export type Platform = "LinkedIn" | "Instagram" | "Youtube" | "TikTok" | "X" | "Facebook";
 export type Status = "Idea" | "Drafting" | "Scheduled" | "Posted" | "Archived";
+export type ContentType = "Carousel" | "Static" | "Short-Form Video" | "Long-Form Video" | "Reel" | "Story" | "Feedback";
 
 export const PLATFORMS: Platform[] = ["LinkedIn", "Instagram", "Youtube", "TikTok", "X", "Facebook"];
 export const STATUSES: Status[] = ["Idea", "Drafting", "Scheduled", "Posted", "Archived"];
+export const CONTENT_TYPES: ContentType[] = [
+  "Carousel",
+  "Static",
+  "Short-Form Video",
+  "Long-Form Video",
+  "Reel",
+  "Story",
+  "Feedback",
+];
 
 export type ContentItem = {
   id: string;
@@ -13,6 +23,7 @@ export type ContentItem = {
   platforms: Platform[];
   attachments: string;
   status: Status;
+  contentType: ContentType | "";
   performanceScore: string;
   notes: string;
   createdAt: number;
@@ -27,6 +38,7 @@ export const emptyItem = (): ContentItem => ({
   platforms: [],
   attachments: "",
   status: "Idea",
+  contentType: "",
   performanceScore: "",
   notes: "",
   createdAt: Date.now(),
@@ -47,6 +59,16 @@ export const PLATFORM_META: Record<Platform, { color: string; bg: string }> = {
   TikTok:    { color: "#111111", bg: "#ececec" },
   X:         { color: "#111111", bg: "#ececec" },
   Facebook:  { color: "#1877f2", bg: "#e7f0fe" },
+};
+
+export const CONTENT_TYPE_META: Record<ContentType, { tint: string; text: string; ring: string }> = {
+  Carousel:           { tint: "bg-pink-100",     text: "text-pink-800",     ring: "ring-pink-200" },
+  Static:             { tint: "bg-amber-100",    text: "text-amber-800",    ring: "ring-amber-200" },
+  "Short-Form Video": { tint: "bg-slate-700",    text: "text-slate-50",     ring: "ring-slate-600" },
+  "Long-Form Video":  { tint: "bg-indigo-700",   text: "text-indigo-50",    ring: "ring-indigo-600" },
+  Reel:               { tint: "bg-rose-700",     text: "text-rose-50",      ring: "ring-rose-600" },
+  Story:              { tint: "bg-fuchsia-100",  text: "text-fuchsia-800",  ring: "ring-fuchsia-200" },
+  Feedback:           { tint: "bg-emerald-700",  text: "text-emerald-50",   ring: "ring-emerald-600" },
 };
 
 // Approximate caption character limits per platform

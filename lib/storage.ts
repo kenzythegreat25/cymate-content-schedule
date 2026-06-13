@@ -1,4 +1,4 @@
-import type { ContentItem, Platform, Status } from "./types";
+import type { ContentItem, ContentType, Platform, Status } from "./types";
 import { supabaseBrowser } from "./supabase/client";
 
 type Row = {
@@ -11,6 +11,7 @@ type Row = {
   platforms: string[] | null;
   attachments: string | null;
   status: string;
+  content_type: string | null;
   performance_score: string | null;
   notes: string | null;
   created_at: string;
@@ -26,6 +27,7 @@ function fromRow(r: Row): ContentItem {
     platforms: (r.platforms ?? []) as Platform[],
     attachments: r.attachments ?? "",
     status: (r.status as Status) ?? "Idea",
+    contentType: (r.content_type ?? "") as ContentType | "",
     performanceScore: r.performance_score ?? "",
     notes: r.notes ?? "",
     createdAt: new Date(r.created_at).getTime(),
@@ -41,6 +43,7 @@ function toRow(item: Partial<ContentItem>): Partial<Row> {
   if (item.platforms !== undefined) row.platforms = item.platforms;
   if (item.attachments !== undefined) row.attachments = item.attachments;
   if (item.status !== undefined) row.status = item.status;
+  if (item.contentType !== undefined) row.content_type = item.contentType || null;
   if (item.performanceScore !== undefined) row.performance_score = item.performanceScore;
   if (item.notes !== undefined) row.notes = item.notes;
   return row;
