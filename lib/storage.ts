@@ -84,3 +84,36 @@ export async function deletePost(id: string): Promise<void> {
   const { error } = await supabase.from("posts").delete().eq("id", id);
   if (error) console.error("deletePost error", error);
 }
+
+export async function uploadImage(file: File, postId: string): Promise<string | null> {
+  const supabase = supabaseBrowser();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return null;
+
+  const ext = (file.name.split(".").pop() || "bin").toLowerCase();
+  const safeExt = /^[a-z0-9]{1,5}$/.test(ext) ? ext : "bin";
+  const path = `${userData.user.id}/${postId}/${Date.now()}.${safeExt}`;
+
+  const { error } = await supabase.storage
+    .from("post-images")
+    .upload(path, file, { cacheControl: "31536000", upsert: false, contentType: file.type });
+
+  if (error) {
+    console.error("uploadImage error", error);
+    return null;
+  }
+
+  const { data } = supabase.storage.from("post-images").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+export async function removeImage(url: string): Promise<void> {
+  const supabase = supabaseBrowser();
+  // Public URL pattern: .../storage/v1/object/public/post-images/<path>
+  const marker = "/post-images/";
+  const idx = url.indexOf(marker);
+  if (idx === -1) return;
+  const path = url.slice(idx + marker.length);
+  const { error } = await supabase.storage.from("post-images").remove([path]);
+  if (error) console.error("removeImage error", error);
+}

@@ -12,7 +12,7 @@ import {
   Status,
   emptyItem,
 } from "../../lib/types";
-import { createPost, deletePost, listPosts, updatePost } from "../../lib/storage";
+import { createPost, deletePost, listPosts, removeImage, updatePost, uploadImage } from "../../lib/storage";
 import { supabaseBrowser } from "../../lib/supabase/client";
 import { useTheme, type Theme } from "../../lib/theme";
 
@@ -559,8 +559,18 @@ function BoardCard({
   return (
     <div
       onClick={onClick}
-      className="group cursor-pointer rounded-xl border border-line bg-surface p-3.5 shadow-card transition-all hover:-translate-y-0.5 hover:shadow-card-lg"
+      className="group cursor-pointer overflow-hidden rounded-xl border border-line bg-surface shadow-card transition-all hover:-translate-y-0.5 hover:shadow-card-lg"
     >
+      {item.attachments && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={item.attachments}
+          alt=""
+          className="h-32 w-full object-cover"
+          loading="lazy"
+        />
+      )}
+      <div className="p-3.5">
       <div className="mb-2 flex items-center justify-between">
         <DateChip date={item.date} />
         <StatusMenu
@@ -584,6 +594,7 @@ function BoardCard({
             {item.performanceScore}
           </span>
         )}
+      </div>
       </div>
     </div>
   );
@@ -758,9 +769,19 @@ function ListView({
             onClick={() => onEdit(it.id)}
             className="group grid w-full grid-cols-[2fr_120px_120px_1.5fr_120px_60px] items-center gap-4 border-b border-line px-5 py-3 text-left text-sm last:border-b-0 hover:bg-surface-2"
           >
-            <div className="min-w-0">
-              <div className="truncate font-medium">{it.title || <span className="text-muted">Untitled</span>}</div>
-              {it.description && <div className="truncate text-xs text-ink-soft">{it.description}</div>}
+            <div className="flex min-w-0 items-center gap-3">
+              {it.attachments ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={it.attachments} alt="" className="h-10 w-10 shrink-0 rounded-md object-cover ring-1 ring-line" loading="lazy" />
+              ) : (
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-surface-2 text-muted ring-1 ring-line">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                </span>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-medium">{it.title || <span className="text-muted">Untitled</span>}</div>
+                {it.description && <div className="truncate text-xs text-ink-soft">{it.description}</div>}
+              </div>
             </div>
             <div className="text-xs text-ink-soft">
               {it.date ? formatDate(it.date) : <span className="text-muted">—</span>}
@@ -907,12 +928,11 @@ function EditDrawer({
           </section>
 
           <section>
-            <Field label="Attachment URL">
-              <input
-                value={item.attachments}
-                onChange={(e) => onChange({ attachments: e.target.value })}
-                className="input"
-                placeholder="https://…"
+            <Field label="Image">
+              <ImagePicker
+                postId={item.id}
+                url={item.attachments}
+                onChange={(url) => onChange({ attachments: url })}
               />
             </Field>
           </section>
@@ -973,6 +993,108 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
     <label className="block">
       <span className="mb-1.5 block text-[11px] font-medium uppercase tracking-[0.12em] text-muted">{label}</span>
       {children}
+    </label>
+  );
+}
+
+function ImagePicker({
+  postId,
+  url,
+  onChange,
+}: {
+  postId: string;
+  url: string;
+  onChange: (url: string) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const pickAndUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      setError("Please choose an image.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image must be under 5MB.");
+      return;
+    }
+    setError(null);
+    setUploading(true);
+    const next = await uploadImage(file, postId);
+    setUploading(false);
+    if (!next) {
+      setError("Upload failed. Make sure the post-images bucket exists in Supabase.");
+      return;
+    }
+    if (url) removeImage(url).catch(() => {});
+    onChange(next);
+  };
+
+  if (url) {
+    return (
+      <div className="relative overflow-hidden rounded-lg border border-line">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={url} alt="Attached" className="block max-h-64 w-full object-cover" />
+        <div className="flex items-center justify-between gap-2 border-t border-line bg-surface-2 px-3 py-2 text-xs">
+          <span className="truncate text-ink-soft">Uploaded</span>
+          <div className="flex gap-1">
+            <label className="cursor-pointer rounded-md border border-line bg-surface px-2 py-1 text-ink-soft hover:border-line-strong hover:text-ink">
+              Replace
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) pickAndUpload(f);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                removeImage(url).catch(() => {});
+                onChange("");
+              }}
+              className="rounded-md border border-line bg-surface px-2 py-1 text-red-600 hover:border-red-200"
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+        {error && <div className="border-t border-line bg-red-50 px-3 py-1.5 text-xs text-red-700">{error}</div>}
+      </div>
+    );
+  }
+
+  return (
+    <label
+      className="flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-line bg-surface-2 px-4 py-6 text-center text-xs text-ink-soft transition hover:border-line-strong hover:text-ink"
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => {
+        e.preventDefault();
+        const f = e.dataTransfer.files?.[0];
+        if (f) pickAndUpload(f);
+      }}
+    >
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-muted">
+        <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
+      </svg>
+      <span>{uploading ? "Uploading…" : "Drop an image or click to upload"}</span>
+      <span className="text-[11px] text-muted">PNG, JPG, WebP · up to 5MB</span>
+      <input
+        type="file"
+        accept="image/*"
+        className="hidden"
+        disabled={uploading}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) pickAndUpload(f);
+          e.target.value = "";
+        }}
+      />
+      {error && <span className="mt-1 text-red-600">{error}</span>}
     </label>
   );
 }
