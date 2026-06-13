@@ -10,9 +10,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div className="relative hidden flex-col justify-between overflow-hidden bg-ink p-12 text-canvas md:flex">
         <div className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-canvas text-ink">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M4 5l8 14L20 5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            <span className="text-[11px] font-semibold tracking-tight">CS</span>
           </div>
           <div className="leading-tight">
             <div className="text-sm font-semibold tracking-tight">Cymate</div>

@@ -306,9 +306,7 @@ function Footer() {
 
 function LogoMark() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-      <path d="M4 5l8 14L20 5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
+    <span className="text-[11px] font-semibold tracking-tight">CS</span>
   );
 }
 function CheckSmall() {

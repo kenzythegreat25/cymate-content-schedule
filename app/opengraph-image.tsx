@@ -59,13 +59,13 @@ export default async function OG() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 36,
+              fontSize: 26,
               fontWeight: 700,
-              fontFamily: "serif",
-              letterSpacing: -2,
+              fontFamily: "sans-serif",
+              letterSpacing: -1,
             }}
           >
-            V
+            CS
           </div>
           <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
             <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: -0.5 }}>Cymate</div>
