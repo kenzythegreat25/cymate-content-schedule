@@ -214,7 +214,6 @@ export default function Home() {
       {editing && (
         <EditDrawer
           item={editing}
-          reviewerName={userName}
           onClose={() => setEditingId(null)}
           onChange={(patch) => updateRow(editing.id, patch)}
           onDelete={() => deleteRow(editing.id)}
@@ -986,13 +985,11 @@ function ListView({
 
 function EditDrawer({
   item,
-  reviewerName,
   onClose,
   onChange,
   onDelete,
 }: {
   item: ContentItem;
-  reviewerName: string;
   onClose: () => void;
   onChange: (patch: Partial<ContentItem>) => void;
   onDelete: () => void;
@@ -1028,7 +1025,7 @@ function EditDrawer({
 
           {(item.status === "Review" || item.reviewStatus) && (
             <section>
-              <ReviewPanel item={item} reviewerName={reviewerName} onChange={onChange} />
+              <ReviewPanel item={item} onChange={onChange} />
             </section>
           )}
 
@@ -1198,13 +1195,13 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+const REVIEWER = "Wesley Hoang";
+
 function ReviewPanel({
   item,
-  reviewerName,
   onChange,
 }: {
   item: ContentItem;
-  reviewerName: string;
   onChange: (patch: Partial<ContentItem>) => void;
 }) {
   const current: ReviewStatus = item.reviewStatus || (item.status === "Review" ? "pending" : "");
@@ -1216,18 +1213,48 @@ function ReviewPanel({
     : "";
 
   const decide = (next: Exclude<ReviewStatus, "" | "pending">) => {
+    // Click an active button to toggle it off — clears the review state.
+    if (item.reviewStatus === next) {
+      onChange({
+        reviewStatus: "",
+        reviewedBy: "",
+        reviewedAt: "",
+      });
+      return;
+    }
     const patch: Partial<ContentItem> = {
       reviewStatus: next,
-      reviewedBy: reviewerName || "",
+      reviewedBy: REVIEWER,
       reviewedAt: new Date().toISOString(),
     };
     if (next === "approved") patch.status = "Drafting";
+    else if (next === "needs-revision") patch.status = "Review";
+    else if (next === "on-hold") patch.status = "Idea";
     onChange(patch);
+  };
+
+  const btn = (
+    next: Exclude<ReviewStatus, "" | "pending">,
+    activeClass: string,
+    idleClass: string,
+    label: React.ReactNode
+  ) => {
+    const active = item.reviewStatus === next;
+    return (
+      <button
+        type="button"
+        onClick={() => decide(next)}
+        aria-pressed={active}
+        className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${active ? activeClass : idleClass}`}
+      >
+        {label}
+      </button>
+    );
   };
 
   return (
     <div className="overflow-hidden rounded-xl border border-line bg-surface-2/40">
-      <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-3">
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted">Review</span>
           <span
@@ -1258,28 +1285,26 @@ function ReviewPanel({
         </Field>
 
         <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => decide("approved")}
-            className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white shadow-card hover:bg-emerald-700"
-          >
-            ✓ Approve &amp; send to Drafting
-          </button>
-          <button
-            type="button"
-            onClick={() => decide("needs-revision")}
-            className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-100"
-          >
-            ↺ Needs revision
-          </button>
-          <button
-            type="button"
-            onClick={() => decide("on-hold")}
-            className="rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink-soft hover:border-line-strong hover:text-ink"
-          >
-            ⏸ Hold
-          </button>
+          {btn(
+            "approved",
+            "bg-emerald-600 text-white shadow-card hover:bg-emerald-700",
+            "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
+            <>✓ Approve as {REVIEWER}</>
+          )}
+          {btn(
+            "needs-revision",
+            "bg-rose-600 text-white shadow-card hover:bg-rose-700",
+            "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100",
+            <>↺ Needs revision</>
+          )}
+          {btn(
+            "on-hold",
+            "bg-slate-700 text-white shadow-card hover:bg-slate-800",
+            "border border-line bg-surface text-ink-soft hover:border-line-strong hover:text-ink",
+            <>⏸ Hold</>
+          )}
         </div>
+        <div className="text-[11px] text-muted">Click an active button again to undo.</div>
       </div>
     </div>
   );
