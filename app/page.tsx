@@ -52,7 +52,7 @@ function Hero() {
   return (
     <section className="relative overflow-hidden">
       <div className="absolute -left-32 top-20 h-80 w-80 rounded-full bg-accent/15 blur-3xl" />
-      <div className="absolute -right-20 top-40 h-72 w-72 rounded-full bg-amber-400/15 blur-3xl" />
+      <div className="absolute -right-20 top-40 h-72 w-72 rounded-full bg-[#00e6ff]/20 blur-3xl" />
       <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-6 pb-20 pt-16 lg:grid-cols-12 lg:gap-8 lg:pt-24">
         <div className="lg:col-span-6">
           <div className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-2.5 py-1 text-[11px] text-ink-soft backdrop-blur">
@@ -248,7 +248,7 @@ function FinalCTA() {
     <section className="px-6 pb-24">
       <div className="relative mx-auto max-w-5xl overflow-hidden rounded-3xl bg-ink p-12 text-canvas shadow-card-lg md:p-16">
         <div className="absolute -left-16 -top-16 h-72 w-72 rounded-full bg-accent/30 blur-3xl" />
-        <div className="absolute -right-12 bottom-0 h-72 w-72 rounded-full bg-amber-400/15 blur-3xl" />
+        <div className="absolute -right-12 bottom-0 h-72 w-72 rounded-full bg-[#00e6ff]/20 blur-3xl" />
         <div className="relative grid items-end gap-8 md:grid-cols-12">
           <div className="md:col-span-7">
             <h2 className="serif text-4xl leading-tight tracking-tight md:text-5xl">

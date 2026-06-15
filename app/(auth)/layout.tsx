@@ -21,7 +21,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
         <div className="relative">
           <div className="absolute -left-8 -top-32 h-72 w-72 rounded-full bg-accent/30 blur-3xl" />
-          <div className="absolute -right-12 top-12 h-72 w-72 rounded-full bg-amber-500/20 blur-3xl" />
+          <div className="absolute -right-12 top-12 h-72 w-72 rounded-full bg-[#00e6ff]/25 blur-3xl" />
           <blockquote className="serif relative text-4xl leading-tight tracking-tight">
             One workspace for every post — from <em>raw idea</em> to performance <em>lookback</em>.
           </blockquote>

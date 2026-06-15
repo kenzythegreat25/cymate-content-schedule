@@ -9,23 +9,25 @@
   --muted: #8a827a;
   --line: #ece8df;
   --line-strong: #d9d3c5;
-  --accent: #6d28d9;
-  --accent-soft: #ede9fe;
-  --accent-ink: #4c1d95;
+  --accent: #fd5e02;        /* Cymate orange */
+  --accent-soft: #fff0e2;
+  --accent-ink: #b3420a;
+  --accent-2: #00e6ff;      /* Cymate cyan, used sparingly */
 }
 
 [data-theme="dark"] {
-  --canvas: #0c0c10;
-  --surface: #16161c;
-  --surface-2: #1c1c23;
+  --canvas: #1a2447;        /* Cymate dark blue, slightly deeper than brand */
+  --surface: #233362;       /* Cymate brand dark blue */
+  --surface-2: #2b3d72;
   --ink: #f3f0ea;
-  --ink-soft: #b8b2a8;
-  --muted: #7e786f;
-  --line: #25252d;
-  --line-strong: #3a3a44;
-  --accent: #a78bfa;
-  --accent-soft: #2a1f4a;
-  --accent-ink: #c4b5fd;
+  --ink-soft: #c3c8da;
+  --muted: #8c93af;
+  --line: #324581;
+  --line-strong: #4a5da0;
+  --accent: #fd5e02;        /* keep orange consistent across themes */
+  --accent-soft: #4a2310;
+  --accent-ink: #ffb274;
+  --accent-2: #00e6ff;
 }
 
 html { color-scheme: light; }
@@ -43,6 +45,7 @@ html[data-theme="dark"] { color-scheme: dark; }
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
   --color-accent-ink: var(--accent-ink);
+  --color-accent-2: var(--accent-2);
   --font-sans: var(--font-sans);
   --font-serif: var(--font-serif);
 }
