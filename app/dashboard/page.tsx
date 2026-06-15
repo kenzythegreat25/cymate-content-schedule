@@ -17,7 +17,17 @@ import {
   ContentType,
   emptyItem,
 } from "../../lib/types";
-import { createPost, deletePost, listPosts, removeImage, updatePost, uploadImage } from "../../lib/storage";
+import {
+  basenameFromUrl,
+  createPost,
+  deletePost,
+  downloadUrl,
+  isVideoUrl,
+  listPosts,
+  removeMedia,
+  updatePost,
+  uploadMedia,
+} from "../../lib/storage";
 import { supabaseBrowser } from "../../lib/supabase/client";
 import { useTheme, type Theme } from "../../lib/theme";
 
@@ -665,14 +675,20 @@ function BoardCard({
       onDragEnd={() => onDragEnd?.()}
       className={`group cursor-grab select-none overflow-hidden rounded-xl border border-line bg-surface shadow-card transition-all hover:-translate-y-0.5 hover:shadow-card-lg active:cursor-grabbing ${isDragging ? "rotate-1 opacity-50" : ""}`}
     >
-      {item.attachments && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={item.attachments}
-          alt=""
-          className="h-32 w-full object-cover"
-          loading="lazy"
-        />
+      {item.attachments[0] && (
+        <div className="relative">
+          {isVideoUrl(item.attachments[0]) ? (
+            <video src={item.attachments[0]} className="h-32 w-full object-cover" muted playsInline preload="metadata" />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={item.attachments[0]} alt="" className="h-32 w-full object-cover" loading="lazy" />
+          )}
+          {item.attachments.length > 1 && (
+            <span className="absolute right-2 top-2 rounded-full bg-ink/80 px-2 py-0.5 text-[10px] font-medium text-canvas backdrop-blur">
+              +{item.attachments.length - 1}
+            </span>
+          )}
+        </div>
       )}
       <div className="p-3.5">
       <div className="mb-2 flex items-center justify-between">
@@ -909,9 +925,13 @@ function ListView({
             className="group flex w-full flex-col gap-2 border-b border-line px-4 py-3 text-left text-sm last:border-b-0 hover:bg-surface-2 md:grid md:grid-cols-[2fr_120px_120px_1.5fr_120px_60px] md:items-center md:gap-4 md:px-5"
           >
             <div className="flex min-w-0 items-center gap-3">
-              {it.attachments ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={it.attachments} alt="" className="h-10 w-10 shrink-0 rounded-md object-cover ring-1 ring-line" loading="lazy" />
+              {it.attachments[0] ? (
+                isVideoUrl(it.attachments[0]) ? (
+                  <video src={it.attachments[0]} className="h-10 w-10 shrink-0 rounded-md object-cover ring-1 ring-line" muted playsInline preload="metadata" />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={it.attachments[0]} alt="" className="h-10 w-10 shrink-0 rounded-md object-cover ring-1 ring-line" loading="lazy" />
+                )
               ) : (
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-surface-2 text-muted ring-1 ring-line">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
@@ -1089,11 +1109,11 @@ function EditDrawer({
           </section>
 
           <section>
-            <Field label="Image">
-              <ImagePicker
+            <Field label="Media">
+              <MediaPicker
                 postId={item.id}
-                url={item.attachments}
-                onChange={(url) => onChange({ attachments: url })}
+                urls={item.attachments}
+                onChange={(urls) => onChange({ attachments: urls })}
               />
             </Field>
           </section>
@@ -1193,105 +1213,151 @@ function CharCounter({ text, platforms }: { text: string; platforms: Platform[] 
   );
 }
 
-function ImagePicker({
+const MAX_BYTES = 50 * 1024 * 1024;
+
+function MediaPicker({
   postId,
-  url,
+  urls,
   onChange,
 }: {
   postId: string;
-  url: string;
-  onChange: (url: string) => void;
+  urls: string[];
+  onChange: (urls: string[]) => void;
 }) {
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  const pickAndUpload = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      setError("Please choose an image.");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setError("Image must be under 5MB.");
-      return;
-    }
+  const handleFiles = async (files: FileList | File[]) => {
+    const list = Array.from(files);
+    if (list.length === 0) return;
     setError(null);
-    setUploading(true);
-    const next = await uploadImage(file, postId);
-    setUploading(false);
-    if (!next) {
-      setError("Upload failed. Make sure the post-images bucket exists in Supabase.");
-      return;
+
+    const accepted: File[] = [];
+    for (const f of list) {
+      if (!f.type.startsWith("image/") && !f.type.startsWith("video/")) {
+        setError(`Skipped "${f.name}" — only images and videos are supported.`);
+        continue;
+      }
+      if (f.size > MAX_BYTES) {
+        setError(`"${f.name}" is too large. Max 50MB per file.`);
+        continue;
+      }
+      accepted.push(f);
     }
-    if (url) removeImage(url).catch(() => {});
-    onChange(next);
+    if (accepted.length === 0) return;
+
+    setUploading((n) => n + accepted.length);
+    const results = await Promise.all(accepted.map((f) => uploadMedia(f, postId)));
+    setUploading((n) => Math.max(0, n - accepted.length));
+
+    const next = [...urls];
+    let failed = 0;
+    for (const r of results) {
+      if (r) next.push(r.url);
+      else failed++;
+    }
+    if (failed > 0) {
+      setError(`${failed} file${failed > 1 ? "s" : ""} failed to upload. Make sure the post-images bucket allows your file size.`);
+    }
+    if (next.length !== urls.length) onChange(next);
   };
 
-  if (url) {
-    return (
-      <div className="relative overflow-hidden rounded-lg border border-line">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={url} alt="Attached" className="block max-h-64 w-full object-cover" />
-        <div className="flex items-center justify-between gap-2 border-t border-line bg-surface-2 px-3 py-2 text-xs">
-          <span className="truncate text-ink-soft">Uploaded</span>
-          <div className="flex gap-1">
-            <label className="cursor-pointer rounded-md border border-line bg-surface px-2 py-1 text-ink-soft hover:border-line-strong hover:text-ink">
-              Replace
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) pickAndUpload(f);
-                  e.target.value = "";
-                }}
-              />
-            </label>
-            <button
-              type="button"
-              onClick={() => {
-                removeImage(url).catch(() => {});
-                onChange("");
-              }}
-              className="rounded-md border border-line bg-surface px-2 py-1 text-red-600 hover:border-red-200"
-            >
-              Remove
-            </button>
-          </div>
-        </div>
-        {error && <div className="border-t border-line bg-red-50 px-3 py-1.5 text-xs text-red-700">{error}</div>}
-      </div>
-    );
-  }
+  const removeAt = (idx: number) => {
+    const target = urls[idx];
+    const next = urls.filter((_, i) => i !== idx);
+    onChange(next);
+    removeMedia(target).catch(() => {});
+  };
 
   return (
-    <label
-      className="flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-line bg-surface-2 px-4 py-6 text-center text-xs text-ink-soft transition hover:border-line-strong hover:text-ink"
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={(e) => {
-        e.preventDefault();
-        const f = e.dataTransfer.files?.[0];
-        if (f) pickAndUpload(f);
-      }}
-    >
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-muted">
-        <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
-      </svg>
-      <span>{uploading ? "Uploading…" : "Drop an image or click to upload"}</span>
-      <span className="text-[11px] text-muted">PNG, JPG, WebP · up to 5MB</span>
-      <input
-        type="file"
-        accept="image/*"
-        className="hidden"
-        disabled={uploading}
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) pickAndUpload(f);
-          e.target.value = "";
+    <div className="space-y-2">
+      {urls.length > 0 && (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {urls.map((u, i) => (
+            <MediaTile key={u} url={u} onRemove={() => removeAt(i)} />
+          ))}
+        </div>
+      )}
+
+      <label
+        className={`flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-line bg-surface-2 text-center text-xs text-ink-soft transition hover:border-line-strong hover:text-ink ${urls.length > 0 ? "px-4 py-3" : "px-4 py-6"}`}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          e.preventDefault();
+          if (e.dataTransfer.files?.length) handleFiles(e.dataTransfer.files);
         }}
-      />
-      {error && <span className="mt-1 text-red-600">{error}</span>}
-    </label>
+      >
+        {urls.length === 0 && (
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-muted">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
+          </svg>
+        )}
+        <span>
+          {uploading > 0
+            ? `Uploading ${uploading} file${uploading > 1 ? "s" : ""}…`
+            : urls.length === 0
+            ? "Drop images or videos, or click to upload"
+            : "Add more"}
+        </span>
+        <span className="text-[11px] text-muted">PNG · JPG · WebP · MP4 · MOV — up to 50MB each</span>
+        <input
+          type="file"
+          accept="image/*,video/*"
+          multiple
+          className="hidden"
+          disabled={uploading > 0}
+          onChange={(e) => {
+            if (e.target.files?.length) handleFiles(e.target.files);
+            e.target.value = "";
+          }}
+        />
+      </label>
+
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-700">{error}</div>
+      )}
+    </div>
+  );
+}
+
+function MediaTile({ url, onRemove }: { url: string; onRemove: () => void }) {
+  const name = basenameFromUrl(url);
+  const video = isVideoUrl(url);
+  return (
+    <div className="group relative overflow-hidden rounded-lg border border-line bg-surface">
+      <div className="aspect-square w-full bg-surface-2">
+        {video ? (
+          <video src={url} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={url} alt={name} className="h-full w-full object-cover" loading="lazy" />
+        )}
+      </div>
+      <div className="flex items-center justify-between gap-1 border-t border-line bg-surface-2/60 px-1.5 py-1 text-[10px]">
+        <span className="truncate text-ink-soft" title={name}>{name}</span>
+        <div className="flex shrink-0 gap-0.5">
+          <a
+            href={downloadUrl(url, name)}
+            download={name}
+            onClick={(e) => e.stopPropagation()}
+            className="rounded-md px-1.5 py-0.5 text-ink-soft hover:bg-line/60 hover:text-ink"
+            title="Download"
+            aria-label={`Download ${name}`}
+          >
+            <DownloadIcon />
+          </a>
+          <button
+            type="button"
+            onClick={onRemove}
+            className="rounded-md px-1.5 py-0.5 text-ink-soft hover:bg-line/60 hover:text-red-600"
+            title="Remove"
+            aria-label={`Remove ${name}`}
+          >
+            <CloseIcon />
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1518,6 +1584,11 @@ function SparkIcon() {
 function SignOutIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+  );
+}
+function DownloadIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
   );
 }
 function SettingsIcon() {

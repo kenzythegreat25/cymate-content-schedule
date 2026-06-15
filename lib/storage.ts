@@ -10,6 +10,7 @@ type Row = {
   description: string | null;
   platforms: string[] | null;
   attachments: string | null;
+  attachment_urls: string[] | null;
   status: string;
   content_type: string | null;
   performance_score: string | null;
@@ -18,6 +19,8 @@ type Row = {
 };
 
 function fromRow(r: Row): ContentItem {
+  const fromArray = Array.isArray(r.attachment_urls) ? r.attachment_urls.filter(Boolean) : [];
+  const legacy = r.attachments && r.attachments.trim() ? [r.attachments.trim()] : [];
   return {
     id: r.id,
     title: r.title ?? "",
@@ -25,7 +28,7 @@ function fromRow(r: Row): ContentItem {
     onScreenText: r.on_screen_text ?? "",
     description: r.description ?? "",
     platforms: (r.platforms ?? []) as Platform[],
-    attachments: r.attachments ?? "",
+    attachments: fromArray.length ? fromArray : legacy,
     status: (r.status as Status) ?? "Idea",
     contentType: (r.content_type ?? "") as ContentType | "",
     performanceScore: r.performance_score ?? "",
@@ -41,7 +44,11 @@ function toRow(item: Partial<ContentItem>): Partial<Row> {
   if (item.onScreenText !== undefined) row.on_screen_text = item.onScreenText;
   if (item.description !== undefined) row.description = item.description;
   if (item.platforms !== undefined) row.platforms = item.platforms;
-  if (item.attachments !== undefined) row.attachments = item.attachments;
+  if (item.attachments !== undefined) {
+    row.attachment_urls = item.attachments;
+    // Keep legacy text column in sync with the first attachment so older deploys still see something.
+    row.attachments = item.attachments[0] ?? "";
+  }
   if (item.status !== undefined) row.status = item.status;
   if (item.contentType !== undefined) row.content_type = item.contentType || null;
   if (item.performanceScore !== undefined) row.performance_score = item.performanceScore;
@@ -88,35 +95,65 @@ export async function deletePost(id: string): Promise<void> {
   if (error) console.error("deletePost error", error);
 }
 
-export async function uploadImage(file: File, postId: string): Promise<string | null> {
+export type UploadedMedia = { url: string; name: string; type: string; size: number };
+
+export async function uploadMedia(file: File, postId: string): Promise<UploadedMedia | null> {
   const supabase = supabaseBrowser();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return null;
 
   const ext = (file.name.split(".").pop() || "bin").toLowerCase();
   const safeExt = /^[a-z0-9]{1,5}$/.test(ext) ? ext : "bin";
-  const path = `${userData.user.id}/${postId}/${Date.now()}.${safeExt}`;
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80) || "file";
+  const path = `${userData.user.id}/${postId}/${Date.now()}-${safeName}`;
 
   const { error } = await supabase.storage
     .from("post-images")
     .upload(path, file, { cacheControl: "31536000", upsert: false, contentType: file.type });
 
   if (error) {
-    console.error("uploadImage error", error);
+    console.error("uploadMedia error", error);
     return null;
   }
 
   const { data } = supabase.storage.from("post-images").getPublicUrl(path);
-  return data.publicUrl;
+  return { url: data.publicUrl, name: file.name, type: file.type, size: file.size };
 }
 
-export async function removeImage(url: string): Promise<void> {
+export async function removeMedia(url: string): Promise<void> {
   const supabase = supabaseBrowser();
   // Public URL pattern: .../storage/v1/object/public/post-images/<path>
   const marker = "/post-images/";
   const idx = url.indexOf(marker);
   if (idx === -1) return;
-  const path = url.slice(idx + marker.length);
+  const path = url.slice(idx + marker.length).split("?")[0];
   const { error } = await supabase.storage.from("post-images").remove([path]);
-  if (error) console.error("removeImage error", error);
+  if (error) console.error("removeMedia error", error);
+}
+
+// Helpers used by the UI to render previews + downloads.
+
+export function isVideoUrl(url: string): boolean {
+  return /\.(mp4|mov|webm|m4v|ogg)(\?|$)/i.test(url);
+}
+
+export function isImageUrl(url: string): boolean {
+  return /\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i.test(url);
+}
+
+export function downloadUrl(url: string, filename?: string): string {
+  const sep = url.includes("?") ? "&" : "?";
+  const name = filename ? encodeURIComponent(filename) : "true";
+  return `${url}${sep}download=${name}`;
+}
+
+export function basenameFromUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    const parts = u.pathname.split("/");
+    const last = decodeURIComponent(parts[parts.length - 1] || "file");
+    return last.replace(/^\d+-/, "");
+  } catch {
+    return "file";
+  }
 }

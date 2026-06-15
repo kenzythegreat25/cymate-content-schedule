@@ -21,7 +21,7 @@ export type ContentItem = {
   onScreenText: string;
   description: string;
   platforms: Platform[];
-  attachments: string;
+  attachments: string[];
   status: Status;
   contentType: ContentType | "";
   performanceScore: string;
@@ -36,7 +36,7 @@ export const emptyItem = (): ContentItem => ({
   onScreenText: "",
   description: "",
   platforms: [],
-  attachments: "",
+  attachments: [],
   status: "Idea",
   contentType: "",
   performanceScore: "",
