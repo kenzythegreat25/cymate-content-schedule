@@ -996,8 +996,15 @@ function EditDrawer({
 }) {
   return (
     <>
-      <div className="fixed inset-0 z-30 bg-ink/30 fade-in" onClick={onClose} />
-      <aside className="drawer-in fixed right-0 top-0 z-40 flex h-full w-full max-w-lg flex-col border-l border-line bg-surface shadow-card-lg">
+      <div className="fixed inset-0 z-30 bg-ink/50 fade-in" onClick={onClose} />
+      <div
+        className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto p-4 sm:items-center"
+        onClick={onClose}
+      >
+      <aside
+        className="modal-in relative my-auto flex max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between border-b border-line px-6 py-4">
           <div className="flex items-center gap-2">
             <StatusMenu status={item.status} onChange={(s) => onChange({ status: s })} />
@@ -1173,6 +1180,7 @@ function EditDrawer({
           </button>
         </div>
       </aside>
+      </div>
       <style>{`
         .input {
           width: 100%;
