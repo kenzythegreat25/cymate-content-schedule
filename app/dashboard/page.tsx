@@ -1072,6 +1072,15 @@ function EditDrawer({
             </Field>
           </section>
 
+          {item.contentType === "Carousel" && (
+            <section>
+              <SlideEditor
+                slides={item.slides}
+                onChange={(slides) => onChange({ slides })}
+              />
+            </section>
+          )}
+
           <section>
             <Field label="Platforms">
               <div className="flex flex-wrap gap-1.5">
@@ -1306,6 +1315,101 @@ function ReviewPanel({
         </div>
         <div className="text-[11px] text-muted">Click an active button again to undo.</div>
       </div>
+    </div>
+  );
+}
+
+function SlideEditor({
+  slides,
+  onChange,
+}: {
+  slides: string[];
+  onChange: (slides: string[]) => void;
+}) {
+  const update = (i: number, val: string) => {
+    const next = slides.slice();
+    next[i] = val;
+    onChange(next);
+  };
+  const addSlide = () => onChange([...slides, ""]);
+  const removeSlide = (i: number) => onChange(slides.filter((_, idx) => idx !== i));
+  const moveSlide = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= slides.length) return;
+    const next = slides.slice();
+    [next[i], next[j]] = [next[j], next[i]];
+    onChange(next);
+  };
+
+  return (
+    <div>
+      <div className="mb-1.5 flex items-center justify-between">
+        <span className="block text-[11px] font-medium uppercase tracking-[0.12em] text-muted">
+          Slides
+          {slides.length > 0 && (
+            <span className="ml-1.5 normal-case tracking-normal text-ink-soft">· {slides.length}</span>
+          )}
+        </span>
+      </div>
+      <div className="space-y-2">
+        {slides.length === 0 && (
+          <div className="rounded-lg border border-dashed border-line bg-surface-2/40 px-3 py-3 text-xs text-muted">
+            Add a slide for each frame of the carousel. The text here is what appears on each slide.
+          </div>
+        )}
+        {slides.map((s, i) => (
+          <div key={i} className="overflow-hidden rounded-lg border border-line bg-surface">
+            <div className="flex items-center justify-between gap-2 border-b border-line bg-surface-2/60 px-3 py-1.5">
+              <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-soft">
+                Slide {i + 1}
+              </span>
+              <div className="flex items-center gap-0.5">
+                <button
+                  type="button"
+                  onClick={() => moveSlide(i, -1)}
+                  disabled={i === 0}
+                  aria-label="Move slide up"
+                  className="rounded-md p-1 text-muted hover:bg-line/60 hover:text-ink disabled:opacity-30"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveSlide(i, 1)}
+                  disabled={i === slides.length - 1}
+                  aria-label="Move slide down"
+                  className="rounded-md p-1 text-muted hover:bg-line/60 hover:text-ink disabled:opacity-30"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeSlide(i)}
+                  aria-label="Remove slide"
+                  className="rounded-md p-1 text-muted hover:bg-line/60 hover:text-red-600"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+              </div>
+            </div>
+            <textarea
+              value={s}
+              onChange={(e) => update(i, e.target.value)}
+              placeholder={`What appears on slide ${i + 1}…`}
+              className="input min-h-16 rounded-none border-0 focus:shadow-none"
+              style={{ boxShadow: "none" }}
+            />
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={addSlide}
+        className="mt-2 inline-flex items-center gap-1 rounded-lg border border-dashed border-line bg-surface px-3 py-1.5 text-xs text-ink-soft hover:border-line-strong hover:text-ink"
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        Add slide
+      </button>
     </div>
   );
 }

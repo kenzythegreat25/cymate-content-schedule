@@ -1,11 +1,12 @@
 export type Platform = "LinkedIn" | "Instagram" | "Youtube" | "TikTok" | "X" | "Facebook";
 export type Status = "Idea" | "Review" | "Drafting" | "Scheduled" | "Posted" | "Archived";
-export type ContentType = "Carousel" | "Static" | "Short-Form Video" | "Long-Form Video" | "Reel" | "Story" | "Feedback";
+export type ContentType = "Text" | "Carousel" | "Static" | "Short-Form Video" | "Long-Form Video" | "Reel" | "Story" | "Feedback";
 export type ReviewStatus = "" | "pending" | "approved" | "needs-revision" | "on-hold";
 
 export const PLATFORMS: Platform[] = ["LinkedIn", "Instagram", "Youtube", "TikTok", "X", "Facebook"];
 export const STATUSES: Status[] = ["Idea", "Review", "Drafting", "Scheduled", "Posted", "Archived"];
 export const CONTENT_TYPES: ContentType[] = [
+  "Text",
   "Carousel",
   "Static",
   "Short-Form Video",
@@ -32,6 +33,7 @@ export type ContentItem = {
   reviewNote: string;
   reviewedBy: string;
   reviewedAt: string;
+  slides: string[];
 };
 
 export const emptyItem = (): ContentItem => ({
@@ -51,6 +53,7 @@ export const emptyItem = (): ContentItem => ({
   reviewNote: "",
   reviewedBy: "",
   reviewedAt: "",
+  slides: [],
 });
 
 export const STATUS_META: Record<Status, { dot: string; tint: string; text: string; ring: string; label: string }> = {
@@ -79,6 +82,7 @@ export const PLATFORM_META: Record<Platform, { color: string; bg: string }> = {
 };
 
 export const CONTENT_TYPE_META: Record<ContentType, { tint: string; text: string; ring: string }> = {
+  Text:               { tint: "bg-sky-100",      text: "text-sky-800",      ring: "ring-sky-200" },
   Carousel:           { tint: "bg-pink-100",     text: "text-pink-800",     ring: "ring-pink-200" },
   Static:             { tint: "bg-amber-100",    text: "text-amber-800",    ring: "ring-amber-200" },
   "Short-Form Video": { tint: "bg-slate-700",    text: "text-slate-50",     ring: "ring-slate-600" },

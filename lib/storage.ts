@@ -19,6 +19,7 @@ type Row = {
   review_note: string | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
+  slides: string[] | null;
   created_at: string;
 };
 
@@ -42,6 +43,7 @@ function fromRow(r: Row): ContentItem {
     reviewNote: r.review_note ?? "",
     reviewedBy: r.reviewed_by ?? "",
     reviewedAt: r.reviewed_at ?? "",
+    slides: Array.isArray(r.slides) ? r.slides : [],
   };
 }
 
@@ -65,6 +67,7 @@ function toRow(item: Partial<ContentItem>): Partial<Row> {
   if (item.reviewNote !== undefined) row.review_note = item.reviewNote;
   if (item.reviewedBy !== undefined) row.reviewed_by = item.reviewedBy || null;
   if (item.reviewedAt !== undefined) row.reviewed_at = item.reviewedAt || null;
+  if (item.slides !== undefined) row.slides = item.slides;
   return row;
 }
 

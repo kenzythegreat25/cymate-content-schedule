@@ -147,6 +147,7 @@ function ExportRow() {
       "platforms",
       "status",
       "content_type",
+      "slides",
       "review_status",
       "reviewed_by",
       "reviewed_at",
