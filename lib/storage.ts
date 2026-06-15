@@ -1,4 +1,4 @@
-import type { ContentItem, ContentType, Platform, Status } from "./types";
+import type { ContentItem, ContentType, Platform, ReviewStatus, Status } from "./types";
 import { supabaseBrowser } from "./supabase/client";
 
 type Row = {
@@ -15,6 +15,10 @@ type Row = {
   content_type: string | null;
   performance_score: string | null;
   notes: string | null;
+  review_status: string | null;
+  review_note: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
   created_at: string;
 };
 
@@ -34,6 +38,10 @@ function fromRow(r: Row): ContentItem {
     performanceScore: r.performance_score ?? "",
     notes: r.notes ?? "",
     createdAt: new Date(r.created_at).getTime(),
+    reviewStatus: (r.review_status ?? "") as ReviewStatus,
+    reviewNote: r.review_note ?? "",
+    reviewedBy: r.reviewed_by ?? "",
+    reviewedAt: r.reviewed_at ?? "",
   };
 }
 
@@ -53,6 +61,10 @@ function toRow(item: Partial<ContentItem>): Partial<Row> {
   if (item.contentType !== undefined) row.content_type = item.contentType || null;
   if (item.performanceScore !== undefined) row.performance_score = item.performanceScore;
   if (item.notes !== undefined) row.notes = item.notes;
+  if (item.reviewStatus !== undefined) row.review_status = item.reviewStatus || null;
+  if (item.reviewNote !== undefined) row.review_note = item.reviewNote;
+  if (item.reviewedBy !== undefined) row.reviewed_by = item.reviewedBy || null;
+  if (item.reviewedAt !== undefined) row.reviewed_at = item.reviewedAt || null;
   return row;
 }
 

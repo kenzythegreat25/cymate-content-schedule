@@ -12,9 +12,11 @@ import {
   STATUS_META,
   CONTENT_TYPES,
   CONTENT_TYPE_META,
+  REVIEW_STATUS_META,
   Platform,
   Status,
   ContentType,
+  ReviewStatus,
   emptyItem,
 } from "../../lib/types";
 import {
@@ -42,6 +44,7 @@ export default function Home() {
   const [platformFilter, setPlatformFilter] = useState<Platform | null>(null);
   const [loading, setLoading] = useState(true);
   const [userEmail, setUserEmail] = useState<string>("");
+  const [userName, setUserName] = useState<string>("");
 
   const pendingPatches = useRef<Record<string, Partial<ContentItem>>>({});
   const flushTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -53,6 +56,9 @@ export default function Home() {
       const { data: userData } = await supabase.auth.getUser();
       if (cancelled) return;
       setUserEmail(userData.user?.email ?? "");
+      const meta = (userData.user?.user_metadata ?? {}) as Record<string, string>;
+      const fullName = meta.full_name || [meta.first_name, meta.last_name].filter(Boolean).join(" ");
+      setUserName(fullName || (userData.user?.email ?? ""));
       const rows = await listPosts();
       if (cancelled) return;
       setItems(rows);
@@ -208,6 +214,7 @@ export default function Home() {
       {editing && (
         <EditDrawer
           item={editing}
+          reviewerName={userName}
           onClose={() => setEditingId(null)}
           onChange={(patch) => updateRow(editing.id, patch)}
           onDelete={() => deleteRow(editing.id)}
@@ -707,6 +714,11 @@ function BoardCard({
           {item.description}
         </p>
       )}
+      {item.reviewStatus && item.reviewStatus !== "pending" && (
+        <div className="mt-2">
+          <ReviewChip status={item.reviewStatus} by={item.reviewedBy} />
+        </div>
+      )}
       {item.contentType && (
         <div className="mt-2">
           <ContentTypeChip type={item.contentType} />
@@ -974,11 +986,13 @@ function ListView({
 
 function EditDrawer({
   item,
+  reviewerName,
   onClose,
   onChange,
   onDelete,
 }: {
   item: ContentItem;
+  reviewerName: string;
   onClose: () => void;
   onChange: (patch: Partial<ContentItem>) => void;
   onDelete: () => void;
@@ -1011,6 +1025,12 @@ function EditDrawer({
               className="w-full bg-transparent text-2xl font-medium leading-tight tracking-tight placeholder:text-muted focus:outline-none"
             />
           </section>
+
+          {(item.status === "Review" || item.reviewStatus) && (
+            <section>
+              <ReviewPanel item={item} reviewerName={reviewerName} onChange={onChange} />
+            </section>
+          )}
 
           <section className="grid grid-cols-2 gap-4">
             <Field label="Publish date">
@@ -1175,6 +1195,93 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
       <span className="mb-1.5 block text-[11px] font-medium uppercase tracking-[0.12em] text-muted">{label}</span>
       {children}
     </label>
+  );
+}
+
+function ReviewPanel({
+  item,
+  reviewerName,
+  onChange,
+}: {
+  item: ContentItem;
+  reviewerName: string;
+  onChange: (patch: Partial<ContentItem>) => void;
+}) {
+  const current: ReviewStatus = item.reviewStatus || (item.status === "Review" ? "pending" : "");
+  const meta = current && current !== "pending" ? REVIEW_STATUS_META[current as Exclude<ReviewStatus, "" | "pending">] : null;
+  const pendingMeta = REVIEW_STATUS_META.pending;
+
+  const stamp = item.reviewedAt
+    ? new Date(item.reviewedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
+    : "";
+
+  const decide = (next: Exclude<ReviewStatus, "" | "pending">) => {
+    const patch: Partial<ContentItem> = {
+      reviewStatus: next,
+      reviewedBy: reviewerName || "",
+      reviewedAt: new Date().toISOString(),
+    };
+    if (next === "approved") patch.status = "Drafting";
+    onChange(patch);
+  };
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-line bg-surface-2/40">
+      <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted">Review</span>
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ${
+              meta ? `${meta.tint} ${meta.text} ${meta.ring}` : `${pendingMeta.tint} ${pendingMeta.text} ${pendingMeta.ring}`
+            }`}
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${meta ? meta.dot : pendingMeta.dot}`} />
+            {meta ? meta.label : pendingMeta.label}
+          </span>
+        </div>
+        {item.reviewedBy && (
+          <span className="text-[11px] text-muted">
+            by <span className="text-ink-soft">{item.reviewedBy}</span>
+            {stamp && <> · {stamp}</>}
+          </span>
+        )}
+      </div>
+
+      <div className="space-y-3 px-4 py-3">
+        <Field label="Reviewer note">
+          <textarea
+            value={item.reviewNote}
+            onChange={(e) => onChange({ reviewNote: e.target.value })}
+            placeholder="Add a comment so the author knows what to change…"
+            className="input min-h-20"
+          />
+        </Field>
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => decide("approved")}
+            className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white shadow-card hover:bg-emerald-700"
+          >
+            ✓ Approve &amp; send to Drafting
+          </button>
+          <button
+            type="button"
+            onClick={() => decide("needs-revision")}
+            className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-100"
+          >
+            ↺ Needs revision
+          </button>
+          <button
+            type="button"
+            onClick={() => decide("on-hold")}
+            className="rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink-soft hover:border-line-strong hover:text-ink"
+          >
+            ⏸ Hold
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1378,6 +1485,19 @@ function ContentTypeChip({ type }: { type: ContentType }) {
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ${m.tint} ${m.text} ${m.ring}`}>
       {type}
+    </span>
+  );
+}
+
+function ReviewChip({ status, by }: { status: ReviewStatus; by: string }) {
+  if (!status || status === "pending") return null;
+  const m = REVIEW_STATUS_META[status as Exclude<ReviewStatus, "" | "pending">];
+  const glyph = status === "approved" ? "✓" : status === "needs-revision" ? "↺" : "⏸";
+  const first = (by || "").split(" ")[0];
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ${m.tint} ${m.text} ${m.ring}`} title={`${m.label}${by ? ` · ${by}` : ""}`}>
+      <span aria-hidden>{glyph}</span>
+      {m.label}{first && <> · {first}</>}
     </span>
   );
 }

@@ -1,9 +1,10 @@
 export type Platform = "LinkedIn" | "Instagram" | "Youtube" | "TikTok" | "X" | "Facebook";
-export type Status = "Idea" | "Drafting" | "Scheduled" | "Posted" | "Archived";
+export type Status = "Idea" | "Review" | "Drafting" | "Scheduled" | "Posted" | "Archived";
 export type ContentType = "Carousel" | "Static" | "Short-Form Video" | "Long-Form Video" | "Reel" | "Story" | "Feedback";
+export type ReviewStatus = "" | "pending" | "approved" | "needs-revision" | "on-hold";
 
 export const PLATFORMS: Platform[] = ["LinkedIn", "Instagram", "Youtube", "TikTok", "X", "Facebook"];
-export const STATUSES: Status[] = ["Idea", "Drafting", "Scheduled", "Posted", "Archived"];
+export const STATUSES: Status[] = ["Idea", "Review", "Drafting", "Scheduled", "Posted", "Archived"];
 export const CONTENT_TYPES: ContentType[] = [
   "Carousel",
   "Static",
@@ -27,6 +28,10 @@ export type ContentItem = {
   performanceScore: string;
   notes: string;
   createdAt: number;
+  reviewStatus: ReviewStatus;
+  reviewNote: string;
+  reviewedBy: string;
+  reviewedAt: string;
 };
 
 export const emptyItem = (): ContentItem => ({
@@ -42,14 +47,26 @@ export const emptyItem = (): ContentItem => ({
   performanceScore: "",
   notes: "",
   createdAt: Date.now(),
+  reviewStatus: "",
+  reviewNote: "",
+  reviewedBy: "",
+  reviewedAt: "",
 });
 
 export const STATUS_META: Record<Status, { dot: string; tint: string; text: string; ring: string; label: string }> = {
   Idea:      { dot: "bg-violet-500",  tint: "bg-violet-50",   text: "text-violet-700",  ring: "ring-violet-100",  label: "Idea" },
+  Review:    { dot: "bg-orange-500",  tint: "bg-orange-50",   text: "text-orange-700",  ring: "ring-orange-100",  label: "Review" },
   Drafting:  { dot: "bg-amber-500",   tint: "bg-amber-50",    text: "text-amber-700",   ring: "ring-amber-100",   label: "Drafting" },
   Scheduled: { dot: "bg-sky-500",     tint: "bg-sky-50",      text: "text-sky-700",     ring: "ring-sky-100",     label: "Scheduled" },
   Posted:    { dot: "bg-emerald-500", tint: "bg-emerald-50",  text: "text-emerald-700", ring: "ring-emerald-100", label: "Posted" },
   Archived:  { dot: "bg-stone-400",   tint: "bg-stone-100",   text: "text-stone-600",   ring: "ring-stone-200",   label: "Archived" },
+};
+
+export const REVIEW_STATUS_META: Record<Exclude<ReviewStatus, "">, { label: string; tint: string; text: string; ring: string; dot: string }> = {
+  pending:         { label: "Awaiting review",  tint: "bg-orange-50",   text: "text-orange-700",   ring: "ring-orange-100",   dot: "bg-orange-500" },
+  approved:        { label: "Approved",         tint: "bg-emerald-50",  text: "text-emerald-700",  ring: "ring-emerald-100",  dot: "bg-emerald-500" },
+  "needs-revision":{ label: "Needs revision",   tint: "bg-rose-50",     text: "text-rose-700",     ring: "ring-rose-100",     dot: "bg-rose-500" },
+  "on-hold":       { label: "On hold",          tint: "bg-slate-100",   text: "text-slate-700",    ring: "ring-slate-200",    dot: "bg-slate-500" },
 };
 
 export const PLATFORM_META: Record<Platform, { color: string; bg: string }> = {
