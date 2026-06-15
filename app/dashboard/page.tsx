@@ -240,15 +240,20 @@ function Sidebar({
         }`}
       >
       <div className="mb-7 flex items-center justify-between gap-2.5 px-1">
-        <div className="flex items-center gap-2.5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink text-canvas">
-          <LogoMark />
-        </div>
-        <div className="leading-tight">
-          <div className="text-sm font-semibold tracking-tight">Cymate</div>
-          <div className="text-[11px] text-muted">Content Studio</div>
-        </div>
-        </div>
+        <Link
+          href="/"
+          onClick={onMobileClose}
+          className="flex items-center gap-2.5 rounded-md outline-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-accent-soft"
+          aria-label="Go to home"
+        >
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink text-canvas">
+            <LogoMark />
+          </div>
+          <div className="leading-tight">
+            <div className="text-sm font-semibold tracking-tight">Cymate</div>
+            <div className="text-[11px] text-muted">Content Studio</div>
+          </div>
+        </Link>
         <button
           onClick={onMobileClose}
           aria-label="Close menu"

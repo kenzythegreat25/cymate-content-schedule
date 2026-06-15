@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ThemeChip } from "./ThemeChip";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -8,7 +9,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </div>
 
       <div className="relative hidden flex-col justify-between overflow-hidden bg-ink p-12 text-canvas md:flex">
-        <div className="flex items-center gap-2.5">
+        <Link href="/" className="flex items-center gap-2.5 rounded-md outline-none hover:opacity-80" aria-label="Go to home">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-canvas text-ink">
             <span className="text-[11px] font-semibold tracking-tight">CS</span>
           </div>
@@ -16,7 +17,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <div className="text-sm font-semibold tracking-tight">Cymate</div>
             <div className="text-[11px] text-canvas/60">Content Studio</div>
           </div>
-        </div>
+        </Link>
 
         <div className="relative">
           <div className="absolute -left-8 -top-32 h-72 w-72 rounded-full bg-accent/30 blur-3xl" />
