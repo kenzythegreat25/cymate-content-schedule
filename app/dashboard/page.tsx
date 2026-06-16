@@ -1232,11 +1232,14 @@ function ReviewPanel({
   const decide = (next: Exclude<ReviewStatus, "" | "pending">) => {
     // Click an active button to toggle it off — clears the review state.
     if (item.reviewStatus === next) {
-      onChange({
+      const patch: Partial<ContentItem> = {
         reviewStatus: "",
         reviewedBy: "",
         reviewedAt: "",
-      });
+      };
+      // Un-approving sends the card back to Idea.
+      if (next === "approved") patch.status = "Idea";
+      onChange(patch);
       return;
     }
     const patch: Partial<ContentItem> = {
@@ -1244,7 +1247,7 @@ function ReviewPanel({
       reviewedBy: REVIEWER,
       reviewedAt: new Date().toISOString(),
     };
-    if (next === "approved") patch.status = "Drafting";
+    if (next === "approved") patch.status = "Scheduled";
     else if (next === "needs-revision") patch.status = "Review";
     else if (next === "on-hold") patch.status = "Idea";
     onChange(patch);
