@@ -715,7 +715,7 @@ function BoardCard({
       )}
       {item.reviewStatus && item.reviewStatus !== "pending" && (
         <div className="mt-2">
-          <ReviewChip status={item.reviewStatus} by={item.reviewedBy} />
+          <ReviewChip status={item.reviewStatus} />
         </div>
       )}
       {item.contentType && (
@@ -1271,22 +1271,19 @@ function ReviewPanel({
 
   return (
     <div className="overflow-hidden rounded-xl border border-line bg-surface-2/40">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted">Review</span>
-          <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ${
-              meta ? `${meta.tint} ${meta.text} ${meta.ring}` : `${pendingMeta.tint} ${pendingMeta.text} ${pendingMeta.ring}`
-            }`}
-          >
-            <span className={`h-1.5 w-1.5 rounded-full ${meta ? meta.dot : pendingMeta.dot}`} />
-            {meta ? meta.label : pendingMeta.label}
-          </span>
-        </div>
-        {item.reviewedBy && (
+      <div className="flex items-center gap-2 border-b border-line px-4 py-3">
+        <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted">Review</span>
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ${
+            meta ? `${meta.tint} ${meta.text} ${meta.ring}` : `${pendingMeta.tint} ${pendingMeta.text} ${pendingMeta.ring}`
+          }`}
+        >
+          <span className={`h-1.5 w-1.5 rounded-full ${meta ? meta.dot : pendingMeta.dot}`} />
+          {meta ? meta.label : pendingMeta.label}
+        </span>
+        {item.reviewedAt && (
           <span className="text-[11px] text-muted">
-            by <span className="text-ink-soft">{item.reviewedBy}</span>
-            {stamp && <> · {stamp}</>}
+            {new Date(item.reviewedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
           </span>
         )}
       </div>
@@ -1306,7 +1303,7 @@ function ReviewPanel({
             "approved",
             "bg-emerald-600 text-white shadow-card hover:bg-emerald-700",
             "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
-            <>✓ Approve as {REVIEWER}</>
+            <>✓ Approve</>
           )}
           {btn(
             "needs-revision",
@@ -1626,15 +1623,14 @@ function ContentTypeChip({ type }: { type: ContentType }) {
   );
 }
 
-function ReviewChip({ status, by }: { status: ReviewStatus; by: string }) {
+function ReviewChip({ status }: { status: ReviewStatus }) {
   if (!status || status === "pending") return null;
   const m = REVIEW_STATUS_META[status as Exclude<ReviewStatus, "" | "pending">];
   const glyph = status === "approved" ? "✓" : status === "needs-revision" ? "↺" : "⏸";
-  const first = (by || "").split(" ")[0];
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ${m.tint} ${m.text} ${m.ring}`} title={`${m.label}${by ? ` · ${by}` : ""}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ${m.tint} ${m.text} ${m.ring}`} title={m.label}>
       <span aria-hidden>{glyph}</span>
-      {m.label}{first && <> · {first}</>}
+      {m.label}
     </span>
   );
 }
