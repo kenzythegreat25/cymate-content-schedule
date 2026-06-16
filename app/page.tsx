@@ -98,61 +98,187 @@ function Hero() {
 
 function MockBoard() {
   return (
-    <div className="relative">
-      <div className="absolute inset-0 -rotate-2 rounded-2xl bg-accent/5" />
-      <div className="relative grid grid-cols-2 gap-3 rounded-2xl border border-line bg-surface p-3 shadow-card-lg">
-        <MockColumn dot="bg-amber-500" label="Drafting" count={2}>
-          <MockCard title="Founder Q&A — bootstrap edition" date="Jun 16" badges={["LI", "IG"]} />
-          <MockCard title="Hot take: meeting culture" date="Jun 14" badges={["X", "LI"]} />
-        </MockColumn>
-        <MockColumn dot="bg-sky-500" label="Scheduled" count={1}>
-          <MockCard title="Q3 product reveal teaser" date="Jun 13" badges={["LI", "IG", "YT"]} highlight />
-        </MockColumn>
-        <MockColumn dot="bg-emerald-500" label="Posted" count={1}>
-          <MockCard title="Customer story: Aviary Labs" date="Jun 9" badges={["LI", "YT"]} perf="12.4k views" />
-        </MockColumn>
-        <MockColumn dot="bg-violet-500" label="Idea" count={1}>
-          <MockCard title="Behind the build: design system" date="Jun 19" badges={["YT", "TT"]} />
-        </MockColumn>
-      </div>
-    </div>
-  );
-}
-
-function MockColumn({ dot, label, count, children }: { dot: string; label: string; count: number; children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl bg-surface-2 p-2">
-      <div className="mb-2 flex items-center gap-1.5 px-1">
-        <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
-        <span className="text-[11px] font-medium">{label}</span>
-        <span className="text-[10px] text-muted">{count}</span>
-      </div>
-      <div className="space-y-1.5">{children}</div>
-    </div>
-  );
-}
-
-function MockCard({ title, date, badges, perf, highlight }: { title: string; date: string; badges: string[]; perf?: string; highlight?: boolean }) {
-  return (
-    <div className={`rounded-lg border bg-surface p-2 shadow-card transition ${highlight ? "border-accent/40 ring-2 ring-accent/10" : "border-line"}`}>
-      <div className="flex items-center justify-between text-[9px] text-muted">
-        <span>📅 {date}</span>
-      </div>
-      <div className="mt-1 line-clamp-2 text-[11px] font-medium leading-snug">{title}</div>
-      <div className="mt-2 flex items-center justify-between">
-        <div className="flex -space-x-1">
-          {badges.map((b, i) => (
-            <span key={i} className="flex h-4 w-4 items-center justify-center rounded-full bg-line text-[8px] font-semibold text-ink ring-2 ring-surface">
-              {b}
-            </span>
-          ))}
+    <div className="cs-demo">
+      <div className="cs-board">
+        <div className="cs-col">
+          <div className="cs-colhead"><span className="cs-dot cs-idea" /><span>Idea</span><span className="cs-count">2</span></div>
+          <div className="cs-static"><div className="cs-static-title">Behind the build</div>Process video.</div>
+          <div className="cs-static"><div className="cs-static-title">Hot take</div>Meeting culture.</div>
         </div>
-        {perf && (
-          <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-medium text-emerald-700">
-            {perf}
-          </span>
-        )}
+        <div className="cs-col">
+          <div className="cs-colhead"><span className="cs-dot cs-review" /><span>Review</span><span className="cs-count">1</span></div>
+          <div className="cs-static"><div className="cs-static-title">Founder Q&amp;A</div>Carousel of 8.</div>
+        </div>
+        <div className="cs-col">
+          <div className="cs-colhead"><span className="cs-dot cs-scheduled" /><span>Scheduled</span><span className="cs-count">1</span></div>
+          <div className="cs-static"><div className="cs-static-title">Customer story</div>3× faster.</div>
+        </div>
+        <div className="cs-col">
+          <div className="cs-colhead"><span className="cs-dot cs-posted" /><span>Posted</span><span className="cs-count">1</span></div>
+          <div className="cs-static"><div className="cs-static-title">Launch teaser</div><span className="cs-pill cs-perf">8.2k views</span></div>
+        </div>
+
+        <div className="cs-hero">
+          <div className="cs-hero-date">Jun 22</div>
+          <div className="cs-status-track">
+            <span className="cs-status-pill cs-s-idea">● Idea</span>
+            <span className="cs-status-pill cs-s-review">● Review</span>
+            <span className="cs-status-pill cs-s-scheduled">● Scheduled</span>
+            <span className="cs-status-pill cs-s-posted">● Posted</span>
+          </div>
+          <div className="cs-hero-title">Q3 product reveal</div>
+          <div className="cs-hero-desc">60-sec cinematic cut.</div>
+          <div className="cs-platforms">
+            <span className="cs-p cs-p-li">in</span>
+            <span className="cs-p cs-p-ig">●</span>
+            <span className="cs-p cs-p-yt">▶</span>
+            <span className="cs-attach">+3</span>
+          </div>
+          <div className="cs-review-row">
+            <span className="cs-pill cs-approved-chip">✓ Approved</span>
+            <span className="cs-pill cs-perf cs-perf-chip">12.4k views</span>
+          </div>
+        </div>
       </div>
+
+      <div className="cs-spots">
+        <div className="cs-spot cs-spot-1">
+          <div className="cs-spot-label">Media</div>
+          <div className="cs-spot-title">Drop 1, drop 10</div>
+          <div className="cs-media-row">
+            <div className="cs-media-tile cs-img-a" />
+            <div className="cs-media-tile cs-img-b" />
+            <div className="cs-media-tile cs-vid">▶</div>
+          </div>
+        </div>
+        <div className="cs-spot cs-spot-2">
+          <div className="cs-spot-label">Review</div>
+          <div className="cs-spot-title">One-click approve</div>
+          <span className="cs-pill-aw">● Awaiting</span>
+          <div className="cs-review-spot">
+            <span className="cs-spot-btn cs-btn-approve">✓ Approve</span>
+            <span className="cs-spot-btn cs-btn-rev">↺ Revise</span>
+          </div>
+        </div>
+        <div className="cs-spot cs-spot-3">
+          <div className="cs-spot-label">Reminders</div>
+          <div className="cs-spot-title">Email the day before</div>
+          <div className="cs-email">
+            <div className="cs-email-from"><span>Content Studio</span><span>now</span></div>
+            <div className="cs-email-sub">Posting tomorrow ✦ Q3 reveal</div>
+          </div>
+        </div>
+        <div className="cs-spot cs-spot-4">
+          <div className="cs-spot-label">Export</div>
+          <div className="cs-spot-title">CSV any time</div>
+          <div className="cs-csv-row">
+            <div className="cs-csv-icon">CSV</div>
+            <div>
+              <div className="cs-csv-name">content_schedule.csv</div>
+              <div className="cs-csv-meta">42 rows · download</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        .cs-demo {
+          position: relative;
+          border-radius: 16px;
+          border: 1px solid var(--line);
+          background: var(--surface);
+          padding: 18px 16px 16px;
+          box-shadow: 0 1px 2px rgba(26,22,20,0.04), 0 12px 32px rgba(26,22,20,0.06);
+        }
+        .cs-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; position: relative; min-height: 220px; }
+        .cs-col { background: var(--surface-2); border: 0.5px solid var(--line); border-radius: 10px; padding: 6px; min-height: 220px; }
+        .cs-colhead { display: flex; align-items: center; gap: 5px; margin-bottom: 6px; padding-left: 2px; font-size: 9px; font-weight: 500; color: var(--ink); }
+        .cs-colhead .cs-count { color: var(--muted); font-weight: 400; margin-left: auto; }
+        .cs-dot { width: 5px; height: 5px; border-radius: 50%; display: inline-block; }
+        .cs-idea { background: #8b5cf6; }
+        .cs-review { background: var(--accent); }
+        .cs-scheduled { background: #0ea5e9; }
+        .cs-posted { background: #10b981; }
+        .cs-static { background: var(--surface); border: 0.5px solid var(--line); border-radius: 7px; padding: 5px 7px; font-size: 9px; line-height: 1.3; margin-bottom: 5px; color: var(--ink-soft); }
+        .cs-static-title { color: var(--ink); font-weight: 500; font-size: 9px; margin-bottom: 2px; }
+        .cs-pill { display: inline-flex; align-items: center; gap: 3px; padding: 1px 5px; border-radius: 999px; font-size: 8px; line-height: 1.4; }
+        .cs-perf { background: rgba(16,185,129,0.12); color: #065f46; font-weight: 500; }
+        .cs-approved-chip { background: rgba(16,185,129,0.12); color: #065f46; opacity: 0; animation: csApprove 16s linear infinite; }
+        .cs-perf-chip { opacity: 0; animation: csPerf 16s linear infinite; }
+
+        .cs-hero {
+          position: absolute; width: calc(25% - 14px); left: 7px; top: 22px;
+          background: var(--surface); border: 0.5px solid var(--line-strong);
+          border-radius: 8px; padding: 6px 7px 7px;
+          box-shadow: 0 3px 10px rgba(26,22,20,0.10);
+          animation: csTravel 16s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+        }
+        .cs-hero-date { font-size: 8px; color: var(--muted); margin-bottom: 2px; }
+        .cs-hero-title { font-size: 10px; font-weight: 500; color: var(--ink); line-height: 1.2; margin-bottom: 3px; }
+        .cs-hero-desc { font-size: 8px; color: var(--ink-soft); line-height: 1.3; margin-bottom: 4px; }
+        .cs-platforms { display: flex; gap: 3px; align-items: center; margin-bottom: 3px; }
+        .cs-platforms .cs-p { width: 12px; height: 12px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 7px; font-weight: 500; }
+        .cs-p-li { background: #e8f1fb; color: #0a66c2; }
+        .cs-p-ig { background: #fde7f3; color: #d6249f; }
+        .cs-p-yt { background: #fde6e6; color: #cc0000; }
+        .cs-attach { background: rgba(26,22,20,0.08); color: var(--ink-soft); font-size: 7px; padding: 1px 4px; border-radius: 999px; margin-left: auto; }
+        .cs-review-row { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
+
+        .cs-status-track { position: relative; height: 12px; margin-bottom: 3px; }
+        .cs-status-pill { position: absolute; padding: 1px 5px; border-radius: 999px; font-size: 7px; line-height: 1.5; font-weight: 500; }
+        .cs-s-idea     { background: #ede9fe;            color: #5b21b6; animation: csShow1 16s linear infinite; }
+        .cs-s-review   { background: rgba(253,94,2,0.12); color: #b3420a; animation: csShow2 16s linear infinite; }
+        .cs-s-scheduled{ background: #e0f2fe;            color: #075985; animation: csShow3 16s linear infinite; }
+        .cs-s-posted   { background: #d1fae5;            color: #065f46; animation: csShow4 16s linear infinite; }
+
+        @keyframes csTravel {
+          0%, 4% { transform: translate(0%, 0); }
+          14%, 24% { transform: translate(100%, 0); }
+          34%, 44% { transform: translate(200%, 0); }
+          54%, 92% { transform: translate(300%, 0); }
+          98%, 100% { transform: translate(300%, 0); opacity: 0; }
+        }
+        @keyframes csApprove { 0%, 24% { opacity: 0; transform: scale(0.85); } 34%, 92% { opacity: 1; transform: scale(1); } 98%, 100% { opacity: 0; } }
+        @keyframes csPerf    { 0%, 54% { opacity: 0; transform: scale(0.85); } 62%, 92% { opacity: 1; transform: scale(1); } 98%, 100% { opacity: 0; } }
+        @keyframes csShow1 { 0%, 4% { opacity: 1; } 4.01%, 100% { opacity: 0; } }
+        @keyframes csShow2 { 0%, 4% { opacity: 0; } 4.01%, 24% { opacity: 1; } 24.01%, 100% { opacity: 0; } }
+        @keyframes csShow3 { 0%, 24% { opacity: 0; } 24.01%, 44% { opacity: 1; } 44.01%, 100% { opacity: 0; } }
+        @keyframes csShow4 { 0%, 44% { opacity: 0; } 44.01%, 92% { opacity: 1; } 92.01%, 100% { opacity: 0; } }
+
+        .cs-spots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+        .cs-spot { background: var(--surface); border: 0.5px solid var(--line); border-radius: 10px; padding: 8px 9px; min-height: 96px; display: flex; flex-direction: column; gap: 5px; transition: transform 0.4s, border-color 0.4s, box-shadow 0.4s; opacity: 0.55; }
+        .cs-spot-label { font-size: 8px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 500; }
+        .cs-spot-title { font-size: 10px; font-weight: 500; color: var(--ink); line-height: 1.2; }
+        .cs-spot-1 { animation: csSpot 16s linear infinite; animation-delay: 0s; }
+        .cs-spot-2 { animation: csSpot 16s linear infinite; animation-delay: -12s; }
+        .cs-spot-3 { animation: csSpot 16s linear infinite; animation-delay: -8s; }
+        .cs-spot-4 { animation: csSpot 16s linear infinite; animation-delay: -4s; }
+        @keyframes csSpot {
+          0%, 18%   { opacity: 1; transform: scale(1.02); border-color: var(--accent); box-shadow: 0 4px 14px rgba(253,94,2,0.18); }
+          25%, 100% { opacity: 0.55; transform: scale(1); border-color: var(--line); box-shadow: none; }
+        }
+
+        .cs-media-row { display: flex; gap: 3px; }
+        .cs-media-tile { flex: 1; aspect-ratio: 1; border-radius: 4px; border: 0.5px solid var(--line); display: flex; align-items: center; justify-content: center; color: var(--canvas); font-size: 9px; }
+        .cs-img-a { background: linear-gradient(135deg, #fbe4d2, #f4c0d1); }
+        .cs-img-b { background: linear-gradient(135deg, #d6efff, #e0d8ff); }
+        .cs-vid   { background: var(--ink); }
+
+        .cs-pill-aw { background: rgba(253,94,2,0.12); color: #b3420a; font-size: 7px; padding: 1px 5px; border-radius: 999px; display: inline-block; align-self: flex-start; }
+        .cs-review-spot { display: flex; gap: 3px; align-items: center; }
+        .cs-spot-btn { font-size: 7px; padding: 2px 5px; border-radius: 4px; font-weight: 500; }
+        .cs-btn-approve { background: #059669; color: #fff; }
+        .cs-btn-rev { background: #fee2e2; color: #991b1b; border: 0.5px solid #fecaca; }
+
+        .cs-email { background: var(--surface-2); border-radius: 5px; padding: 5px 6px; font-size: 8px; color: var(--ink-soft); border: 0.5px solid var(--line); }
+        .cs-email-from { display: flex; justify-content: space-between; }
+        .cs-email-sub { color: var(--ink); font-weight: 500; font-size: 8px; margin-top: 1px; }
+
+        .cs-csv-row { display: flex; align-items: center; gap: 5px; padding: 4px 5px; background: var(--surface-2); border: 0.5px solid var(--line); border-radius: 5px; font-size: 8px; }
+        .cs-csv-icon { width: 18px; height: 18px; border-radius: 3px; background: #d1fae5; color: #065f46; font-size: 7px; font-weight: 500; display: flex; align-items: center; justify-content: center; }
+        .cs-csv-name { color: var(--ink); font-weight: 500; font-size: 9px; }
+        .cs-csv-meta { color: var(--muted); font-size: 8px; }
+      `}</style>
     </div>
   );
 }
