@@ -1237,8 +1237,8 @@ function ReviewPanel({
         reviewedBy: "",
         reviewedAt: "",
       };
-      // Un-approving sends the card back to Idea.
-      if (next === "approved") patch.status = "Idea";
+      // Un-approving sends the card back to Review.
+      if (next === "approved") patch.status = "Review";
       onChange(patch);
       return;
     }
