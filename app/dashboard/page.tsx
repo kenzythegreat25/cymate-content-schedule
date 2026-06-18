@@ -391,7 +391,7 @@ function TopBar({
   onMenuOpen: () => void;
 }) {
   return (
-    <div className="sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-line bg-canvas/85 px-4 py-3 backdrop-blur-md md:px-6">
+    <div className="sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-line bg-canvas px-4 py-3 md:px-6">
       <div className="flex min-w-0 items-center gap-2">
         <button
           onClick={onMenuOpen}
@@ -503,7 +503,7 @@ function UserMenu({ email, onSignOut }: { email: string; onSignOut: () => void }
 
 function PageHeader({ stats }: { stats: { total: number; scheduled: number; posted: number; inProgress: number } }) {
   return (
-    <div className="sticky top-[57px] z-10 border-b border-line/40 bg-canvas/85 px-4 pb-4 pt-5 backdrop-blur-md md:px-6 md:pb-5 md:pt-6">
+    <div className="sticky top-[57px] z-10 border-b border-line bg-canvas px-4 pb-4 pt-5 md:px-6 md:pb-5 md:pt-6">
       <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-end md:gap-6">
         <div>
           <div className="text-[10px] uppercase tracking-[0.16em] text-muted md:text-[11px]">June 2026 · this quarter</div>
@@ -591,7 +591,7 @@ function BoardView({
 
   return (
     <div className="px-4 md:px-6">
-      <div className="sticky top-[148px] z-[5] -mx-4 overflow-hidden border-b border-line/40 bg-canvas/85 backdrop-blur-md md:-mx-6">
+      <div className="sticky top-[148px] z-[5] -mx-4 overflow-hidden border-b border-line bg-canvas md:-mx-6">
         <div
           ref={headerInnerRef}
           className="flex w-max gap-4 px-4 py-2 will-change-transform md:px-6"
