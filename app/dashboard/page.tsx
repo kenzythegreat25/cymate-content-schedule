@@ -503,16 +503,13 @@ function UserMenu({ email, onSignOut }: { email: string; onSignOut: () => void }
 
 function PageHeader({ stats }: { stats: { total: number; scheduled: number; posted: number; inProgress: number } }) {
   return (
-    <div className="px-4 pb-4 pt-6 md:px-6 md:pb-6 md:pt-8">
+    <div className="sticky top-[57px] z-10 border-b border-line/40 bg-canvas/85 px-4 pb-4 pt-5 backdrop-blur-md md:px-6 md:pb-5 md:pt-6">
       <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-end md:gap-6">
         <div>
           <div className="text-[10px] uppercase tracking-[0.16em] text-muted md:text-[11px]">June 2026 · this quarter</div>
-          <h1 className="serif mt-2 text-3xl font-normal leading-[1.05] tracking-tight md:text-5xl">
+          <h1 className="serif mt-1.5 text-3xl font-normal leading-[1.05] tracking-tight md:mt-2 md:text-4xl">
             Content <em className="text-accent">in flight</em>
           </h1>
-          <p className="mt-2 max-w-md text-sm text-ink-soft">
-            One workspace for every post — from raw idea to performance lookback.
-          </p>
         </div>
         <div className="flex gap-5 md:gap-6">
           <Metric label="Total" value={stats.total} />
@@ -610,7 +607,7 @@ function BoardView({
                 setDragId(null);
               }}
             >
-              <div className="mb-2.5 flex items-center justify-between px-2 pt-2">
+              <div className="sticky top-[160px] z-[5] -mx-0.5 mb-2.5 flex items-center justify-between rounded-lg bg-canvas/85 px-2 py-2 backdrop-blur-md">
                 <div className="flex items-center gap-2">
                   <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
                   <span className="text-sm font-medium">{meta.label}</span>
