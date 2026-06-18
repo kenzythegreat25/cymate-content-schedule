@@ -187,7 +187,7 @@ export default function Home() {
         ) : items.length === 0 ? (
           <EmptyState onSeed={seed} onAdd={() => addRow()} />
         ) : (
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1">
             {view === "board" && (
               <BoardView
                 items={filtered}
@@ -577,37 +577,30 @@ function BoardView({
 }) {
   const [dragOver, setDragOver] = useState<Status | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
+  const headerInnerRef = useRef<HTMLDivElement>(null);
+  const boardScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const board = boardScrollRef.current;
+    const headerInner = headerInnerRef.current;
+    if (!board || !headerInner) return;
+    const sync = () => { headerInner.style.transform = `translateX(-${board.scrollLeft}px)`; };
+    board.addEventListener("scroll", sync, { passive: true });
+    return () => board.removeEventListener("scroll", sync);
+  }, []);
 
   return (
-    <div className="h-full overflow-x-auto px-4 pb-10 md:px-6">
-      <div className="flex min-h-full gap-4">
-        {STATUSES.map((s) => {
-          const cards = items.filter((i) => i.status === s);
-          const meta = STATUS_META[s];
-          const isDropTarget = dragOver === s;
-          return (
-            <div
-              key={s}
-              className={`flex w-72 shrink-0 flex-col rounded-xl transition ${isDropTarget ? "bg-accent-soft/60 ring-2 ring-accent/40" : ""}`}
-              onDragOver={(e) => {
-                if (!dragId) return;
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "move";
-                if (dragOver !== s) setDragOver(s);
-              }}
-              onDragLeave={(e) => {
-                if (e.currentTarget.contains(e.relatedTarget as Node)) return;
-                if (dragOver === s) setDragOver(null);
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                const id = e.dataTransfer.getData("text/plain") || dragId;
-                if (id) onMove(id, s);
-                setDragOver(null);
-                setDragId(null);
-              }}
-            >
-              <div className="sticky top-[160px] z-[5] -mx-0.5 mb-2.5 flex items-center justify-between rounded-lg bg-canvas/85 px-2 py-2 backdrop-blur-md">
+    <div className="px-4 md:px-6">
+      <div className="sticky top-[148px] z-[5] -mx-4 overflow-hidden border-b border-line/40 bg-canvas/85 backdrop-blur-md md:-mx-6">
+        <div
+          ref={headerInnerRef}
+          className="flex w-max gap-4 px-4 py-2 will-change-transform md:px-6"
+        >
+          {STATUSES.map((s) => {
+            const cards = items.filter((i) => i.status === s);
+            const meta = STATUS_META[s];
+            return (
+              <div key={s} className="flex w-72 shrink-0 items-center justify-between px-2">
                 <div className="flex items-center gap-2">
                   <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
                   <span className="text-sm font-medium">{meta.label}</span>
@@ -622,30 +615,63 @@ function BoardView({
                   <PlusIcon size={14} />
                 </button>
               </div>
-              <div className="flex flex-1 flex-col gap-2.5 px-2 pb-2">
-                {cards.length === 0 && (
-                  <button
-                    onClick={() => onAdd(s)}
-                    className="rounded-xl border border-dashed border-line py-6 text-xs text-muted hover:border-line-strong hover:text-ink"
-                  >
-                    + Add card
-                  </button>
-                )}
-                {cards.map((c) => (
-                  <BoardCard
-                    key={c.id}
-                    item={c}
-                    onClick={() => onEdit(c.id)}
-                    onMove={onMove}
-                    isDragging={dragId === c.id}
-                    onDragStart={() => setDragId(c.id)}
-                    onDragEnd={() => { setDragId(null); setDragOver(null); }}
-                  />
-                ))}
+            );
+          })}
+        </div>
+      </div>
+
+      <div ref={boardScrollRef} className="-mx-4 overflow-x-auto px-4 pb-10 md:-mx-6 md:px-6">
+        <div className="flex min-h-full gap-4 pt-3">
+          {STATUSES.map((s) => {
+            const cards = items.filter((i) => i.status === s);
+            const isDropTarget = dragOver === s;
+            return (
+              <div
+                key={s}
+                className={`flex w-72 shrink-0 flex-col rounded-xl transition ${isDropTarget ? "bg-accent-soft/60 ring-2 ring-accent/40" : ""}`}
+                onDragOver={(e) => {
+                  if (!dragId) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                  if (dragOver !== s) setDragOver(s);
+                }}
+                onDragLeave={(e) => {
+                  if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                  if (dragOver === s) setDragOver(null);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const id = e.dataTransfer.getData("text/plain") || dragId;
+                  if (id) onMove(id, s);
+                  setDragOver(null);
+                  setDragId(null);
+                }}
+              >
+                <div className="flex flex-1 flex-col gap-2.5 px-2 pb-2 pt-1">
+                  {cards.length === 0 && (
+                    <button
+                      onClick={() => onAdd(s)}
+                      className="rounded-xl border border-dashed border-line py-6 text-xs text-muted hover:border-line-strong hover:text-ink"
+                    >
+                      + Add card
+                    </button>
+                  )}
+                  {cards.map((c) => (
+                    <BoardCard
+                      key={c.id}
+                      item={c}
+                      onClick={() => onEdit(c.id)}
+                      onMove={onMove}
+                      isDragging={dragId === c.id}
+                      onDragStart={() => setDragId(c.id)}
+                      onDragEnd={() => { setDragId(null); setDragOver(null); }}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
