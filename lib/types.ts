@@ -34,6 +34,7 @@ export type ContentItem = {
   reviewedBy: string;
   reviewedAt: string;
   slides: string[];
+  shareToken: string;
 };
 
 export const emptyItem = (): ContentItem => ({
@@ -54,6 +55,7 @@ export const emptyItem = (): ContentItem => ({
   reviewedBy: "",
   reviewedAt: "",
   slides: [],
+  shareToken: "",
 });
 
 export const STATUS_META: Record<Status, { dot: string; tint: string; text: string; ring: string; label: string }> = {

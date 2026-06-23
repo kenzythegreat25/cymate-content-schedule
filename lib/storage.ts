@@ -20,6 +20,7 @@ type Row = {
   reviewed_by: string | null;
   reviewed_at: string | null;
   slides: string[] | null;
+  share_token: string | null;
   created_at: string;
 };
 
@@ -44,6 +45,7 @@ function fromRow(r: Row): ContentItem {
     reviewedBy: r.reviewed_by ?? "",
     reviewedAt: r.reviewed_at ?? "",
     slides: Array.isArray(r.slides) ? r.slides : [],
+    shareToken: r.share_token ?? "",
   };
 }
 
@@ -68,7 +70,20 @@ function toRow(item: Partial<ContentItem>): Partial<Row> {
   if (item.reviewedBy !== undefined) row.reviewed_by = item.reviewedBy || null;
   if (item.reviewedAt !== undefined) row.reviewed_at = item.reviewedAt || null;
   if (item.slides !== undefined) row.slides = item.slides;
+  if (item.shareToken !== undefined) row.share_token = item.shareToken || null;
   return row;
+}
+
+export async function ensureShareToken(postId: string, existing: string): Promise<string | null> {
+  if (existing) return existing;
+  const token = crypto.randomUUID();
+  const supabase = supabaseBrowser();
+  const { error } = await supabase.from("posts").update({ share_token: token }).eq("id", postId);
+  if (error) {
+    console.error("ensureShareToken error", error);
+    return null;
+  }
+  return token;
 }
 
 export async function listPosts(): Promise<ContentItem[]> {
