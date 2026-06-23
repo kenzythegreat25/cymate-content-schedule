@@ -37,6 +37,14 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState<ReviewAction | "" | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!preview) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setPreview(null); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [preview]);
 
   const load = async () => {
     setLoading(true);
@@ -224,15 +232,23 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
                 const name = basenameFromUrl(u);
                 const video = isVideoUrl(u);
                 return (
-                  <div key={u} className="group overflow-hidden rounded-lg border border-line bg-surface">
-                    <div className="aspect-square w-full bg-surface-2">
+                  <div key={u} className="group relative overflow-hidden rounded-lg border border-line bg-surface">
+                    <button
+                      type="button"
+                      onClick={() => setPreview(u)}
+                      aria-label={`Preview ${name}`}
+                      className="relative block aspect-square w-full bg-surface-2 outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                    >
                       {video ? (
-                        <video src={u} className="h-full w-full object-cover" muted playsInline preload="metadata" controls />
+                        <video src={u} className="h-full w-full object-cover" muted playsInline preload="metadata" />
                       ) : (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={u} alt={name} className="h-full w-full object-cover" loading="lazy" />
                       )}
-                    </div>
+                      <span className="absolute inset-0 flex items-center justify-center bg-ink/0 text-canvas opacity-0 transition group-hover:bg-ink/25 group-hover:opacity-100">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                      </span>
+                    </button>
                     <div className="flex items-center justify-between gap-1 border-t border-line bg-surface-2/60 px-2 py-1 text-[11px]">
                       <span className="truncate text-ink-soft" title={name}>{name}</span>
                       <a
@@ -291,6 +307,41 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
           </p>
         </Section>
       </main>
+
+      {preview && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/85 p-4 backdrop-blur-sm"
+          onClick={() => setPreview(null)}
+          role="dialog"
+          aria-label="Media preview"
+        >
+          <button
+            type="button"
+            onClick={() => setPreview(null)}
+            aria-label="Close preview"
+            className="absolute right-3 top-3 z-10 rounded-md bg-canvas/15 p-2 text-canvas hover:bg-canvas/30"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+          <a
+            href={downloadUrl(preview, basenameFromUrl(preview))}
+            download={basenameFromUrl(preview)}
+            onClick={(e) => e.stopPropagation()}
+            aria-label="Download"
+            className="absolute right-14 top-3 z-10 rounded-md bg-canvas/15 p-2 text-canvas hover:bg-canvas/30"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </a>
+          <div className="max-h-full max-w-5xl" onClick={(e) => e.stopPropagation()}>
+            {isVideoUrl(preview) ? (
+              <video src={preview} controls autoPlay className="max-h-[88vh] max-w-full rounded-lg shadow-card-lg" />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={preview} alt={basenameFromUrl(preview)} className="max-h-[88vh] max-w-full rounded-lg object-contain shadow-card-lg" />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

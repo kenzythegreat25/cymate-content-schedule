@@ -1595,12 +1595,14 @@ function MediaPicker({
     removeMedia(target).catch(() => {});
   };
 
+  const [preview, setPreview] = useState<string | null>(null);
+
   return (
     <div className="space-y-2">
       {urls.length > 0 && (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {urls.map((u, i) => (
-            <MediaTile key={u} url={u} onRemove={() => removeAt(i)} />
+            <MediaTile key={u} url={u} onRemove={() => removeAt(i)} onOpen={() => setPreview(u)} />
           ))}
         </div>
       )}
@@ -1642,23 +1644,41 @@ function MediaPicker({
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-700">{error}</div>
       )}
+
+      {preview && <MediaLightbox url={preview} onClose={() => setPreview(null)} />}
     </div>
   );
 }
 
-function MediaTile({ url, onRemove }: { url: string; onRemove: () => void }) {
+function MediaTile({
+  url,
+  onRemove,
+  onOpen,
+}: {
+  url: string;
+  onRemove: () => void;
+  onOpen: () => void;
+}) {
   const name = basenameFromUrl(url);
   const video = isVideoUrl(url);
   return (
     <div className="group relative overflow-hidden rounded-lg border border-line bg-surface">
-      <div className="aspect-square w-full bg-surface-2">
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-label={`Preview ${name}`}
+        className="relative block aspect-square w-full bg-surface-2 outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      >
         {video ? (
           <video src={url} className="h-full w-full object-cover" muted playsInline preload="metadata" />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={url} alt={name} className="h-full w-full object-cover" loading="lazy" />
         )}
-      </div>
+        <span className="absolute inset-0 flex items-center justify-center bg-ink/0 text-canvas opacity-0 transition group-hover:bg-ink/25 group-hover:opacity-100">
+          <ExpandIcon />
+        </span>
+      </button>
       <div className="flex items-center justify-between gap-1 border-t border-line bg-surface-2/60 px-1.5 py-1 text-[10px]">
         <span className="truncate text-ink-soft" title={name}>{name}</span>
         <div className="flex shrink-0 gap-0.5">
@@ -1682,6 +1702,61 @@ function MediaTile({ url, onRemove }: { url: string; onRemove: () => void }) {
             <CloseIcon />
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function MediaLightbox({ url, onClose }: { url: string; onClose: () => void }) {
+  const name = basenameFromUrl(url);
+  const video = isVideoUrl(url);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fade-in fixed inset-0 z-50 flex items-center justify-center bg-ink/85 p-4 backdrop-blur-sm"
+      onClick={onClose}
+      role="dialog"
+      aria-label="Media preview"
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Close preview"
+        className="absolute right-3 top-3 z-10 rounded-md bg-canvas/15 p-2 text-canvas hover:bg-canvas/30"
+      >
+        <CloseIcon />
+      </button>
+      <a
+        href={downloadUrl(url, name)}
+        download={name}
+        onClick={(e) => e.stopPropagation()}
+        aria-label={`Download ${name}`}
+        className="absolute right-14 top-3 z-10 rounded-md bg-canvas/15 p-2 text-canvas hover:bg-canvas/30"
+      >
+        <DownloadIcon />
+      </a>
+      <div className="max-h-full max-w-5xl" onClick={(e) => e.stopPropagation()}>
+        {video ? (
+          <video
+            src={url}
+            controls
+            autoPlay
+            className="max-h-[88vh] max-w-full rounded-lg shadow-card-lg"
+          />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={url}
+            alt={name}
+            className="max-h-[88vh] max-w-full rounded-lg object-contain shadow-card-lg"
+          />
+        )}
       </div>
     </div>
   );
@@ -1927,6 +2002,11 @@ function SignOutIcon() {
 function DownloadIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+  );
+}
+function ExpandIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
   );
 }
 function SettingsIcon() {
