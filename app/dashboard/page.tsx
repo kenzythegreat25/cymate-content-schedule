@@ -1595,14 +1595,14 @@ function MediaPicker({
     removeMedia(target).catch(() => {});
   };
 
-  const [preview, setPreview] = useState<string | null>(null);
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
   return (
     <div className="space-y-2">
       {urls.length > 0 && (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {urls.map((u, i) => (
-            <MediaTile key={u} url={u} onRemove={() => removeAt(i)} onOpen={() => setPreview(u)} />
+            <MediaTile key={u} url={u} onRemove={() => removeAt(i)} onOpen={() => setPreviewIndex(i)} />
           ))}
         </div>
       )}
@@ -1645,7 +1645,9 @@ function MediaPicker({
         <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-700">{error}</div>
       )}
 
-      {preview && <MediaLightbox url={preview} onClose={() => setPreview(null)} />}
+      {previewIndex !== null && (
+        <MediaLightbox urls={urls} initialIndex={previewIndex} onClose={() => setPreviewIndex(null)} />
+      )}
     </div>
   );
 }
@@ -1707,15 +1709,34 @@ function MediaTile({
   );
 }
 
-function MediaLightbox({ url, onClose }: { url: string; onClose: () => void }) {
+function MediaLightbox({
+  urls,
+  initialIndex,
+  onClose,
+}: {
+  urls: string[];
+  initialIndex: number;
+  onClose: () => void;
+}) {
+  const [index, setIndex] = useState(initialIndex);
+  const safeIndex = Math.max(0, Math.min(urls.length - 1, index));
+  const url = urls[safeIndex];
   const name = basenameFromUrl(url);
   const video = isVideoUrl(url);
+  const hasMany = urls.length > 1;
+  const prev = () => setIndex((i) => (i - 1 + urls.length) % urls.length);
+  const next = () => setIndex((i) => (i + 1) % urls.length);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      else if (e.key === "ArrowLeft" && hasMany) prev();
+      else if (e.key === "ArrowRight" && hasMany) next();
+    };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onClose, hasMany, urls.length]);
 
   return (
     <div
@@ -1741,9 +1762,35 @@ function MediaLightbox({ url, onClose }: { url: string; onClose: () => void }) {
       >
         <DownloadIcon />
       </a>
+
+      {hasMany && (
+        <>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); prev(); }}
+            aria-label="Previous"
+            className="absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-canvas/15 p-3 text-canvas hover:bg-canvas/30"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); next(); }}
+            aria-label="Next"
+            className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-canvas/15 p-3 text-canvas hover:bg-canvas/30"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <div className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full bg-canvas/15 px-3 py-1 text-xs font-medium text-canvas">
+            {safeIndex + 1} / {urls.length}
+          </div>
+        </>
+      )}
+
       <div className="max-h-full max-w-5xl" onClick={(e) => e.stopPropagation()}>
         {video ? (
           <video
+            key={url}
             src={url}
             controls
             autoPlay
@@ -1752,6 +1799,7 @@ function MediaLightbox({ url, onClose }: { url: string; onClose: () => void }) {
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img
+            key={url}
             src={url}
             alt={name}
             className="max-h-[88vh] max-w-full rounded-lg object-contain shadow-card-lg"

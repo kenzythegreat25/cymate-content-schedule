@@ -37,14 +37,26 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState<ReviewAction | "" | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!preview) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setPreview(null); };
+    if (previewIndex === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPreviewIndex(null);
+      else if (e.key === "ArrowLeft") setPreviewIndex((i) => {
+        if (i === null) return i;
+        const len = post?.attachment_urls?.length ?? 0;
+        return len ? (i - 1 + len) % len : i;
+      });
+      else if (e.key === "ArrowRight") setPreviewIndex((i) => {
+        if (i === null) return i;
+        const len = post?.attachment_urls?.length ?? 0;
+        return len ? (i + 1) % len : i;
+      });
+    };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [preview]);
+  }, [previewIndex, post?.attachment_urls?.length]);
 
   const load = async () => {
     setLoading(true);
@@ -228,14 +240,14 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
         {attachments.length > 0 && (
           <Section label={`Media · ${attachments.length}`}>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {attachments.map((u) => {
+              {attachments.map((u, idx) => {
                 const name = basenameFromUrl(u);
                 const video = isVideoUrl(u);
                 return (
                   <div key={u} className="group relative overflow-hidden rounded-lg border border-line bg-surface">
                     <button
                       type="button"
-                      onClick={() => setPreview(u)}
+                      onClick={() => setPreviewIndex(idx)}
                       aria-label={`Preview ${name}`}
                       className="relative block aspect-square w-full bg-surface-2 outline-none focus-visible:ring-2 focus-visible:ring-accent"
                     >
@@ -308,40 +320,71 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
         </Section>
       </main>
 
-      {preview && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/85 p-4 backdrop-blur-sm"
-          onClick={() => setPreview(null)}
-          role="dialog"
-          aria-label="Media preview"
-        >
-          <button
-            type="button"
-            onClick={() => setPreview(null)}
-            aria-label="Close preview"
-            className="absolute right-3 top-3 z-10 rounded-md bg-canvas/15 p-2 text-canvas hover:bg-canvas/30"
+      {previewIndex !== null && attachments[previewIndex] && (() => {
+        const len = attachments.length;
+        const idx = Math.max(0, Math.min(len - 1, previewIndex));
+        const cur = attachments[idx];
+        const curName = basenameFromUrl(cur);
+        const hasMany = len > 1;
+        const setIdx = (next: number) => setPreviewIndex(((next % len) + len) % len);
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-ink/85 p-4 backdrop-blur-sm"
+            onClick={() => setPreviewIndex(null)}
+            role="dialog"
+            aria-label="Media preview"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-          </button>
-          <a
-            href={downloadUrl(preview, basenameFromUrl(preview))}
-            download={basenameFromUrl(preview)}
-            onClick={(e) => e.stopPropagation()}
-            aria-label="Download"
-            className="absolute right-14 top-3 z-10 rounded-md bg-canvas/15 p-2 text-canvas hover:bg-canvas/30"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          </a>
-          <div className="max-h-full max-w-5xl" onClick={(e) => e.stopPropagation()}>
-            {isVideoUrl(preview) ? (
-              <video src={preview} controls autoPlay className="max-h-[88vh] max-w-full rounded-lg shadow-card-lg" />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={preview} alt={basenameFromUrl(preview)} className="max-h-[88vh] max-w-full rounded-lg object-contain shadow-card-lg" />
+            <button
+              type="button"
+              onClick={() => setPreviewIndex(null)}
+              aria-label="Close preview"
+              className="absolute right-3 top-3 z-10 rounded-md bg-canvas/15 p-2 text-canvas hover:bg-canvas/30"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+            <a
+              href={downloadUrl(cur, curName)}
+              download={curName}
+              onClick={(e) => e.stopPropagation()}
+              aria-label={`Download ${curName}`}
+              className="absolute right-14 top-3 z-10 rounded-md bg-canvas/15 p-2 text-canvas hover:bg-canvas/30"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </a>
+            {hasMany && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setIdx(idx - 1); }}
+                  aria-label="Previous"
+                  className="absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-canvas/15 p-3 text-canvas hover:bg-canvas/30"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setIdx(idx + 1); }}
+                  aria-label="Next"
+                  className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-canvas/15 p-3 text-canvas hover:bg-canvas/30"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+                <div className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full bg-canvas/15 px-3 py-1 text-xs font-medium text-canvas">
+                  {idx + 1} / {len}
+                </div>
+              </>
             )}
+            <div className="max-h-full max-w-5xl" onClick={(e) => e.stopPropagation()}>
+              {isVideoUrl(cur) ? (
+                <video key={cur} src={cur} controls autoPlay className="max-h-[88vh] max-w-full rounded-lg shadow-card-lg" />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img key={cur} src={cur} alt={curName} className="max-h-[88vh] max-w-full rounded-lg object-contain shadow-card-lg" />
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
