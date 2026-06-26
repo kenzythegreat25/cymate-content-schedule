@@ -257,7 +257,7 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={u} alt={name} className="h-full w-full object-cover" loading="lazy" />
                       )}
-                      <span className="absolute inset-0 flex items-center justify-center bg-ink/0 text-canvas opacity-0 transition group-hover:bg-ink/25 group-hover:opacity-100">
+                      <span className="absolute inset-0 flex items-center justify-center bg-black/0 text-white opacity-0 transition group-hover:bg-black/30 group-hover:opacity-100">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
                       </span>
                     </button>
@@ -329,7 +329,7 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
         const setIdx = (next: number) => setPreviewIndex(((next % len) + len) % len);
         return (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-ink/85 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
             onClick={() => setPreviewIndex(null)}
             role="dialog"
             aria-label="Media preview"
@@ -338,7 +338,7 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
               type="button"
               onClick={() => setPreviewIndex(null)}
               aria-label="Close preview"
-              className="absolute right-3 top-3 z-10 rounded-md bg-canvas/15 p-2 text-canvas hover:bg-canvas/30"
+              className="absolute right-3 top-3 z-10 rounded-md bg-white/15 p-2 text-white hover:bg-white/30"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
@@ -347,7 +347,7 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
               download={curName}
               onClick={(e) => e.stopPropagation()}
               aria-label={`Download ${curName}`}
-              className="absolute right-14 top-3 z-10 rounded-md bg-canvas/15 p-2 text-canvas hover:bg-canvas/30"
+              className="absolute right-14 top-3 z-10 rounded-md bg-white/15 p-2 text-white hover:bg-white/30"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             </a>
@@ -357,7 +357,7 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
                   type="button"
                   onClick={(e) => { e.stopPropagation(); setIdx(idx - 1); }}
                   aria-label="Previous"
-                  className="absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-canvas/15 p-3 text-canvas hover:bg-canvas/30"
+                  className="absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/15 p-3 text-white hover:bg-white/30"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                 </button>
@@ -365,11 +365,11 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
                   type="button"
                   onClick={(e) => { e.stopPropagation(); setIdx(idx + 1); }}
                   aria-label="Next"
-                  className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-canvas/15 p-3 text-canvas hover:bg-canvas/30"
+                  className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/15 p-3 text-white hover:bg-white/30"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                 </button>
-                <div className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full bg-canvas/15 px-3 py-1 text-xs font-medium text-canvas">
+                <div className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white">
                   {idx + 1} / {len}
                 </div>
               </>

@@ -247,7 +247,7 @@ function Sidebar({
     <>
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-30 bg-ink/30 md:hidden"
+          className="fixed inset-0 z-30 bg-black/40 md:hidden"
           onClick={onMobileClose}
         />
       )}
@@ -1020,7 +1020,7 @@ function EditDrawer({
 }) {
   return (
     <>
-      <div className="fixed inset-0 z-30 bg-ink/50 fade-in" onClick={onClose} />
+      <div className="fixed inset-0 z-30 bg-black/60 fade-in" onClick={onClose} />
       <div
         className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto p-4 sm:items-center"
         onClick={onClose}
@@ -1677,7 +1677,7 @@ function MediaTile({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={url} alt={name} className="h-full w-full object-cover" loading="lazy" />
         )}
-        <span className="absolute inset-0 flex items-center justify-center bg-ink/0 text-canvas opacity-0 transition group-hover:bg-ink/25 group-hover:opacity-100">
+        <span className="absolute inset-0 flex items-center justify-center bg-black/0 text-white opacity-0 transition group-hover:bg-black/30 group-hover:opacity-100">
           <ExpandIcon />
         </span>
       </button>
@@ -1740,7 +1740,7 @@ function MediaLightbox({
 
   return (
     <div
-      className="fade-in fixed inset-0 z-50 flex items-center justify-center bg-ink/85 p-4 backdrop-blur-sm"
+      className="fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
       onClick={onClose}
       role="dialog"
       aria-label="Media preview"
@@ -1749,7 +1749,7 @@ function MediaLightbox({
         type="button"
         onClick={onClose}
         aria-label="Close preview"
-        className="absolute right-3 top-3 z-10 rounded-md bg-canvas/15 p-2 text-canvas hover:bg-canvas/30"
+        className="absolute right-3 top-3 z-10 rounded-md bg-white/15 p-2 text-white hover:bg-white/30"
       >
         <CloseIcon />
       </button>
@@ -1758,7 +1758,7 @@ function MediaLightbox({
         download={name}
         onClick={(e) => e.stopPropagation()}
         aria-label={`Download ${name}`}
-        className="absolute right-14 top-3 z-10 rounded-md bg-canvas/15 p-2 text-canvas hover:bg-canvas/30"
+        className="absolute right-14 top-3 z-10 rounded-md bg-white/15 p-2 text-white hover:bg-white/30"
       >
         <DownloadIcon />
       </a>
@@ -1769,7 +1769,7 @@ function MediaLightbox({
             type="button"
             onClick={(e) => { e.stopPropagation(); prev(); }}
             aria-label="Previous"
-            className="absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-canvas/15 p-3 text-canvas hover:bg-canvas/30"
+            className="absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/15 p-3 text-white hover:bg-white/30"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
@@ -1777,11 +1777,11 @@ function MediaLightbox({
             type="button"
             onClick={(e) => { e.stopPropagation(); next(); }}
             aria-label="Next"
-            className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-canvas/15 p-3 text-canvas hover:bg-canvas/30"
+            className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/15 p-3 text-white hover:bg-white/30"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
-          <div className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full bg-canvas/15 px-3 py-1 text-xs font-medium text-canvas">
+          <div className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white">
             {safeIndex + 1} / {urls.length}
           </div>
         </>
