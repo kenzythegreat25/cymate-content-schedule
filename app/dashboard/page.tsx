@@ -1026,7 +1026,7 @@ function EditDrawer({
         onClick={onClose}
       >
       <aside
-        className="modal-in relative my-auto flex max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card-lg"
+        className="modal-in relative my-auto flex max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-line-strong bg-canvas shadow-card-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-line px-6 py-4">
