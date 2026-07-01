@@ -326,9 +326,6 @@ function Sidebar({
       </SidebarSection>
 
       <div className="mt-auto space-y-3">
-        {userEmail === "kenc@cymate.io" && (
-          <AirtableSyncButton />
-        )}
         <div className="rounded-xl border border-line bg-surface px-3 py-3 shadow-card">
           <div className="text-[11px] uppercase tracking-wider text-muted">This pipeline</div>
           <div className="mt-2 grid grid-cols-2 gap-y-1.5 text-xs">
@@ -479,6 +476,7 @@ function TopBar({
             className="h-9 w-40 rounded-lg border border-line bg-surface pl-8 pr-3 text-sm placeholder:text-muted focus:border-line-strong focus:outline-none focus:ring-2 focus:ring-accent-soft md:w-64"
           />
         </div>
+        {userEmail === "kenc@cymate.io" && <AirtableSyncButton />}
         <button
           onClick={onAdd}
           className="flex h-9 items-center gap-1.5 rounded-lg bg-ink px-3 text-sm font-medium text-canvas shadow-card transition-transform hover:scale-[1.02] active:scale-[0.98]"
