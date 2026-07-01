@@ -34,7 +34,6 @@ import {
 } from "../../lib/storage";
 import { supabaseBrowser } from "../../lib/supabase/client";
 import { useTheme, type Theme } from "../../lib/theme";
-import { syncToAirtable } from "../actions/sync-airtable";
 
 type View = "board" | "calendar" | "list";
 
@@ -350,7 +349,8 @@ function AirtableSyncButton() {
   const handleSync = async () => {
     setState("syncing");
     setMessage("");
-    const result = await syncToAirtable();
+    const res = await fetch("/api/sync-airtable", { method: "POST" });
+    const result = await res.json();
     if (result.error) {
       setState("error");
       setMessage(result.error);
