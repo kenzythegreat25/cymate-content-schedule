@@ -482,21 +482,32 @@ function GenerateContentButton({ onGenerated }: { onGenerated: () => void }) {
     const supabase = supabaseBrowser();
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData.session?.access_token ?? "";
-    const res = await fetch("/api/generate-content", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({}),
-    });
-    const result = await res.json();
-    if (result.error) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 65000);
+    try {
+      const res = await fetch("/api/generate-content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({}),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      const result = await res.json();
+      if (result.error) {
+        setState("error");
+        setMessage(result.error);
+        setTimeout(() => { setState("idle"); setMessage(""); }, 6000);
+      } else {
+        setState("done");
+        setMessage(`${result.generated} posts added`);
+        onGenerated();
+        setTimeout(() => { setState("idle"); setMessage(""); }, 5000);
+      }
+    } catch {
+      clearTimeout(timeout);
       setState("error");
-      setMessage(result.error);
+      setMessage("Timed out — try again");
       setTimeout(() => { setState("idle"); setMessage(""); }, 6000);
-    } else {
-      setState("done");
-      setMessage(`${result.generated} posts added`);
-      onGenerated();
-      setTimeout(() => { setState("idle"); setMessage(""); }, 5000);
     }
   };
 

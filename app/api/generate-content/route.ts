@@ -37,22 +37,29 @@ function getWeekDates(): Record<string, string> {
 }
 
 async function callClaude(prompt: string): Promise<string> {
-  const res = await fetch(ANTHROPIC_URL, {
-    method: "POST",
-    headers: {
-      "x-api-key": ANTHROPIC_KEY,
-      "anthropic-version": "2023-06-01",
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 4096,
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
-  if (!res.ok) throw new Error(`Claude API error: ${res.status}`);
-  const data = await res.json() as { content: { text: string }[] };
-  return data.content[0].text;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 50000); // 50s hard cap
+  try {
+    const res = await fetch(ANTHROPIC_URL, {
+      method: "POST",
+      headers: {
+        "x-api-key": ANTHROPIC_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 3000,
+        messages: [{ role: "user", content: prompt }],
+      }),
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error(`Claude API error: ${res.status}`);
+    const data = await res.json() as { content: { text: string }[] };
+    return data.content[0].text;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 const BRAND_CONTEXT = `
