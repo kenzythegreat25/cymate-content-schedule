@@ -85,7 +85,9 @@ Real client testimonials you may use for feedback posts (quote accurately, do no
 const BASE_INSTRUCTIONS = `
 Cymate is a B2B outbound cold email agency. They run cold email campaigns for tech/SaaS companies — lead prospecting, ICP building, deliverability, reply management. GTM Engineers (not junior SDRs). Performance-based pricing.
 
-TONE: Professional but human. First-person (we/our team/I). Conversational and approachable, never stiff. No em dashes (—), no emojis. Short, varied sentences. Never hard-sell — let the value speak. Write like a senior practitioner sharing genuine insight, not a brand pitching a service.
+TONE: Professional but human. First-person (we/our team/I). Conversational and approachable, never stiff. No emojis. Short, varied sentences. Never hard-sell. Write like a senior practitioner sharing genuine insight, not a brand pitching a service.
+
+EM DASH RULE: NEVER use em dashes (—) anywhere in any post. This is a hard rule with no exceptions. Replace with a comma, a period, or break into a new sentence.
 
 LANGUAGE STANDARDS: Use professional business language at all times. Avoid slang, informal expressions, or any words that would feel out of place in a B2B business context. Words like "sexy," "unsexy," "killer," "crush it," "hack," or similar casual/hype terms are not appropriate. Keep vocabulary sharp, grounded, and credible.
 
@@ -186,7 +188,15 @@ ${IG_HASHTAG_POOL}
 
 ${scheduleCtx}
 
-Generate exactly 5 Instagram posts (one per weekday Mon-Fri). Each post must end with 5 hashtags relevant to that specific post's topic (see hashtag rules above). Return a JSON array of 5 objects.`;
+Generate exactly 5 Instagram posts, one per weekday: Mon=${dates.mon} Tue=${dates.tue} Wed=${dates.wed} Thu=${dates.thu} Fri=${dates.fri}.
+- Tuesday: Carousel (5-6 slides)
+- Thursday: ${includeReel ? "Reel (45-60s)" : "Static graphic"}
+- All others: Static graphic poster
+- Every post: clean graphic/poster, no people in background, on_screen_text is always a short hook on the poster
+- Every post must end with 5 relevant hashtags on their own line
+- NEVER use em dashes (—) anywhere
+- No duplicate topics from existing Cymate posts
+Return a JSON array of exactly 5 objects.`;
 
   const liPrompt = `${BASE_INSTRUCTIONS}
 
@@ -196,12 +206,24 @@ ${CLIENT_TESTIMONIALS}
 
 ${scheduleCtx}
 
-Generate exactly 3 LinkedIn posts (Monday, Wednesday, Friday) following these content guidelines:
-- Friday: always a detailed case study (fictional but realistic client, fresh industry, specific metrics, one thing that went wrong or surprised us)
-- Monday or Wednesday (rotate — not every week): occasionally replace one post with a client feedback/testimonial post using a real quote from the testimonials list above. Feature the client name, company, and quote authentically. Frame it as social proof with context around what result they achieved.
-- When not a feedback post, Monday and Wednesday should be a mix of: insight/framework posts, hot takes, behind-the-scenes process, or a shorter case study.
-- Every post must end with 5 hashtags relevant to that specific post's topic (see hashtag rules above).
-Return a JSON array of 3 objects.`;
+Generate exactly 3 LinkedIn posts for Monday, Wednesday, and Friday following this fixed schedule:
+
+MONDAY (${dates.mon}): Insight, framework, hot take, or behind-the-scenes process post. Strong hook, story-driven, 280-350 words.
+
+WEDNESDAY (${dates.wed}): Always a detailed case study. Use a fictional but realistic client in a fresh industry not already covered (do NOT reuse any real Cymate client names from the testimonials list — use entirely new fictional companies). Include: the problem they came with, what we did differently, specific metrics (meetings booked, pipeline value, timeline), and one thing that surprised us or went wrong. 300-380 words.
+
+FRIDAY (${dates.fri}): Alternate every 2 weeks between:
+- A client testimonial/feedback post: pick one quote from the testimonials list, feature the client name and company authentically, add context around the result they achieved. 200-280 words.
+- An insight or tip post on B2B outbound strategy. 280-350 words.
+(This week: use your judgment based on the week number — odd weeks do testimonial, even weeks do insight.)
+
+RULES FOR ALL 3 POSTS:
+- NEVER use em dashes (—). Use commas, short sentences, or line breaks instead.
+- End every post with 5 relevant hashtags on their own line.
+- Do not duplicate topics, client names, or angles already covered in existing Cymate content (Copybara, Prosal, Raylu, cold email stats, intro posts).
+- No fictional case study client should share a name with any real Cymate client listed in the testimonials.
+
+Return a JSON array of exactly 3 objects.`;
 
   let igPosts: PostDraft[], liPosts: PostDraft[];
   try {
