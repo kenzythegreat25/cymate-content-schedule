@@ -179,25 +179,26 @@ Generate exactly 3 LinkedIn posts (Monday, Wednesday, Friday). Friday must be a 
 
   const allPosts = [...igPosts, ...liPosts];
 
+  const now = new Date().toISOString();
   const records = allPosts.map((p) => ({
     id: crypto.randomUUID(),
     user_id: userId,
     title: p.title ?? "",
-    date: p.date ?? "",
+    date: p.date || null,
     on_screen_text: p.on_screen_text ?? "",
     description: p.description ?? "",
     platforms: [p.platform],
     content_type: p.content_type ?? "",
     status: "Drafting",
     notes: p.notes ?? "",
-    performance_score: "",
-    review_status: "",
-    review_note: "",
-    reviewed_by: "",
+    performance_score: null,
+    review_status: null,
+    review_note: null,
+    reviewed_by: null,
     reviewed_at: null,
     slides: [],
-    share_token: "",
-    created_at: new Date().toISOString(),
+    share_token: null,
+    created_at: now,
   }));
 
   const { error: insertError } = await supabaseAdmin.from("posts").insert(records);
