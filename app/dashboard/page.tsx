@@ -128,8 +128,10 @@ export default function Home() {
     const prevItem = items.find((i) => i.id === id);
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
 
-    // Moving away from Posted → delete from Airtable instantly
-    if (patch.status && patch.status !== "Posted" && prevItem?.status === "Posted") {
+    const SYNCED_STATUSES = new Set(["Posted", "Scheduled"]);
+
+    // Moving away from a synced status → delete from Airtable instantly
+    if (patch.status && !SYNCED_STATUSES.has(patch.status) && prevItem && SYNCED_STATUSES.has(prevItem.status)) {
       const map: Record<string, string> = JSON.parse(localStorage.getItem("airtable_id_map") ?? "{}");
       const airtableId = map[id];
       if (airtableId) {
@@ -138,7 +140,6 @@ export default function Home() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ airtableId }),
         }).then(() => {
-          // Remove from both localStorage maps
           delete map[id];
           localStorage.setItem("airtable_id_map", JSON.stringify(map));
           const synced: string[] = JSON.parse(localStorage.getItem("airtable_synced_ids") ?? "[]");
@@ -149,12 +150,11 @@ export default function Home() {
       return;
     }
 
-    if (patch.status === "Posted") {
+    if (patch.status && SYNCED_STATUSES.has(patch.status)) {
       const merged = { ...(pendingPatches.current[id] ?? {}), ...patch };
       delete pendingPatches.current[id];
       clearTimeout(flushTimers.current[id]);
       const currentItem = { ...items.find((i) => i.id === id)!, ...merged };
-      // Fire DB save and Airtable sync in parallel — don't wait for DB before syncing
       updatePost(id, merged);
       const syncedIds: string[] = JSON.parse(localStorage.getItem("airtable_synced_ids") ?? "[]");
       if (!syncedIds.includes(id)) {
@@ -399,7 +399,7 @@ function AirtableSyncButton({ items }: { items: ContentItem[] }) {
   const handleSync = async () => {
     const syncedIds: string[] = JSON.parse(localStorage.getItem("airtable_synced_ids") ?? "[]");
     const syncedSet = new Set(syncedIds);
-    const toSync = items.filter((i) => i.status === "Posted" && !syncedSet.has(i.id));
+    const toSync = items.filter((i) => (i.status === "Posted" || i.status === "Scheduled") && !syncedSet.has(i.id));
 
     // Nothing new — skip server entirely
     if (!toSync.length) {

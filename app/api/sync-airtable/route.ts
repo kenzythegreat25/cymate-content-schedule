@@ -14,10 +14,15 @@ function fetchWithTimeout(url: string, options: RequestInit, ms = 8000) {
   return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(id));
 }
 
+const STATUS_MAP: Record<string, string> = {
+  Posted:    "Posted",
+  Scheduled: "In progress",
+};
+
 function toAirtableRecord(p: ContentItem) {
   const fields: Record<string, unknown> = {
     "Title":  p.title ?? "",
-    "Status": "Posted",
+    "Status": STATUS_MAP[p.status] ?? "In progress",
   };
   if (p.date)              fields["Date"]              = p.date;
   if (p.onScreenText)      fields["On Screen Text"]    = p.onScreenText;
