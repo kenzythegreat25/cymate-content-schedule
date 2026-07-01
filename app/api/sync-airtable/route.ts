@@ -58,10 +58,7 @@ export async function POST() {
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      return NextResponse.json(
-        { error: (body as { error?: { message?: string } }).error?.message ?? `Airtable error ${res.status}` },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: JSON.stringify(body), status: res.status }, { status: 500 });
     }
 
     const body = await res.json() as { records: unknown[] };
