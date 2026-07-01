@@ -243,6 +243,7 @@ export default function Home() {
           onSignOut={signOut}
           onMenuOpen={() => setSidebarOpen(true)}
           items={items}
+          onContentGenerated={async () => { const rows = await listPosts(); setItems(rows); }}
         />
         <PageHeader stats={stats} />
 
@@ -471,6 +472,61 @@ function AirtableSyncButton({ items }: { items: ContentItem[] }) {
   );
 }
 
+function GenerateContentButton({ onGenerated }: { onGenerated: () => void }) {
+  const [state, setState] = useState<"idle" | "running" | "done" | "error">("idle");
+  const [message, setMessage] = useState("");
+
+  const handleGenerate = async () => {
+    setState("running");
+    setMessage("");
+    const supabase = supabaseBrowser();
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token ?? "";
+    const res = await fetch("/api/generate-content", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({}),
+    });
+    const result = await res.json();
+    if (result.error) {
+      setState("error");
+      setMessage(result.error);
+      setTimeout(() => { setState("idle"); setMessage(""); }, 6000);
+    } else {
+      setState("done");
+      setMessage(`${result.generated} posts added`);
+      onGenerated();
+      setTimeout(() => { setState("idle"); setMessage(""); }, 5000);
+    }
+  };
+
+  return (
+    <div className="relative flex items-center">
+      <button
+        onClick={handleGenerate}
+        disabled={state === "running"}
+        title="Generate next week's content"
+        className="flex h-9 items-center gap-1.5 rounded-lg border border-line bg-surface px-3 text-sm font-medium text-ink-soft transition hover:bg-surface-2 hover:text-ink disabled:opacity-50"
+      >
+        {state === "running" ? (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+        )}
+        <span className="hidden sm:inline">
+          {state === "running" ? "Generating…" : state === "done" ? message : state === "error" ? "Error" : "Generate"}
+        </span>
+      </button>
+      {message && state === "error" && (
+        <span className="absolute top-full mt-1 right-0 whitespace-nowrap rounded bg-red-100 px-2 py-1 text-[11px] text-red-600 max-w-xs truncate">{message}</span>
+      )}
+      {message && state === "done" && (
+        <span className="absolute top-full mt-1 right-0 whitespace-nowrap rounded bg-green-100 px-2 py-1 text-[11px] text-green-700">{message}</span>
+      )}
+    </div>
+  );
+}
+
 function SidebarSection({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="mb-5">
@@ -519,6 +575,7 @@ function TopBar({
   onSignOut,
   onMenuOpen,
   items,
+  onContentGenerated,
 }: {
   query: string;
   setQuery: (v: string) => void;
@@ -527,6 +584,7 @@ function TopBar({
   onSignOut: () => void;
   onMenuOpen: () => void;
   items: ContentItem[];
+  onContentGenerated: () => void;
 }) {
   return (
     <div className="sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-line bg-canvas px-4 py-3 md:px-6">
@@ -556,6 +614,7 @@ function TopBar({
             className="h-9 w-40 rounded-lg border border-line bg-surface pl-8 pr-3 text-sm placeholder:text-muted focus:border-line-strong focus:outline-none focus:ring-2 focus:ring-accent-soft md:w-64"
           />
         </div>
+        {userEmail === "kenc@cymate.io" && <GenerateContentButton onGenerated={onContentGenerated} />}
         {userEmail === "kenc@cymate.io" && <AirtableSyncButton items={items} />}
         <button
           onClick={onAdd}
