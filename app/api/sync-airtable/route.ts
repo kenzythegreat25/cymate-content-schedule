@@ -64,28 +64,28 @@ export async function POST() {
     return { fields };
   });
 
-  let totalSynced = 0;
-  for (let i = 0; i < records.length; i += 1) {
-    const chunk = records.slice(i, i + 1);
-    const res = await fetch(AIRTABLE_URL,
-      {
+  const results = await Promise.all(
+    records.map((record) =>
+      fetch(AIRTABLE_URL, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${AIRTABLE_API_KEY}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ records: chunk }),
-      }
-    );
+        body: JSON.stringify({ records: [record] }),
+      }).then(async (res) => {
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(JSON.stringify(body));
+        }
+        return res.json() as Promise<{ records: unknown[] }>;
+      })
+    )
+  ).catch((err: Error) =>
+    NextResponse.json({ error: err.message }, { status: 500 })
+  );
 
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      return NextResponse.json({ error: JSON.stringify(body), status: res.status }, { status: 500 });
-    }
-
-    const body = await res.json() as { records: unknown[] };
-    totalSynced += body.records.length;
-  }
-
+  if (!Array.isArray(results)) return results;
+  const totalSynced = results.reduce((sum, r) => sum + r.records.length, 0);
   return NextResponse.json({ synced: totalSynced });
 }
