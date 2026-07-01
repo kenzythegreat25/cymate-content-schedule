@@ -153,10 +153,11 @@ export default function Home() {
       const merged = { ...(pendingPatches.current[id] ?? {}), ...patch };
       delete pendingPatches.current[id];
       clearTimeout(flushTimers.current[id]);
-      updatePost(id, merged).then(() => {
-        const syncedIds: string[] = JSON.parse(localStorage.getItem("airtable_synced_ids") ?? "[]");
-        if (syncedIds.includes(id)) return;
-        const currentItem = { ...items.find((i) => i.id === id)!, ...merged };
+      const currentItem = { ...items.find((i) => i.id === id)!, ...merged };
+      // Fire DB save and Airtable sync in parallel — don't wait for DB before syncing
+      updatePost(id, merged);
+      const syncedIds: string[] = JSON.parse(localStorage.getItem("airtable_synced_ids") ?? "[]");
+      if (!syncedIds.includes(id)) {
         fetch("/api/sync-airtable", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -171,7 +172,7 @@ export default function Home() {
             localStorage.setItem("airtable_id_map", JSON.stringify({ ...map, ...result.airtableIdMap }));
           }
         });
-      });
+      }
     } else {
       scheduleFlush(id, patch);
     }
