@@ -45,6 +45,8 @@ export async function POST() {
     if (p.description)      fields["Description"]       = p.description;
     const validPlatforms = (p.platforms as string[] ?? []).filter((pl) => VALID_PLATFORMS.has(pl));
     if (validPlatforms.length) fields["Platform"]        = validPlatforms;
+    const attachments = (p.attachments as string[] ?? []).map((url) => ({ url }));
+    if (attachments.length) fields["Attachments"]        = attachments;
     if (p.content_type)     fields["Content Type"]      = p.content_type;
     if (p.performance_score) fields["Performance Score"] = p.performance_score;
     if (p.notes)            fields["Notes"]             = p.notes;
