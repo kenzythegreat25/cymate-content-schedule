@@ -203,6 +203,7 @@ export default function Home() {
           userEmail={userEmail}
           onSignOut={signOut}
           onMenuOpen={() => setSidebarOpen(true)}
+          items={items}
         />
         <PageHeader stats={stats} />
 
@@ -474,6 +475,7 @@ function TopBar({
   userEmail,
   onSignOut,
   onMenuOpen,
+  items,
 }: {
   query: string;
   setQuery: (v: string) => void;
@@ -481,6 +483,7 @@ function TopBar({
   userEmail: string;
   onSignOut: () => void;
   onMenuOpen: () => void;
+  items: ContentItem[];
 }) {
   return (
     <div className="sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-line bg-canvas px-4 py-3 md:px-6">
