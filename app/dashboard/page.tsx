@@ -128,7 +128,7 @@ export default function Home() {
     const prevItem = items.find((i) => i.id === id);
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
 
-    const SYNCED_STATUSES = new Set(["Posted", "Scheduled"]);
+    const SYNCED_STATUSES = new Set(["Posted"]);
 
     // Moving away from a synced status → delete from Airtable instantly
     if (patch.status && !SYNCED_STATUSES.has(patch.status) && prevItem && SYNCED_STATUSES.has(prevItem.status)) {
@@ -409,7 +409,7 @@ function AirtableSyncButton({ items }: { items: ContentItem[] }) {
   const handleSync = async () => {
     const syncedIds: string[] = JSON.parse(localStorage.getItem("airtable_synced_ids") ?? "[]");
     const syncedSet = new Set(syncedIds);
-    const toSync = items.filter((i) => (i.status === "Posted" || i.status === "Scheduled") && !syncedSet.has(i.id));
+    const toSync = items.filter((i) => i.status === "Posted" && !syncedSet.has(i.id));
 
     // Nothing new — skip server entirely
     if (!toSync.length) {
