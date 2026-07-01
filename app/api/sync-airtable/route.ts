@@ -4,8 +4,9 @@ import type { ContentItem } from "../../../lib/types";
 
 export const maxDuration = 60;
 
-const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY ?? "";
-const AIRTABLE_URL     = "https://api.airtable.com/v0/appAv2zeXuX7yGrEe/tbld3Iw1TPiIKRlv9";
+const AIRTABLE_API_KEY  = process.env.AIRTABLE_API_KEY ?? "";
+const AIRTABLE_URL      = "https://api.airtable.com/v0/appAv2zeXuX7yGrEe/tbld3Iw1TPiIKRlv9";
+const ALLOWED_EMAIL     = "kenc@cymate.io";
 const VALID_PLATFORMS  = new Set(["LinkedIn", "Instagram", "Youtube"]);
 
 function fetchWithTimeout(url: string, options: RequestInit, ms = 8000) {
@@ -45,7 +46,7 @@ export async function POST(req: Request) {
   // Verify auth
   const supabase = await supabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+  if (!user || user.email !== ALLOWED_EMAIL) return NextResponse.json({ error: "Not authorized." }, { status: 403 });
 
   const body = await req.json().catch(() => ({})) as { posts?: ContentItem[] };
   const posts = body.posts ?? [];
@@ -90,7 +91,7 @@ export async function PATCH(req: Request) {
 
   const supabase = await supabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+  if (!user || user.email !== ALLOWED_EMAIL) return NextResponse.json({ error: "Not authorized." }, { status: 403 });
 
   const body = await req.json().catch(() => ({})) as { airtableId?: string; status?: string };
   if (!body.airtableId || !body.status) return NextResponse.json({ updated: 0 });
@@ -119,7 +120,7 @@ export async function DELETE(req: Request) {
 
   const supabase = await supabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+  if (!user || user.email !== ALLOWED_EMAIL) return NextResponse.json({ error: "Not authorized." }, { status: 403 });
 
   const body = await req.json().catch(() => ({})) as { airtableId?: string };
   if (!body.airtableId) return NextResponse.json({ deleted: 0 });

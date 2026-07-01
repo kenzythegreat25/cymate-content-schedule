@@ -129,9 +129,10 @@ export default function Home() {
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
 
     const SYNCED_STATUSES = new Set(["Posted"]);
+    const isAdmin = userEmail === "kenc@cymate.io";
 
     // Moving away from a synced status → delete from Airtable instantly
-    if (patch.status && !SYNCED_STATUSES.has(patch.status) && prevItem && SYNCED_STATUSES.has(prevItem.status)) {
+    if (isAdmin && patch.status && !SYNCED_STATUSES.has(patch.status) && prevItem && SYNCED_STATUSES.has(prevItem.status)) {
       const map: Record<string, string> = JSON.parse(localStorage.getItem("airtable_id_map") ?? "{}");
       const airtableId = map[id];
       if (airtableId) {
@@ -150,7 +151,7 @@ export default function Home() {
       return;
     }
 
-    if (patch.status && SYNCED_STATUSES.has(patch.status)) {
+    if (isAdmin && patch.status && SYNCED_STATUSES.has(patch.status)) {
       const merged = { ...(pendingPatches.current[id] ?? {}), ...patch };
       delete pendingPatches.current[id];
       clearTimeout(flushTimers.current[id]);
@@ -555,7 +556,7 @@ function TopBar({
             className="h-9 w-40 rounded-lg border border-line bg-surface pl-8 pr-3 text-sm placeholder:text-muted focus:border-line-strong focus:outline-none focus:ring-2 focus:ring-accent-soft md:w-64"
           />
         </div>
-        <AirtableSyncButton items={items} />
+        {userEmail === "kenc@cymate.io" && <AirtableSyncButton items={items} />}
         <button
           onClick={onAdd}
           className="flex h-9 items-center gap-1.5 rounded-lg bg-ink px-3 text-sm font-medium text-canvas shadow-card transition-transform hover:scale-[1.02] active:scale-[0.98]"
