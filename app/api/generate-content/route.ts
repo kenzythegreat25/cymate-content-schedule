@@ -58,34 +58,38 @@ async function callClaude(prompt: string): Promise<string> {
   }
 }
 
+const IG_HASHTAG_POOL = `
+Pick exactly 5 hashtags from the best mix of these for the specific post topic. Prioritize engagement and searchability by B2B founders, sales leaders, and GTM teams:
+#B2BOutbound #ColdEmail #LeadGeneration #OutboundSales #GTMStrategy #SalesProspecting #B2BSales #SalesDevelopment #RevenueGrowth #EmailOutreach #OutboundMarketing #B2BMarketing #SalesStrategy #PipelineGeneration #BookMoreMeetings #SDR #SalesLeadership #StartupGrowth #GrowthStrategy #DemandGeneration #SalesTips #B2BGrowth #OutboundAgency #ColdEmailTips #SalesAutomation
+Place the 5 hashtags on their own line at the end of the caption, separated by a blank line.
+`.trim();
+
 const BASE_INSTRUCTIONS = `
 Cymate is a B2B outbound cold email agency. They run cold email campaigns for tech/SaaS companies — lead prospecting, ICP building, deliverability, reply management. GTM Engineers (not junior SDRs). Performance-based pricing.
 
-TONE: Human, first-person (we/our team/I), conversational, no corporate jargon, no em dashes (—), no emojis, short varied sentences. Never hard-sell. Let the value speak. Posts should feel like a knowledgeable peer sharing something useful, not a brand pitching a service.
+TONE: Human, first-person (we/our team/I), conversational, no corporate jargon, no em dashes (—), no emojis, short varied sentences. Never hard-sell. Let the value speak. Posts feel like a knowledgeable peer sharing something useful, not a brand pitching a service.
 
-HOOK RULE: Every single post must open with a strong hook — a line that stops the scroll. It should challenge an assumption, share a surprising stat or outcome, or say something counterintuitive. The hook is the most important line. Write it first.
+HOOK RULE: Every post must open with a strong hook — one line that stops the scroll. Challenge an assumption, share a surprising outcome, or say something counterintuitive. The hook is the most important line.
 
-HASHTAGS: Every post must end with exactly 5 hashtags. Choose hashtags that (a) are relevant to B2B outbound, cold email, sales, or lead generation and (b) include keywords your target audience (B2B founders, sales leaders, GTM teams) would actually search. Good examples: #B2BOutbound #ColdEmail #LeadGeneration #OutboundSales #GTMStrategy #SalesProspecting #EmailMarketing #B2BSales #SalesDevelopment #RevenueGrowth. Mix broad and niche. Place hashtags on their own line at the end of the description, separated from the body by a blank line.
+IG CTAs: Soft, natural. "Link in bio" style. Save comment-to-unlock only for high-value giveaways.
+LinkedIn CTAs: Soft and contextual. "visit cymate.io" or "link in the comments" for long URLs. Never "DM us."
 
-IG CTAs: Soft and natural. "Link in bio" style ("Link in bio for more." / "Check link in bio."). Not every post needs comment-to-unlock — save that for high-value giveaways only.
-LinkedIn CTAs: Soft and contextual. "visit cymate.io" for general, "link in the comments" for long URLs. Never "DM us" — Cymate can't DM as a page.
-
-AVOID these already-used topics: Copybara case study, Prosal case study, cold email is dead, $100M stat, 150+ companies stat, Instagram intro post, IGNITE competition.
+AVOID: Copybara case study, Prosal case study, cold email is dead, $100M stat, 150+ companies stat, Instagram intro post, IGNITE competition.
 
 Return ONLY a valid JSON array. No markdown, no explanation.
 
-TITLE RULE: Short, topic-only. No day names (no "Monday", "Tuesday Carousel", etc.).
+TITLE RULE: Short, topic-only. No day names ever.
 
 Each object:
 {
   "platform": "Instagram" | "LinkedIn",
   "date": "YYYY-MM-DD",
   "title": "short topic-only title",
-  "on_screen_text": "text on poster (3-10 words). Empty string for LinkedIn text posts. For carousels: first slide hook only.",
-  "description": "Hook line + body + CTA + blank line + 5 hashtags. For carousels: write a clean summary of what the carousel covers (2-4 lines) — not a slide-by-slide list. Treat it as a standalone caption that makes someone want to swipe.",
-  "slides": ["slide 1 text", "slide 2 text", ...] — carousel posts only, 5-6 slides, each slide is the full text that appears on that frame. Omit for non-carousel posts.,
+  "on_screen_text": "Instagram: always a short punchy hook (3-10 words) that goes on the poster graphic. LinkedIn text posts: empty string. Carousels: first slide hook only.",
+  "description": "Instagram: hook line + 3-4 lines of value + CTA + blank line + 5 hashtags (see hashtag rules). For carousels: a clean 2-4 line summary caption of what the carousel covers — make it compelling enough to swipe, not a slide list. LinkedIn: 280-380 words, hook first line, story-driven, soft CTA at end. NO hashtags on LinkedIn.",
+  "slides": ["slide 1 text", "slide 2 text", ...] — Carousel posts only, 5-6 slides, each is the full text for that frame. Omit for all other post types.,
   "content_type": "Static" | "Carousel" | "Text" | "Reel",
-  "notes": "designer direction: people in bg yes/no, mood, reel beats if Reel"
+  "notes": "designer direction: always a clean graphic/poster for IG (no people in background needed), mood and style, reel script beats if Reel"
 }
 `.trim();
 
@@ -145,26 +149,20 @@ async function runGeneration(userId: string): Promise<Response> {
   const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_KEY);
   const dates = getWeekDates();
 
-  // People-in-background: 2 or 3 IG posts this week
-  const peopleCount = Math.random() < 0.5 ? 3 : 2;
-  const staticDays = ["mon", "wed", "fri"].sort(() => Math.random() - 0.5);
-  const extraDay = ["tue", "thu"][Math.random() < 0.5 ? 0 : 1];
-  const peopleDays = new Set(peopleCount === 3 ? [...staticDays, extraDay] : staticDays.slice(0, 2));
-
   const isoWeek = Math.ceil((new Date(dates.mon).getDate() + new Date(new Date(dates.mon).getFullYear(), 0, 1).getDay()) / 7);
   const includeReel = isoWeek % 2 === 1;
 
   const scheduleCtx = `
 Dates: Mon=${dates.mon} Tue=${dates.tue} Wed=${dates.wed} Thu=${dates.thu} Fri=${dates.fri}
-People in poster background (people are background only, not the subject): ${Array.from(peopleDays).join(", ")}
-Tuesday IG: Carousel (5-6 slides — include slide breakdown in notes)
-Thursday IG: ${includeReel ? "Reel (45-60s — include beat-by-beat script in notes)" : "Static graphic"}
-LinkedIn Friday: detailed case study (fictional client, fresh industry, real metrics, one thing that went wrong)
-IG captions: 3-5 punchy lines + CTA. LinkedIn posts: 280-380 words, hook first line, story-driven.
+Tuesday IG: Carousel (5-6 slides)
+Thursday IG: ${includeReel ? "Reel (45-60s — include beat-by-beat script in notes)" : "Static graphic poster"}
+LinkedIn Friday: detailed case study (fictional client, fresh industry, specific metrics, one thing that went wrong)
+All IG posts: clean graphic/poster, no people in background needed. on_screen_text is always a short hook visible on the poster.
 `.trim();
 
-  // Split into 2 parallel calls: IG (5 posts) + LinkedIn (3 posts)
   const igPrompt = `${BASE_INSTRUCTIONS}
+
+${IG_HASHTAG_POOL}
 
 ${scheduleCtx}
 
@@ -174,7 +172,7 @@ Generate exactly 5 Instagram posts (one per weekday Mon-Fri). Return a JSON arra
 
 ${scheduleCtx}
 
-Generate exactly 3 LinkedIn posts (Monday, Wednesday, Friday). Friday must be a case study. Return a JSON array of 3 objects.`;
+Generate exactly 3 LinkedIn posts (Monday, Wednesday, Friday). Friday must be a case study. No hashtags on LinkedIn. Return a JSON array of 3 objects.`;
 
   let igPosts: PostDraft[], liPosts: PostDraft[];
   try {
