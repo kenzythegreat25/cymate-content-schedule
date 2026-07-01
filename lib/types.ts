@@ -4,7 +4,7 @@ export type ContentType = "Text" | "Carousel" | "Static" | "Short-Form Video" | 
 export type ReviewStatus = "" | "pending" | "approved" | "needs-revision" | "on-hold";
 
 export const PLATFORMS: Platform[] = ["LinkedIn", "Instagram", "Youtube", "TikTok", "X", "Facebook"];
-export const STATUSES: Status[] = ["Idea", "Review", "Drafting", "Scheduled", "Posted", "Archived"];
+export const STATUSES: Status[] = ["Drafting", "Review", "Idea", "Scheduled", "Posted", "Archived"];
 export const CONTENT_TYPES: ContentType[] = [
   "Text",
   "Carousel",
