@@ -126,7 +126,16 @@ export default function Home() {
 
   const updateRow = (id: string, patch: Partial<ContentItem>) => {
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
-    scheduleFlush(id, patch);
+    if (patch.status === "Posted") {
+      const merged = { ...(pendingPatches.current[id] ?? {}), ...patch };
+      delete pendingPatches.current[id];
+      clearTimeout(flushTimers.current[id]);
+      updatePost(id, merged).then(() => {
+        fetch("/api/sync-airtable", { method: "POST" });
+      });
+    } else {
+      scheduleFlush(id, patch);
+    }
   };
 
   const deleteRow = async (id: string) => {

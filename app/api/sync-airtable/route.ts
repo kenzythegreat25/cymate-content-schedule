@@ -65,8 +65,8 @@ export async function POST() {
   });
 
   let totalSynced = 0;
-  for (let i = 0; i < records.length; i += 10) {
-    const chunk = records.slice(i, i + 10);
+  for (let i = 0; i < records.length; i += 1) {
+    const chunk = records.slice(i, i + 1);
     const res = await fetch(AIRTABLE_URL,
       {
         method: "POST",
