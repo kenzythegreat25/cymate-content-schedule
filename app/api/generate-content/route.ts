@@ -162,9 +162,11 @@ All IG posts: clean graphic/poster, no people in background needed. on_screen_te
 
   const igPrompt = `${BASE_INSTRUCTIONS}
 
+${IG_HASHTAG_POOL}
+
 ${scheduleCtx}
 
-Generate exactly 5 Instagram posts (one per weekday Mon-Fri). No hashtags on Instagram. Return a JSON array of 5 objects.`;
+Generate exactly 5 Instagram posts (one per weekday Mon-Fri). Each post must end with 5 hashtags relevant to that specific post's topic (see hashtag rules above). Return a JSON array of 5 objects.`;
 
   const liPrompt = `${BASE_INSTRUCTIONS}
 
@@ -172,7 +174,7 @@ ${IG_HASHTAG_POOL}
 
 ${scheduleCtx}
 
-Generate exactly 3 LinkedIn posts (Monday, Wednesday, Friday). Friday must be a case study. Each LinkedIn post must end with 5 hashtags (see hashtag rules above). Return a JSON array of 3 objects.`;
+Generate exactly 3 LinkedIn posts (Monday, Wednesday, Friday). Friday must be a case study. Each post must end with 5 hashtags relevant to that specific post's topic (see hashtag rules above). Return a JSON array of 3 objects.`;
 
   let igPosts: PostDraft[], liPosts: PostDraft[];
   try {
