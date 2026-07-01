@@ -70,15 +70,18 @@ AVOID these already-used topics: Copybara case study, Prosal case study, cold em
 
 Return ONLY a valid JSON array. No markdown, no explanation.
 
+TITLE RULE: Keep titles short and topic-focused. Never include the day of the week in the title (no "Monday", "Tuesday", etc.).
+
 Each object:
 {
   "platform": "Instagram" | "LinkedIn",
   "date": "YYYY-MM-DD",
-  "title": "short internal title",
-  "on_screen_text": "text on poster (3-10 words). Empty string for LinkedIn text posts. First slide only for carousels.",
-  "description": "full caption or post body",
+  "title": "short topic-only title (no day names)",
+  "on_screen_text": "text on poster (3-10 words). Empty string for LinkedIn text posts. For carousels: first slide hook text only.",
+  "description": "caption only — the hook line + 2-4 lines + CTA. For carousels this is the IG caption, NOT the slide content.",
+  "slides": ["slide 1 text", "slide 2 text", ...] for Carousel posts only — each string is the full text for one slide (5-6 slides). Omit this field for non-carousel posts.,
   "content_type": "Static" | "Carousel" | "Text" | "Reel",
-  "notes": "designer direction: people in bg yes/no, mood, slide breakdown or reel beats"
+  "notes": "designer direction: people in bg yes/no, mood, reel beats if applicable"
 }
 `.trim();
 
@@ -121,6 +124,7 @@ type PostDraft = {
   title: string;
   on_screen_text: string;
   description: string;
+  slides?: string[];
   content_type: string;
   notes: string;
 };
@@ -196,7 +200,7 @@ Generate exactly 3 LinkedIn posts (Monday, Wednesday, Friday). Friday must be a 
     review_note: null,
     reviewed_by: null,
     reviewed_at: null,
-    slides: [],
+    slides: Array.isArray(p.slides) ? p.slides : [],
     share_token: null,
     created_at: now,
   }));
