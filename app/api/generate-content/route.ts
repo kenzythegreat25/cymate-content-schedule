@@ -64,15 +64,35 @@ Pick exactly 5 hashtags from the best mix of these for the specific post topic. 
 Place the 5 hashtags on their own line at the end of the caption, separated by a blank line.
 `.trim();
 
+const CLIENT_TESTIMONIALS = `
+Real client testimonials you may use for feedback posts (quote accurately, do not fabricate):
+- Lindsay Liu, Co-Founder at Super: "They've been responsive, thoughtful, and strategic in their approach."
+- Branson Packard, Co-Founder at StoryIt: "Email is quickly becoming our top one or two sales channels."
+- Kelly Zhou, Founder at FindArbor: "Incredible results, consistently filling my calendar with demos."
+- Tucker Kelly, Head of Sales at Revv: "We've been seeing demo bookings weekly."
+- Anthony Baltodano, Cofounder at Mission Inbox: "So many consistent positive responses. It's honestly mind-blowing."
+- Calvin Goodman, Founder at Upsteer: "I've tried it myself and failed, so go with Cymate."
+- Michael Hess, Cofounder at Emporia: "We went from not having cold outbound to regularly getting meetings."
+- Raymond Chen, Founder at 11 Agency: "By far the best agency I've worked with."
+- Alex Farman-Farmaian, Co-Founder at Compound: "They felt like part of the team very quickly."
+- Alessandro Chesser, CEO at GetDynasty: "You cost less than an SDR and you're significantly more impactful."
+- Molly Abbott, Co-Founder at Constructable: "Feels like working with a real partner."
+- Damien Perez, Head of Sales at Kalpa: "Helped us double our demo meetings."
+- Dayo, Head of GTM at Raylu: "We have seen our sales efforts grow in an unbelievable way."
+- Jonathan, Founder at Homely: "Cold outreach — it's a game changer."
+`.trim();
+
 const BASE_INSTRUCTIONS = `
 Cymate is a B2B outbound cold email agency. They run cold email campaigns for tech/SaaS companies — lead prospecting, ICP building, deliverability, reply management. GTM Engineers (not junior SDRs). Performance-based pricing.
 
-TONE: Human, first-person (we/our team/I), conversational, no corporate jargon, no em dashes (—), no emojis, short varied sentences. Never hard-sell. Let the value speak. Posts feel like a knowledgeable peer sharing something useful, not a brand pitching a service.
+TONE: Professional but human. First-person (we/our team/I). Conversational and approachable, never stiff. No em dashes (—), no emojis. Short, varied sentences. Never hard-sell — let the value speak. Write like a senior practitioner sharing genuine insight, not a brand pitching a service.
 
-HOOK RULE: Every post must open with a strong hook — one line that stops the scroll. Challenge an assumption, share a surprising outcome, or say something counterintuitive. The hook is the most important line.
+LANGUAGE STANDARDS: Use professional business language at all times. Avoid slang, informal expressions, or any words that would feel out of place in a B2B business context. Words like "sexy," "unsexy," "killer," "crush it," "hack," or similar casual/hype terms are not appropriate. Keep vocabulary sharp, grounded, and credible.
 
-IG CTAs: Soft, natural. "Link in bio" style. Save comment-to-unlock only for high-value giveaways.
-LinkedIn CTAs: Soft and contextual. "visit cymate.io" or "link in the comments" for long URLs. Never "DM us."
+HOOK RULE: Every post must open with a strong hook — one line that earns the next. Challenge a common assumption, share a specific outcome, or open with a question that resonates with the target reader. The hook is the most important line.
+
+IG CTAs: Soft and natural. "Link in bio" style. Reserve comment-to-unlock only for high-value giveaways.
+LinkedIn CTAs: Soft and contextual. "visit cymate.io" or "link in the comments" for long URLs. Never "message us directly."
 
 AVOID: Copybara case study, Prosal case study, cold email is dead, $100M stat, 150+ companies stat, Instagram intro post, IGNITE competition.
 
@@ -85,11 +105,11 @@ Each object:
   "platform": "Instagram" | "LinkedIn",
   "date": "YYYY-MM-DD",
   "title": "short topic-only title",
-  "on_screen_text": "Instagram: always a short punchy hook (3-10 words) that goes on the poster graphic. LinkedIn text posts: empty string. Carousels: first slide hook only.",
-  "description": "Instagram: hook line + 3-4 lines of value + CTA + blank line + 5 hashtags (see hashtag rules). For carousels: a clean 2-4 line summary caption of what the carousel covers — make it compelling enough to swipe, not a slide list. LinkedIn: 280-380 words, hook first line, story-driven, soft CTA at end. NO hashtags on LinkedIn.",
-  "slides": ["slide 1 text", "slide 2 text", ...] — Carousel posts only, 5-6 slides, each is the full text for that frame. Omit for all other post types.,
+  "on_screen_text": "Instagram: short, punchy hook (3-10 words) that appears on the poster graphic. LinkedIn text posts: empty string. Carousels: first slide hook only.",
+  "description": "Instagram: hook + 3-4 lines of value + CTA + blank line + 5 hashtags. Carousels: clean 2-4 line summary caption (not a slide list) that makes someone want to swipe, then hashtags. LinkedIn: 280-380 words, strong hook first line, story-driven, soft CTA at end, then 5 hashtags on their own line.",
+  "slides": ["slide 1 text", "slide 2 text", ...] — Carousel only, 5-6 slides. Omit for all other types.,
   "content_type": "Static" | "Carousel" | "Text" | "Reel",
-  "notes": "designer direction: always a clean graphic/poster for IG (no people in background needed), mood and style, reel script beats if Reel"
+  "notes": "designer direction: clean graphic/poster for IG (no people in background), mood and visual style, reel script beats if Reel, or 'Client feedback post' if applicable"
 }
 `.trim();
 
@@ -172,9 +192,16 @@ Generate exactly 5 Instagram posts (one per weekday Mon-Fri). Each post must end
 
 ${IG_HASHTAG_POOL}
 
+${CLIENT_TESTIMONIALS}
+
 ${scheduleCtx}
 
-Generate exactly 3 LinkedIn posts (Monday, Wednesday, Friday). Friday must be a case study. Each post must end with 5 hashtags relevant to that specific post's topic (see hashtag rules above). Return a JSON array of 3 objects.`;
+Generate exactly 3 LinkedIn posts (Monday, Wednesday, Friday) following these content guidelines:
+- Friday: always a detailed case study (fictional but realistic client, fresh industry, specific metrics, one thing that went wrong or surprised us)
+- Monday or Wednesday (rotate — not every week): occasionally replace one post with a client feedback/testimonial post using a real quote from the testimonials list above. Feature the client name, company, and quote authentically. Frame it as social proof with context around what result they achieved.
+- When not a feedback post, Monday and Wednesday should be a mix of: insight/framework posts, hot takes, behind-the-scenes process, or a shorter case study.
+- Every post must end with 5 hashtags relevant to that specific post's topic (see hashtag rules above).
+Return a JSON array of 3 objects.`;
 
   let igPosts: PostDraft[], liPosts: PostDraft[];
   try {
