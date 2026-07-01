@@ -52,10 +52,7 @@ export async function POST() {
           Authorization: `Bearer ${AIRTABLE_API_KEY}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          records: chunk,
-          performUpsert: { fieldsToMergeOn: ["Post ID"] },
-        }),
+        body: JSON.stringify({ records: chunk }),
       }
     );
 
