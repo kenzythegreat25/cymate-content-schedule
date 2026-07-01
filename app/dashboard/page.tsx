@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -33,6 +34,7 @@ import {
 } from "../../lib/storage";
 import { supabaseBrowser } from "../../lib/supabase/client";
 import { useTheme, type Theme } from "../../lib/theme";
+import { syncToAirtable } from "../actions/sync-airtable";
 
 type View = "board" | "calendar" | "list";
 
@@ -171,6 +173,7 @@ export default function Home() {
         stats={stats}
         mobileOpen={sidebarOpen}
         onMobileClose={() => setSidebarOpen(false)}
+        userEmail={userEmail}
       />
       <main className="flex min-h-screen min-w-0 flex-1 flex-col">
         <TopBar
@@ -234,6 +237,7 @@ function Sidebar({
   stats,
   mobileOpen,
   onMobileClose,
+  userEmail,
 }: {
   view: View;
   setView: (v: View) => void;
@@ -242,6 +246,7 @@ function Sidebar({
   stats: { total: number; scheduled: number; posted: number; inProgress: number };
   mobileOpen: boolean;
   onMobileClose: () => void;
+  userEmail: string;
 }) {
   return (
     <>
@@ -320,19 +325,74 @@ function Sidebar({
         ))}
       </SidebarSection>
 
-      <div className="mt-auto rounded-xl border border-line bg-surface px-3 py-3 shadow-card">
-        <div className="text-[11px] uppercase tracking-wider text-muted">This pipeline</div>
-        <div className="mt-2 grid grid-cols-2 gap-y-1.5 text-xs">
-          <span className="text-ink-soft">In motion</span>
-          <span className="text-right font-medium">{stats.inProgress}</span>
-          <span className="text-ink-soft">Scheduled</span>
-          <span className="text-right font-medium">{stats.scheduled}</span>
-          <span className="text-ink-soft">Posted</span>
-          <span className="text-right font-medium">{stats.posted}</span>
+      <div className="mt-auto space-y-3">
+        {userEmail === "kenc@cymate.io" && (
+          <AirtableSyncButton />
+        )}
+        <div className="rounded-xl border border-line bg-surface px-3 py-3 shadow-card">
+          <div className="text-[11px] uppercase tracking-wider text-muted">This pipeline</div>
+          <div className="mt-2 grid grid-cols-2 gap-y-1.5 text-xs">
+            <span className="text-ink-soft">In motion</span>
+            <span className="text-right font-medium">{stats.inProgress}</span>
+            <span className="text-ink-soft">Scheduled</span>
+            <span className="text-right font-medium">{stats.scheduled}</span>
+            <span className="text-ink-soft">Posted</span>
+            <span className="text-right font-medium">{stats.posted}</span>
+          </div>
         </div>
       </div>
       </aside>
     </>
+  );
+}
+
+function AirtableSyncButton() {
+  const [state, setState] = useState<"idle" | "syncing" | "done" | "error">("idle");
+  const [message, setMessage] = useState("");
+
+  const handleSync = async () => {
+    setState("syncing");
+    setMessage("");
+    const result = await syncToAirtable();
+    if (result.error) {
+      setState("error");
+      setMessage(result.error);
+    } else {
+      setState("done");
+      setMessage(`${result.synced} record${result.synced === 1 ? "" : "s"} synced`);
+      setTimeout(() => setState("idle"), 4000);
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-line bg-surface px-3 py-3 shadow-card">
+      <div className="mb-2 flex items-center gap-1.5">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        <span className="text-[11px] uppercase tracking-wider text-muted">Airtable</span>
+      </div>
+      <button
+        onClick={handleSync}
+        disabled={state === "syncing"}
+        className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-line bg-surface-2 px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:bg-line/60 hover:text-ink disabled:opacity-50"
+      >
+        {state === "syncing" ? (
+          <>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+            Syncing…
+          </>
+        ) : (
+          <>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            Sync to Airtable
+          </>
+        )}
+      </button>
+      {message && (
+        <p className={`mt-1.5 text-center text-[11px] ${state === "error" ? "text-red-500" : "text-emerald-600"}`}>
+          {state === "done" && "✓ "}{message}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -1738,10 +1798,10 @@ function MediaLightbox({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onClose, hasMany, urls.length]);
 
-  return (
+  return createPortal(
     <div
-      className="fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
-      onClick={onClose}
+      className="fade-in fixed inset-0 z-50 flex cursor-pointer items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       role="dialog"
       aria-label="Media preview"
     >
@@ -1787,7 +1847,7 @@ function MediaLightbox({
         </>
       )}
 
-      <div className="max-h-full max-w-5xl" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-full max-w-5xl cursor-default" onClick={(e) => e.stopPropagation()}>
         {video ? (
           <video
             key={url}
@@ -1806,7 +1866,8 @@ function MediaLightbox({
           />
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

@@ -329,8 +329,8 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
         const setIdx = (next: number) => setPreviewIndex(((next % len) + len) % len);
         return (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
-            onClick={() => setPreviewIndex(null)}
+            className="fixed inset-0 z-50 flex cursor-pointer items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
+            onClick={(e) => { if (e.target === e.currentTarget) setPreviewIndex(null); }}
             role="dialog"
             aria-label="Media preview"
           >
@@ -374,7 +374,7 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
                 </div>
               </>
             )}
-            <div className="max-h-full max-w-5xl" onClick={(e) => e.stopPropagation()}>
+            <div className="max-h-full max-w-5xl cursor-default" onClick={(e) => e.stopPropagation()}>
               {isVideoUrl(cur) ? (
                 <video key={cur} src={cur} controls autoPlay className="max-h-[88vh] max-w-full rounded-lg shadow-card-lg" />
               ) : (
