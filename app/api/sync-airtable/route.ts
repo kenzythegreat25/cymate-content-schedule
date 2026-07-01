@@ -72,6 +72,33 @@ export async function POST(req: Request) {
   );
 
   if (!Array.isArray(results)) return results;
-  const totalSynced = results.reduce((sum, r) => sum + r.records.length, 0);
-  return NextResponse.json({ synced: totalSynced, newlySyncedIds: posts.map((p) => p.id) });
+  const airtableRecords = results.flatMap((r) => r.records as { id: string }[]);
+  const airtableIdMap: Record<string, string> = {};
+  posts.forEach((p, i) => { if (airtableRecords[i]) airtableIdMap[p.id] = airtableRecords[i].id; });
+  return NextResponse.json({ synced: airtableRecords.length, newlySyncedIds: posts.map((p) => p.id), airtableIdMap });
+}
+
+export async function DELETE(req: Request) {
+  if (!AIRTABLE_API_KEY) {
+    return NextResponse.json({ error: "AIRTABLE_API_KEY not set." }, { status: 500 });
+  }
+
+  const supabase = await supabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+
+  const body = await req.json().catch(() => ({})) as { airtableId?: string };
+  if (!body.airtableId) return NextResponse.json({ deleted: 0 });
+
+  const res = await fetchWithTimeout(`${AIRTABLE_URL}/${body.airtableId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` },
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    return NextResponse.json({ error: JSON.stringify(err) }, { status: 500 });
+  }
+
+  return NextResponse.json({ deleted: 1 });
 }

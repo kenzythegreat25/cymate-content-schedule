@@ -125,7 +125,30 @@ export default function Home() {
   };
 
   const updateRow = (id: string, patch: Partial<ContentItem>) => {
+    const prevItem = items.find((i) => i.id === id);
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+
+    // Moving away from Posted → delete from Airtable instantly
+    if (patch.status && patch.status !== "Posted" && prevItem?.status === "Posted") {
+      const map: Record<string, string> = JSON.parse(localStorage.getItem("airtable_id_map") ?? "{}");
+      const airtableId = map[id];
+      if (airtableId) {
+        fetch("/api/sync-airtable", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ airtableId }),
+        }).then(() => {
+          // Remove from both localStorage maps
+          delete map[id];
+          localStorage.setItem("airtable_id_map", JSON.stringify(map));
+          const synced: string[] = JSON.parse(localStorage.getItem("airtable_synced_ids") ?? "[]");
+          localStorage.setItem("airtable_synced_ids", JSON.stringify(synced.filter((s) => s !== id)));
+        });
+      }
+      scheduleFlush(id, patch);
+      return;
+    }
+
     if (patch.status === "Posted") {
       const merged = { ...(pendingPatches.current[id] ?? {}), ...patch };
       delete pendingPatches.current[id];
@@ -142,6 +165,10 @@ export default function Home() {
           if (result.newlySyncedIds?.length) {
             const updated = Array.from(new Set([...syncedIds, ...result.newlySyncedIds]));
             localStorage.setItem("airtable_synced_ids", JSON.stringify(updated));
+          }
+          if (result.airtableIdMap) {
+            const map: Record<string, string> = JSON.parse(localStorage.getItem("airtable_id_map") ?? "{}");
+            localStorage.setItem("airtable_id_map", JSON.stringify({ ...map, ...result.airtableIdMap }));
           }
         });
       });
@@ -397,6 +424,10 @@ function AirtableSyncButton({ items }: { items: ContentItem[] }) {
       if (result.newlySyncedIds?.length) {
         const updated = Array.from(new Set([...syncedIds, ...result.newlySyncedIds]));
         localStorage.setItem("airtable_synced_ids", JSON.stringify(updated));
+      }
+      if (result.airtableIdMap) {
+        const map: Record<string, string> = JSON.parse(localStorage.getItem("airtable_id_map") ?? "{}");
+        localStorage.setItem("airtable_id_map", JSON.stringify({ ...map, ...result.airtableIdMap }));
       }
       setState("done");
       setMessage(`${result.synced} synced`);
