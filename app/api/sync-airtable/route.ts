@@ -22,18 +22,29 @@ export async function POST() {
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
   if (!posts?.length) return NextResponse.json({ synced: 0 });
 
+  // Map app statuses to Airtable single-select options
+  const STATUS_MAP: Record<string, string> = {
+    Drafting:  "In progress",
+    Scheduled: "In progress",
+    Posted:    "Posted",
+    Archived:  "Todo",
+  };
+  // Only these platform values exist in Airtable
+  const VALID_PLATFORMS = new Set(["LinkedIn", "Instagram", "Youtube"]);
+
   const filtered = posts.filter((p) => p.status !== "Review");
   if (!filtered.length) return NextResponse.json({ synced: 0 });
 
   const records = filtered.map((p) => {
-    const fields: Record<string, string> = {
+    const fields: Record<string, unknown> = {
       "Title":  p.title ?? "",
-      "Status": p.status ?? "",
+      "Status": STATUS_MAP[p.status] ?? "Todo",
     };
     if (p.date)             fields["Date"]              = p.date;
     if (p.on_screen_text)   fields["On Screen Text"]    = p.on_screen_text;
     if (p.description)      fields["Description"]       = p.description;
-    if (p.platforms?.length) (fields as Record<string, unknown>)["Platform"] = p.platforms as string[];
+    const validPlatforms = (p.platforms as string[] ?? []).filter((pl) => VALID_PLATFORMS.has(pl));
+    if (validPlatforms.length) fields["Platform"]        = validPlatforms;
     if (p.content_type)     fields["Content Type"]      = p.content_type;
     if (p.performance_score) fields["Performance Score"] = p.performance_score;
     if (p.notes)            fields["Notes"]             = p.notes;
