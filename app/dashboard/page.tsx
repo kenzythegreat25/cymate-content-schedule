@@ -354,40 +354,33 @@ function AirtableSyncButton() {
     if (result.error) {
       setState("error");
       setMessage(result.error);
+      setTimeout(() => { setState("idle"); setMessage(""); }, 5000);
     } else {
       setState("done");
-      setMessage(`${result.synced} record${result.synced === 1 ? "" : "s"} synced`);
-      setTimeout(() => setState("idle"), 4000);
+      setMessage(`${result.synced} synced`);
+      setTimeout(() => { setState("idle"); setMessage(""); }, 4000);
     }
   };
 
   return (
-    <div className="rounded-xl border border-line bg-surface px-3 py-3 shadow-card">
-      <div className="mb-2 flex items-center gap-1.5">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-        <span className="text-[11px] uppercase tracking-wider text-muted">Airtable</span>
-      </div>
+    <div className="relative flex items-center">
       <button
         onClick={handleSync}
         disabled={state === "syncing"}
-        className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-line bg-surface-2 px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:bg-line/60 hover:text-ink disabled:opacity-50"
+        title="Sync to Airtable"
+        className="flex h-9 items-center gap-1.5 rounded-lg border border-line bg-surface px-3 text-sm font-medium text-ink-soft transition hover:bg-surface-2 hover:text-ink disabled:opacity-50"
       >
         {state === "syncing" ? (
-          <>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-            Syncing…
-          </>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
         ) : (
-          <>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-            Sync to Airtable
-          </>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
         )}
+        <span className="hidden sm:inline">
+          {state === "syncing" ? "Syncing…" : state === "done" ? message : state === "error" ? "Error" : "Sync"}
+        </span>
       </button>
-      {message && (
-        <p className={`mt-1.5 text-center text-[11px] ${state === "error" ? "text-red-500" : "text-emerald-600"}`}>
-          {state === "done" && "✓ "}{message}
-        </p>
+      {message && state === "error" && (
+        <span className="absolute top-full mt-1 right-0 whitespace-nowrap rounded bg-red-100 px-2 py-1 text-[11px] text-red-600">{message}</span>
       )}
     </div>
   );
