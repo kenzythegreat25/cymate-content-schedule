@@ -12,7 +12,7 @@ function fetchWithTimeout(url: string, options: RequestInit, ms = 8000) {
   return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(id));
 }
 
-export async function POST() {
+export async function POST(req: Request) {
   if (!AIRTABLE_API_KEY) {
     return NextResponse.json({ error: "AIRTABLE_API_KEY not set." }, { status: 500 });
   }
@@ -33,26 +33,13 @@ export async function POST() {
   // Only these platform values exist in Airtable
   const VALID_PLATFORMS = new Set(["LinkedIn", "Instagram", "Youtube"]);
 
-  // Only sync Posted content
-  const postedPosts = posts.filter((p) => p.status === "Posted");
-  if (!postedPosts.length) return NextResponse.json({ synced: 0 });
+  // Read already-synced IDs passed from client (localStorage)
+  const body = await req.json().catch(() => ({})) as { syncedIds?: string[] };
+  const syncedSet = new Set(body.syncedIds ?? []);
 
-  // Fetch existing Airtable titles to avoid duplicates
-  const existingRes = await fetchWithTimeout(
-    `${AIRTABLE_URL}?fields[]=Title&pageSize=100`,
-    { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
-  );
-  const existingBody = existingRes.ok
-    ? (await existingRes.json() as { records: { fields: { Title?: string } }[] })
-    : { records: [] };
-  const existingTitles = new Set(
-    existingBody.records.map((r) => r.fields.Title ?? "").filter(Boolean)
-  );
-
-  const filtered = postedPosts.filter(
-    (p) => !existingTitles.has(p.title ?? "")
-  );
-  if (!filtered.length) return NextResponse.json({ synced: 0, skipped: postedPosts.length });
+  // Only sync Posted content not yet synced
+  const filtered = posts.filter((p) => p.status === "Posted" && !syncedSet.has(p.id));
+  if (!filtered.length) return NextResponse.json({ synced: 0 });
 
   const records = filtered.map((p) => {
     const fields: Record<string, unknown> = {
@@ -99,5 +86,5 @@ export async function POST() {
 
   if (!Array.isArray(results)) return results;
   const totalSynced = results.reduce((sum, r) => sum + r.records.length, 0);
-  return NextResponse.json({ synced: totalSynced });
+  return NextResponse.json({ synced: totalSynced, newlySyncedIds: filtered.map((p) => p.id) });
 }

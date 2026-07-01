@@ -131,7 +131,17 @@ export default function Home() {
       delete pendingPatches.current[id];
       clearTimeout(flushTimers.current[id]);
       updatePost(id, merged).then(() => {
-        fetch("/api/sync-airtable", { method: "POST" });
+        const syncedIds: string[] = JSON.parse(localStorage.getItem("airtable_synced_ids") ?? "[]");
+        fetch("/api/sync-airtable", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ syncedIds }),
+        }).then((r) => r.json()).then((result) => {
+          if (result.newlySyncedIds?.length) {
+            const updated = Array.from(new Set([...syncedIds, ...result.newlySyncedIds]));
+            localStorage.setItem("airtable_synced_ids", JSON.stringify(updated));
+          }
+        });
       });
     } else {
       scheduleFlush(id, patch);
@@ -358,15 +368,24 @@ function AirtableSyncButton() {
   const handleSync = async () => {
     setState("syncing");
     setMessage("");
-    const res = await fetch("/api/sync-airtable", { method: "POST" });
+    const syncedIds: string[] = JSON.parse(localStorage.getItem("airtable_synced_ids") ?? "[]");
+    const res = await fetch("/api/sync-airtable", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ syncedIds }),
+    });
     const result = await res.json();
     if (result.error) {
       setState("error");
       setMessage(result.error);
       setTimeout(() => { setState("idle"); setMessage(""); }, 5000);
     } else {
+      if (result.newlySyncedIds?.length) {
+        const updated = Array.from(new Set([...syncedIds, ...result.newlySyncedIds]));
+        localStorage.setItem("airtable_synced_ids", JSON.stringify(updated));
+      }
       setState("done");
-      setMessage(`${result.synced} synced`);
+      setMessage(result.synced === 0 ? "Up to date" : `${result.synced} synced`);
       setTimeout(() => { setState("idle"); setMessage(""); }, 4000);
     }
   };
