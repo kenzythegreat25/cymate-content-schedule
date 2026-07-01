@@ -72,15 +72,19 @@ export async function POST() {
     return { fields };
   });
 
+  // Chunk into batches of 10 (Airtable max), then send all batches in parallel
+  const chunks: (typeof records)[] = [];
+  for (let i = 0; i < records.length; i += 10) chunks.push(records.slice(i, i + 10));
+
   const results = await Promise.all(
-    records.map((record) =>
+    chunks.map((chunk) =>
       fetchWithTimeout(AIRTABLE_URL, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${AIRTABLE_API_KEY}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ records: [record] }),
+        body: JSON.stringify({ records: chunk }),
       }).then(async (res) => {
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
