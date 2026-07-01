@@ -194,7 +194,7 @@ Generate exactly 3 LinkedIn posts (Monday, Wednesday, Friday). Friday must be a 
     review_status: "",
     review_note: "",
     reviewed_by: "",
-    reviewed_at: "",
+    reviewed_at: null,
     slides: [],
     share_token: "",
     created_at: new Date().toISOString(),
