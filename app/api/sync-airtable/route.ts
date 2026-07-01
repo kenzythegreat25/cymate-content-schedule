@@ -25,19 +25,7 @@ export async function POST() {
 
   const records = posts.map((p) => ({
     fields: {
-      "Post ID":           p.id,
-      "Title":             p.title ?? "",
-      "Date":              p.date ?? "",
-      "On Screen Text":    p.on_screen_text ?? "",
-      "Description":       p.description ?? "",
-      "Platform":          p.platforms ?? [],
-      "Status":            p.status ?? "",
-      "Content Type":      p.content_type ?? "",
-      "Performance Score": p.performance_score ?? "",
-      "Notes":             p.notes ?? "",
-      "Attachments": (p.attachment_urls ?? [])
-        .filter(Boolean)
-        .map((url: string) => ({ url })),
+      "Name": p.title ?? "",
     },
   }));
 
