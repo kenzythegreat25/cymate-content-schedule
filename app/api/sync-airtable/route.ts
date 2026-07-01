@@ -22,23 +22,34 @@ export async function POST() {
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
   if (!posts?.length) return NextResponse.json({ synced: 0 });
 
-  // Map app statuses to Airtable single-select options
-  const STATUS_MAP: Record<string, string> = {
-    Drafting:  "In progress",
-    Scheduled: "In progress",
-    Posted:    "Posted",
-    Archived:  "Todo",
-  };
   // Only these platform values exist in Airtable
   const VALID_PLATFORMS = new Set(["LinkedIn", "Instagram", "Youtube"]);
 
-  const filtered = posts.filter((p) => p.status !== "Review");
-  if (!filtered.length) return NextResponse.json({ synced: 0 });
+  // Only sync Posted content
+  const postedPosts = posts.filter((p) => p.status === "Posted");
+  if (!postedPosts.length) return NextResponse.json({ synced: 0 });
+
+  // Fetch existing Airtable titles to avoid duplicates
+  const existingRes = await fetch(
+    `${AIRTABLE_URL}?fields[]=Title&pageSize=100`,
+    { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
+  );
+  const existingBody = existingRes.ok
+    ? (await existingRes.json() as { records: { fields: { Title?: string } }[] })
+    : { records: [] };
+  const existingTitles = new Set(
+    existingBody.records.map((r) => r.fields.Title ?? "").filter(Boolean)
+  );
+
+  const filtered = postedPosts.filter(
+    (p) => !existingTitles.has(p.title ?? "")
+  );
+  if (!filtered.length) return NextResponse.json({ synced: 0, skipped: postedPosts.length });
 
   const records = filtered.map((p) => {
     const fields: Record<string, unknown> = {
       "Title":  p.title ?? "",
-      "Status": STATUS_MAP[p.status] ?? "Todo",
+      "Status": "Posted",
     };
     if (p.date)             fields["Date"]              = p.date;
     if (p.on_screen_text)   fields["On Screen Text"]    = p.on_screen_text;
