@@ -2,12 +2,11 @@ import { NextResponse } from "next/server";
 import { supabaseServer } from "../../../lib/supabase/server";
 
 const AIRTABLE_API_KEY  = process.env.AIRTABLE_API_KEY ?? "";
-const AIRTABLE_BASE_ID  = process.env.AIRTABLE_BASE_ID || "appAv2zeXuX7yGrEe";
-const AIRTABLE_TABLE    = "tbld3Iw1TPiIKRlv9";
+const AIRTABLE_URL      = "https://api.airtable.com/v0/appAv2zeXuX7yGrEe/tbld3Iw1TPiIKRlv9";
 
 export async function POST() {
-  if (!AIRTABLE_API_KEY || !AIRTABLE_BASE_ID) {
-    return NextResponse.json({ error: "Airtable env vars not set." }, { status: 500 });
+  if (!AIRTABLE_API_KEY) {
+    return NextResponse.json({ error: "AIRTABLE_API_KEY not set." }, { status: 500 });
   }
 
   const supabase = await supabaseServer();
@@ -38,15 +37,10 @@ export async function POST() {
     return { fields };
   });
 
-  const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE}`;
-  console.log("Airtable URL:", url);
-  console.log("API Key prefix:", AIRTABLE_API_KEY.slice(0, 10));
-  console.log("Records to sync:", records.length);
-
   let totalSynced = 0;
   for (let i = 0; i < records.length; i += 10) {
     const chunk = records.slice(i, i + 10);
-    const res = await fetch(url,
+    const res = await fetch(AIRTABLE_URL,
       {
         method: "POST",
         headers: {
