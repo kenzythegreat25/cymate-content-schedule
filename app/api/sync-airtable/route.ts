@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { supabaseServer } from "../../../lib/supabase/server";
 
 const AIRTABLE_API_KEY  = process.env.AIRTABLE_API_KEY ?? "";
-const AIRTABLE_BASE_ID  = process.env.AIRTABLE_BASE_ID ?? "";
-const AIRTABLE_TABLE    = process.env.AIRTABLE_TABLE_NAME ?? "tbld3Iw1TPiIKRlv9";
+const AIRTABLE_BASE_ID  = process.env.AIRTABLE_BASE_ID || "appAv2zeXuX7yGrEe";
+const AIRTABLE_TABLE    = "tbld3Iw1TPiIKRlv9";
 
 export async function POST() {
   if (!AIRTABLE_API_KEY || !AIRTABLE_BASE_ID) {
