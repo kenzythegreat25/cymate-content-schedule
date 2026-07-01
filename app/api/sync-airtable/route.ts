@@ -83,6 +83,35 @@ export async function POST(req: Request) {
   return NextResponse.json({ synced: airtableRecords.length, newlySyncedIds: posts.map((p) => p.id), airtableIdMap });
 }
 
+export async function PATCH(req: Request) {
+  if (!AIRTABLE_API_KEY) {
+    return NextResponse.json({ error: "AIRTABLE_API_KEY not set." }, { status: 500 });
+  }
+
+  const supabase = await supabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+
+  const body = await req.json().catch(() => ({})) as { airtableId?: string; status?: string };
+  if (!body.airtableId || !body.status) return NextResponse.json({ updated: 0 });
+
+  const res = await fetchWithTimeout(`${AIRTABLE_URL}/${body.airtableId}`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ fields: { "Status": STATUS_MAP[body.status] ?? "In progress" } }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    return NextResponse.json({ error: JSON.stringify(err) }, { status: 500 });
+  }
+
+  return NextResponse.json({ updated: 1 });
+}
+
 export async function DELETE(req: Request) {
   if (!AIRTABLE_API_KEY) {
     return NextResponse.json({ error: "AIRTABLE_API_KEY not set." }, { status: 500 });

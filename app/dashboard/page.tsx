@@ -157,7 +157,18 @@ export default function Home() {
       const currentItem = { ...items.find((i) => i.id === id)!, ...merged };
       updatePost(id, merged);
       const syncedIds: string[] = JSON.parse(localStorage.getItem("airtable_synced_ids") ?? "[]");
-      if (!syncedIds.includes(id)) {
+      const idMap: Record<string, string> = JSON.parse(localStorage.getItem("airtable_id_map") ?? "{}");
+      const existingAirtableId = idMap[id];
+
+      if (existingAirtableId) {
+        // Already in Airtable — just update the status field
+        fetch("/api/sync-airtable", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ airtableId: existingAirtableId, status: patch.status }),
+        });
+      } else {
+        // Not yet in Airtable — create new record
         fetch("/api/sync-airtable", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -168,8 +179,7 @@ export default function Home() {
             localStorage.setItem("airtable_synced_ids", JSON.stringify(updated));
           }
           if (result.airtableIdMap) {
-            const map: Record<string, string> = JSON.parse(localStorage.getItem("airtable_id_map") ?? "{}");
-            localStorage.setItem("airtable_id_map", JSON.stringify({ ...map, ...result.airtableIdMap }));
+            localStorage.setItem("airtable_id_map", JSON.stringify({ ...idMap, ...result.airtableIdMap }));
           }
         });
       }
