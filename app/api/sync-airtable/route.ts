@@ -30,7 +30,7 @@ export async function POST() {
     if (p.date)             fields["Date"]              = p.date;
     if (p.on_screen_text)   fields["On Screen Text"]    = p.on_screen_text;
     if (p.description)      fields["Description"]       = p.description;
-    if (p.platforms?.length) fields["Platform"]         = (p.platforms as string[]).join(", ");
+    if (p.platforms?.length) (fields as Record<string, unknown>)["Platform"] = p.platforms as string[];
     if (p.content_type)     fields["Content Type"]      = p.content_type;
     if (p.performance_score) fields["Performance Score"] = p.performance_score;
     if (p.notes)            fields["Notes"]             = p.notes;
