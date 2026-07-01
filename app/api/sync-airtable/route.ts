@@ -23,19 +23,20 @@ export async function POST() {
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
   if (!posts?.length) return NextResponse.json({ synced: 0 });
 
-  const records = posts.map((p) => ({
-    fields: {
-      "Title":             p.title ?? "",
-      "Date":              p.date ?? "",
-      "On Screen Text":    p.on_screen_text ?? "",
-      "Description":       p.description ?? "",
-      "Platform":          (p.platforms ?? []).join(", "),
-      "Status":            p.status ?? "",
-      "Content Type":      p.content_type ?? "",
-      "Performance Score": p.performance_score ?? "",
-      "Notes":             p.notes ?? "",
-    },
-  }));
+  const records = posts.map((p) => {
+    const fields: Record<string, string> = {
+      "Title":  p.title ?? "",
+      "Status": p.status ?? "",
+    };
+    if (p.date)             fields["Date"]              = p.date;
+    if (p.on_screen_text)   fields["On Screen Text"]    = p.on_screen_text;
+    if (p.description)      fields["Description"]       = p.description;
+    if (p.platforms?.length) fields["Platform"]         = (p.platforms as string[]).join(", ");
+    if (p.content_type)     fields["Content Type"]      = p.content_type;
+    if (p.performance_score) fields["Performance Score"] = p.performance_score;
+    if (p.notes)            fields["Notes"]             = p.notes;
+    return { fields };
+  });
 
   const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE}`;
   console.log("Airtable URL:", url);
