@@ -132,10 +132,12 @@ export default function Home() {
       clearTimeout(flushTimers.current[id]);
       updatePost(id, merged).then(() => {
         const syncedIds: string[] = JSON.parse(localStorage.getItem("airtable_synced_ids") ?? "[]");
+        if (syncedIds.includes(id)) return;
+        const currentItem = { ...items.find((i) => i.id === id)!, ...merged };
         fetch("/api/sync-airtable", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ syncedIds }),
+          body: JSON.stringify({ posts: [currentItem] }),
         }).then((r) => r.json()).then((result) => {
           if (result.newlySyncedIds?.length) {
             const updated = Array.from(new Set([...syncedIds, ...result.newlySyncedIds]));
@@ -361,18 +363,29 @@ function Sidebar({
   );
 }
 
-function AirtableSyncButton() {
+function AirtableSyncButton({ items }: { items: ContentItem[] }) {
   const [state, setState] = useState<"idle" | "syncing" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
 
   const handleSync = async () => {
+    const syncedIds: string[] = JSON.parse(localStorage.getItem("airtable_synced_ids") ?? "[]");
+    const syncedSet = new Set(syncedIds);
+    const toSync = items.filter((i) => i.status === "Posted" && !syncedSet.has(i.id));
+
+    // Nothing new — skip server entirely
+    if (!toSync.length) {
+      setState("done");
+      setMessage("Up to date");
+      setTimeout(() => { setState("idle"); setMessage(""); }, 3000);
+      return;
+    }
+
     setState("syncing");
     setMessage("");
-    const syncedIds: string[] = JSON.parse(localStorage.getItem("airtable_synced_ids") ?? "[]");
     const res = await fetch("/api/sync-airtable", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ syncedIds }),
+      body: JSON.stringify({ posts: toSync }),
     });
     const result = await res.json();
     if (result.error) {
@@ -385,7 +398,7 @@ function AirtableSyncButton() {
         localStorage.setItem("airtable_synced_ids", JSON.stringify(updated));
       }
       setState("done");
-      setMessage(result.synced === 0 ? "Up to date" : `${result.synced} synced`);
+      setMessage(`${result.synced} synced`);
       setTimeout(() => { setState("idle"); setMessage(""); }, 4000);
     }
   };
@@ -497,7 +510,7 @@ function TopBar({
             className="h-9 w-40 rounded-lg border border-line bg-surface pl-8 pr-3 text-sm placeholder:text-muted focus:border-line-strong focus:outline-none focus:ring-2 focus:ring-accent-soft md:w-64"
           />
         </div>
-        <AirtableSyncButton />
+        <AirtableSyncButton items={items} />
         <button
           onClick={onAdd}
           className="flex h-9 items-center gap-1.5 rounded-lg bg-ink px-3 text-sm font-medium text-canvas shadow-card transition-transform hover:scale-[1.02] active:scale-[0.98]"
