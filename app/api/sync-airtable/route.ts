@@ -22,7 +22,10 @@ export async function POST() {
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
   if (!posts?.length) return NextResponse.json({ synced: 0 });
 
-  const records = posts.map((p) => {
+  const filtered = posts.filter((p) => p.status !== "Review");
+  if (!filtered.length) return NextResponse.json({ synced: 0 });
+
+  const records = filtered.map((p) => {
     const fields: Record<string, string> = {
       "Title":  p.title ?? "",
       "Status": p.status ?? "",
