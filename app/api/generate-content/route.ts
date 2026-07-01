@@ -61,27 +61,31 @@ async function callClaude(prompt: string): Promise<string> {
 const BASE_INSTRUCTIONS = `
 Cymate is a B2B outbound cold email agency. They run cold email campaigns for tech/SaaS companies — lead prospecting, ICP building, deliverability, reply management. GTM Engineers (not junior SDRs). Performance-based pricing.
 
-TONE: Human, first-person (we/our team/I), no corporate jargon, no em dashes (—), no emojis, short varied sentences.
+TONE: Human, first-person (we/our team/I), conversational, no corporate jargon, no em dashes (—), no emojis, short varied sentences. Never hard-sell. Let the value speak. Posts should feel like a knowledgeable peer sharing something useful, not a brand pitching a service.
 
-IG CTAs: "Link in bio" style ("Link in bio for more." / "Check link in bio."). Not every post needs comment-to-unlock.
-LinkedIn CTAs: "visit cymate.io" or "link in the comments" for long URLs. No "DM us" — Cymate can't DM as a page.
+HOOK RULE: Every single post must open with a strong hook — a line that stops the scroll. It should challenge an assumption, share a surprising stat or outcome, or say something counterintuitive. The hook is the most important line. Write it first.
+
+HASHTAGS: Every post must end with exactly 5 hashtags. Choose hashtags that (a) are relevant to B2B outbound, cold email, sales, or lead generation and (b) include keywords your target audience (B2B founders, sales leaders, GTM teams) would actually search. Good examples: #B2BOutbound #ColdEmail #LeadGeneration #OutboundSales #GTMStrategy #SalesProspecting #EmailMarketing #B2BSales #SalesDevelopment #RevenueGrowth. Mix broad and niche. Place hashtags on their own line at the end of the description, separated from the body by a blank line.
+
+IG CTAs: Soft and natural. "Link in bio" style ("Link in bio for more." / "Check link in bio."). Not every post needs comment-to-unlock — save that for high-value giveaways only.
+LinkedIn CTAs: Soft and contextual. "visit cymate.io" for general, "link in the comments" for long URLs. Never "DM us" — Cymate can't DM as a page.
 
 AVOID these already-used topics: Copybara case study, Prosal case study, cold email is dead, $100M stat, 150+ companies stat, Instagram intro post, IGNITE competition.
 
 Return ONLY a valid JSON array. No markdown, no explanation.
 
-TITLE RULE: Keep titles short and topic-focused. Never include the day of the week in the title (no "Monday", "Tuesday", etc.).
+TITLE RULE: Short, topic-only. No day names (no "Monday", "Tuesday Carousel", etc.).
 
 Each object:
 {
   "platform": "Instagram" | "LinkedIn",
   "date": "YYYY-MM-DD",
-  "title": "short topic-only title (no day names)",
-  "on_screen_text": "text on poster (3-10 words). Empty string for LinkedIn text posts. For carousels: first slide hook text only.",
-  "description": "caption only — the hook line + 2-4 lines + CTA. For carousels this is the IG caption, NOT the slide content.",
-  "slides": ["slide 1 text", "slide 2 text", ...] for Carousel posts only — each string is the full text for one slide (5-6 slides). Omit this field for non-carousel posts.,
+  "title": "short topic-only title",
+  "on_screen_text": "text on poster (3-10 words). Empty string for LinkedIn text posts. For carousels: first slide hook only.",
+  "description": "Hook line + body + CTA + blank line + 5 hashtags. For carousels: write a clean summary of what the carousel covers (2-4 lines) — not a slide-by-slide list. Treat it as a standalone caption that makes someone want to swipe.",
+  "slides": ["slide 1 text", "slide 2 text", ...] — carousel posts only, 5-6 slides, each slide is the full text that appears on that frame. Omit for non-carousel posts.,
   "content_type": "Static" | "Carousel" | "Text" | "Reel",
-  "notes": "designer direction: people in bg yes/no, mood, reel beats if applicable"
+  "notes": "designer direction: people in bg yes/no, mood, reel beats if Reel"
 }
 `.trim();
 
