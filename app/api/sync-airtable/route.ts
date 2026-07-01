@@ -37,11 +37,15 @@ export async function POST() {
     },
   }));
 
+  const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE}`;
+  console.log("Airtable URL:", url);
+  console.log("API Key prefix:", AIRTABLE_API_KEY.slice(0, 10));
+  console.log("Records to sync:", records.length);
+
   let totalSynced = 0;
   for (let i = 0; i < records.length; i += 10) {
     const chunk = records.slice(i, i + 10);
-    const res = await fetch(
-      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE)}`,
+    const res = await fetch(url,
       {
         method: "POST",
         headers: {
