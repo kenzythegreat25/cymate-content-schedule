@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "../../../lib/supabase/server";
 
+export const maxDuration = 60;
+
 const AIRTABLE_API_KEY  = process.env.AIRTABLE_API_KEY ?? "";
 const AIRTABLE_URL      = "https://api.airtable.com/v0/appAv2zeXuX7yGrEe/tbld3Iw1TPiIKRlv9";
+
+function fetchWithTimeout(url: string, options: RequestInit, ms = 8000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), ms);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(id));
+}
 
 export async function POST() {
   if (!AIRTABLE_API_KEY) {
@@ -30,7 +38,7 @@ export async function POST() {
   if (!postedPosts.length) return NextResponse.json({ synced: 0 });
 
   // Fetch existing Airtable titles to avoid duplicates
-  const existingRes = await fetch(
+  const existingRes = await fetchWithTimeout(
     `${AIRTABLE_URL}?fields[]=Title&pageSize=100`,
     { headers: { Authorization: `Bearer ${AIRTABLE_API_KEY}` } }
   );
@@ -66,7 +74,7 @@ export async function POST() {
 
   const results = await Promise.all(
     records.map((record) =>
-      fetch(AIRTABLE_URL, {
+      fetchWithTimeout(AIRTABLE_URL, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${AIRTABLE_API_KEY}`,
