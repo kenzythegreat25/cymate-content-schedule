@@ -156,7 +156,7 @@ export default function Home() {
     const total = items.length;
     const scheduled = items.filter((i) => i.status === "Scheduled").length;
     const posted = items.filter((i) => i.status === "Posted").length;
-    const inProgress = items.filter((i) => i.status === "Drafting" || i.status === "Idea").length;
+    const inProgress = items.filter((i) => i.status === "Drafting").length;
     return { total, scheduled, posted, inProgress };
   }, [items]);
 
@@ -1382,7 +1382,7 @@ function ReviewPanel({
     };
     if (next === "approved") patch.status = "Scheduled";
     else if (next === "needs-revision") patch.status = "Review";
-    else if (next === "on-hold") patch.status = "Idea";
+    else if (next === "on-hold") patch.status = "Drafting";
     onChange(patch);
   };
 
