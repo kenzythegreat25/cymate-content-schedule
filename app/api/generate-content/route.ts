@@ -186,7 +186,7 @@ All IG posts: clean graphic/poster, no people in background needed. on_screen_te
 
 ${IG_HASHTAG_POOL}
 
-FIRST COMMENT RULE: For every post, include a suggested first comment in the notes field. This is a reply Cymate will post as the first comment right after publishing to seed engagement. It should feel natural and conversational — a question that invites responses, an additional insight that adds value, or a soft prompt that gets people talking. Never make it sound like an ad. Label it clearly: "First comment: [text]". Also include a subtle, non-obvious CTA idea in the notes — something that feels like a helpful nudge, not a sales push (e.g., "Tag someone who needs to hear this" or "Save this for your next campaign review").
+GENERIC REPLY RULE: For every post, include a generic reply template in the notes field that Cymate can use to respond to people who comment on the post. It should feel like a genuine, warm response — not a bot, not a sales pitch. It should acknowledge the commenter, add a small bit of value or continue the conversation, and optionally invite them to share their own experience. Write it to work for most comments on that post (e.g., someone saying "great post", "this is so true", "we've had this issue too"). The reply should match the tone and context of the post. Label it clearly: "Generic reply: [text]". Also include a subtle, non-obvious CTA idea in the notes (e.g., "Feel free to check the link in bio if you want to dig deeper" or "Happy to share more if it's useful").
 
 Generate EXACTLY 5 Instagram posts. One post per weekday, no more, no less:
 1. Monday — ${dates.mon} — Static graphic poster
@@ -209,7 +209,7 @@ ${IG_HASHTAG_POOL}
 
 ${CLIENT_TESTIMONIALS}
 
-FIRST COMMENT RULE: For every post, include a suggested first comment in the notes field. This is a reply Cymate will post as the first comment right after publishing to seed engagement. It should feel like a genuine addition — a follow-up thought, a question to the audience, or a short story that didn't fit in the post. Never make it sound like an ad or a CTA. Label it clearly: "First comment: [text]". Also include a subtle, non-obvious CTA idea in the notes (e.g., "Link in the comments if anyone wants the full breakdown" or "Drop a comment if this sounds familiar — curious how others are handling it").
+GENERIC REPLY RULE: For every post, include a generic reply template in the notes field that Cymate can use to respond to people who comment on the post. It should feel like a genuine, warm response — not a bot, not a sales pitch. It should acknowledge the commenter, add a small bit of value or continue the conversation, and optionally invite them to share their own experience. Write it to work for most comments on that post (e.g., someone saying "great post", "this is so true", "we've had this issue too"). The reply should match the tone and context of the post. Label it clearly: "Generic reply: [text]". Also include a subtle, non-obvious CTA idea in the notes (e.g., "Happy to share the full breakdown if useful" or "Drop a comment and we can dig into it together").
 
 Generate EXACTLY 3 LinkedIn posts. One post per publishing day, no more, no less:
 1. Monday — ${dates.mon}
