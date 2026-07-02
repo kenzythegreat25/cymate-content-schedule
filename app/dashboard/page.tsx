@@ -1807,23 +1807,6 @@ function MediaPicker({
   const [dragSrcIdx, setDragSrcIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
-  const handleMediaDragStart = (idx: number) => setDragSrcIdx(idx);
-  const handleMediaDragOver = (e: React.DragEvent, idx: number) => {
-    e.preventDefault();
-    if (dragSrcIdx !== null && idx !== dragOverIdx) setDragOverIdx(idx);
-  };
-  const handleMediaDrop = (e: React.DragEvent, idx: number) => {
-    e.preventDefault();
-    if (dragSrcIdx === null || dragSrcIdx === idx) return;
-    const next = [...urls];
-    const [moved] = next.splice(dragSrcIdx, 1);
-    next.splice(idx, 0, moved);
-    onChange(next);
-    setDragSrcIdx(null);
-    setDragOverIdx(null);
-  };
-  const handleMediaDragEnd = () => { setDragSrcIdx(null); setDragOverIdx(null); };
-
   return (
     <div className="space-y-2">
       {urls.length > 0 && (
@@ -1837,10 +1820,35 @@ function MediaPicker({
               isDropTarget={dragOverIdx === i && dragSrcIdx !== i}
               onRemove={() => removeAt(i)}
               onOpen={() => setPreviewIndex(i)}
-              onDragStart={() => handleMediaDragStart(i)}
-              onDragOver={(e) => handleMediaDragOver(e, i)}
-              onDrop={(e) => handleMediaDrop(e, i)}
-              onDragEnd={handleMediaDragEnd}
+              onDragStart={(e) => {
+                e.stopPropagation();
+                e.dataTransfer.effectAllowed = "move";
+                e.dataTransfer.setData("media-idx", String(i));
+                setDragSrcIdx(i);
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.dataTransfer.dropEffect = "move";
+                if (i !== dragOverIdx) setDragOverIdx(i);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const src = parseInt(e.dataTransfer.getData("media-idx"), 10);
+                if (isNaN(src) || src === i) { setDragSrcIdx(null); setDragOverIdx(null); return; }
+                const next = [...urls];
+                const [moved] = next.splice(src, 1);
+                next.splice(i, 0, moved);
+                onChange(next);
+                setDragSrcIdx(null);
+                setDragOverIdx(null);
+              }}
+              onDragEnd={(e) => {
+                e.stopPropagation();
+                setDragSrcIdx(null);
+                setDragOverIdx(null);
+              }}
             />
           ))}
         </div>
