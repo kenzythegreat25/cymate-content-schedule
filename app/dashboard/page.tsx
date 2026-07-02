@@ -1917,10 +1917,10 @@ function MediaTile({
   isDropTarget: boolean;
   onRemove: () => void;
   onOpen: () => void;
-  onDragStart: () => void;
+  onDragStart: (e: React.DragEvent) => void;
   onDragOver: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent) => void;
-  onDragEnd: () => void;
+  onDragEnd: (e: React.DragEvent) => void;
 }) {
   const name = basenameFromUrl(url);
   const video = isVideoUrl(url);
