@@ -186,16 +186,21 @@ All IG posts: clean graphic/poster, no people in background needed. on_screen_te
 
 ${IG_HASHTAG_POOL}
 
-${scheduleCtx}
+FIRST COMMENT RULE: For every post, include a suggested first comment in the notes field. This is a reply Cymate will post as the first comment right after publishing to seed engagement. It should feel natural and conversational — a question that invites responses, an additional insight that adds value, or a soft prompt that gets people talking. Never make it sound like an ad. Label it clearly: "First comment: [text]". Also include a subtle, non-obvious CTA idea in the notes — something that feels like a helpful nudge, not a sales push (e.g., "Tag someone who needs to hear this" or "Save this for your next campaign review").
 
-Generate exactly 5 Instagram posts, one per weekday: Mon=${dates.mon} Tue=${dates.tue} Wed=${dates.wed} Thu=${dates.thu} Fri=${dates.fri}.
-- Tuesday: Carousel (5-6 slides)
-- Thursday: ${includeReel ? "Reel (45-60s)" : "Static graphic"}
-- All others: Static graphic poster
-- Every post: clean graphic/poster, no people in background, on_screen_text is always a short hook on the poster
-- Every post must end with 5 relevant hashtags on their own line
-- NEVER use em dashes (—) anywhere
-- No duplicate topics from existing Cymate posts
+Generate EXACTLY 5 Instagram posts. One post per weekday, no more, no less:
+1. Monday — ${dates.mon} — Static graphic poster
+2. Tuesday — ${dates.tue} — Carousel (5-6 slides)
+3. Wednesday — ${dates.wed} — Static graphic poster
+4. Thursday — ${dates.thu} — ${includeReel ? "Reel (45-60s)" : "Static graphic poster"}
+5. Friday — ${dates.fri} — Static graphic poster
+
+Rules:
+- Clean graphic/poster for all posts. No people in background. on_screen_text is always a short hook on the poster.
+- End every post with 5 relevant hashtags on their own line.
+- NEVER use em dashes (—).
+- No duplicate topics from existing Cymate posts.
+- The JSON array must have EXACTLY 5 objects — one per day listed above. Count them before returning.
 Return a JSON array of exactly 5 objects.`;
 
   const liPrompt = `${BASE_INSTRUCTIONS}
@@ -204,24 +209,29 @@ ${IG_HASHTAG_POOL}
 
 ${CLIENT_TESTIMONIALS}
 
-${scheduleCtx}
+FIRST COMMENT RULE: For every post, include a suggested first comment in the notes field. This is a reply Cymate will post as the first comment right after publishing to seed engagement. It should feel like a genuine addition — a follow-up thought, a question to the audience, or a short story that didn't fit in the post. Never make it sound like an ad or a CTA. Label it clearly: "First comment: [text]". Also include a subtle, non-obvious CTA idea in the notes (e.g., "Link in the comments if anyone wants the full breakdown" or "Drop a comment if this sounds familiar — curious how others are handling it").
 
-Generate exactly 3 LinkedIn posts for Monday, Wednesday, and Friday following this fixed schedule:
+Generate EXACTLY 3 LinkedIn posts. One post per publishing day, no more, no less:
+1. Monday — ${dates.mon}
+2. Wednesday — ${dates.wed}
+3. Friday — ${dates.fri}
 
+Content per day:
 MONDAY (${dates.mon}): Insight, framework, hot take, or behind-the-scenes process post. Strong hook, story-driven, 280-350 words.
 
-WEDNESDAY (${dates.wed}): Always a detailed case study. Use a fictional but realistic client in a fresh industry not already covered (do NOT reuse any real Cymate client names from the testimonials list — use entirely new fictional companies). Include: the problem they came with, what we did differently, specific metrics (meetings booked, pipeline value, timeline), and one thing that surprised us or went wrong. 300-380 words.
+WEDNESDAY (${dates.wed}): Always a detailed case study. Fictional but realistic client, fresh industry, not reusing any real Cymate client name from the testimonials list. Include: the problem, what we did differently, specific metrics (meetings, pipeline, timeline), one thing that surprised us or went wrong. 300-380 words.
 
 FRIDAY (${dates.fri}): Alternate every 2 weeks between:
 - A client testimonial/feedback post: pick one quote from the testimonials list, feature the client name and company authentically, add context around the result they achieved. 200-280 words.
 - An insight or tip post on B2B outbound strategy. 280-350 words.
-(This week: use your judgment based on the week number — odd weeks do testimonial, even weeks do insight.)
+(This week: odd ISO week = testimonial, even ISO week = insight. Week ${isoWeek} is ${isoWeek % 2 === 1 ? "odd — use a testimonial" : "even — use an insight post"}.)
 
 RULES FOR ALL 3 POSTS:
 - NEVER use em dashes (—). Use commas, short sentences, or line breaks instead.
 - End every post with 5 relevant hashtags on their own line.
 - Do not duplicate topics, client names, or angles already covered in existing Cymate content (Copybara, Prosal, Raylu, cold email stats, intro posts).
 - No fictional case study client should share a name with any real Cymate client listed in the testimonials.
+- The JSON array must have EXACTLY 3 objects — one for Monday, one for Wednesday, one for Friday. Count them before returning.
 
 Return a JSON array of exactly 3 objects.`;
 
@@ -233,6 +243,9 @@ Return a JSON array of exactly 3 objects.`;
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }
+
+  if (igPosts.length !== 5) return NextResponse.json({ error: `Expected 5 IG posts, got ${igPosts.length}` }, { status: 500 });
+  if (liPosts.length !== 3) return NextResponse.json({ error: `Expected 3 LinkedIn posts, got ${liPosts.length}` }, { status: 500 });
 
   const allPosts = [...igPosts, ...liPosts];
 
