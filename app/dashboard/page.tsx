@@ -1804,13 +1804,44 @@ function MediaPicker({
   };
 
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const [dragSrcIdx, setDragSrcIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+
+  const handleMediaDragStart = (idx: number) => setDragSrcIdx(idx);
+  const handleMediaDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    if (dragSrcIdx !== null && idx !== dragOverIdx) setDragOverIdx(idx);
+  };
+  const handleMediaDrop = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    if (dragSrcIdx === null || dragSrcIdx === idx) return;
+    const next = [...urls];
+    const [moved] = next.splice(dragSrcIdx, 1);
+    next.splice(idx, 0, moved);
+    onChange(next);
+    setDragSrcIdx(null);
+    setDragOverIdx(null);
+  };
+  const handleMediaDragEnd = () => { setDragSrcIdx(null); setDragOverIdx(null); };
 
   return (
     <div className="space-y-2">
       {urls.length > 0 && (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {urls.map((u, i) => (
-            <MediaTile key={u} url={u} onRemove={() => removeAt(i)} onOpen={() => setPreviewIndex(i)} />
+            <MediaTile
+              key={u}
+              url={u}
+              index={i}
+              isDragging={dragSrcIdx === i}
+              isDropTarget={dragOverIdx === i && dragSrcIdx !== i}
+              onRemove={() => removeAt(i)}
+              onOpen={() => setPreviewIndex(i)}
+              onDragStart={() => handleMediaDragStart(i)}
+              onDragOver={(e) => handleMediaDragOver(e, i)}
+              onDrop={(e) => handleMediaDrop(e, i)}
+              onDragEnd={handleMediaDragEnd}
+            />
           ))}
         </div>
       )}
@@ -1862,17 +1893,43 @@ function MediaPicker({
 
 function MediaTile({
   url,
+  index,
+  isDragging,
+  isDropTarget,
   onRemove,
   onOpen,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
 }: {
   url: string;
+  index: number;
+  isDragging: boolean;
+  isDropTarget: boolean;
   onRemove: () => void;
   onOpen: () => void;
+  onDragStart: () => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
+  onDragEnd: () => void;
 }) {
   const name = basenameFromUrl(url);
   const video = isVideoUrl(url);
   return (
-    <div className="group relative overflow-hidden rounded-lg border border-line bg-surface">
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+      className={`group relative overflow-hidden rounded-lg border bg-surface transition-all cursor-grab active:cursor-grabbing ${
+        isDragging ? "opacity-40 scale-95 border-accent" : isDropTarget ? "border-accent ring-2 ring-accent/40 scale-[1.02]" : "border-line"
+      }`}
+    >
+      {index === 0 && (
+        <span className="absolute top-1.5 left-1.5 z-10 rounded bg-black/60 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">Cover</span>
+      )}
       <button
         type="button"
         onClick={onOpen}
