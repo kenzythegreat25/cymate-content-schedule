@@ -171,6 +171,14 @@ async function runGeneration(userId: string): Promise<Response> {
   const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_KEY);
   const dates = getWeekDates();
 
+  // Fetch last 30 post titles to give Claude real deduplication context
+  const { data: recentPosts } = await supabaseAdmin
+    .from("posts")
+    .select("title, platform, date")
+    .order("created_at", { ascending: false })
+    .limit(30);
+  const recentTitles = recentPosts?.map(p => `[${p.platform}] ${p.title} (${p.date})`).join("\n") ?? "None";
+
   const isoWeek = Math.ceil((new Date(dates.mon).getDate() + new Date(new Date(dates.mon).getFullYear(), 0, 1).getDay()) / 7);
   const includeReel = isoWeek % 2 === 1;
 
@@ -178,7 +186,6 @@ async function runGeneration(userId: string): Promise<Response> {
 Dates: Mon=${dates.mon} Tue=${dates.tue} Wed=${dates.wed} Thu=${dates.thu} Fri=${dates.fri}
 Tuesday IG: Carousel (5-6 slides)
 Thursday IG: ${includeReel ? "Reel (45-60s — include beat-by-beat script in notes)" : "Static graphic poster"}
-LinkedIn Friday: detailed case study (fictional client, fresh industry, specific metrics, one thing that went wrong)
 All IG posts: clean graphic/poster, no people in background needed. on_screen_text is always a short hook visible on the poster.
 `.trim();
 
@@ -186,7 +193,10 @@ All IG posts: clean graphic/poster, no people in background needed. on_screen_te
 
 ${IG_HASHTAG_POOL}
 
-GENERIC REPLY RULE: For every post, include a generic reply template in the notes field that Cymate can use to respond to people who comment on the post. It should feel like a genuine, warm response — not a bot, not a sales pitch. It should acknowledge the commenter, add a small bit of value or continue the conversation, and optionally invite them to share their own experience. Write it to work for most comments on that post (e.g., someone saying "great post", "this is so true", "we've had this issue too"). The reply should match the tone and context of the post. Label it clearly: "Generic reply: [text]". Also include a subtle, non-obvious CTA idea in the notes (e.g., "Feel free to check the link in bio if you want to dig deeper" or "Happy to share more if it's useful").
+RECENTLY PUBLISHED POSTS (do not duplicate any of these topics or angles):
+${recentTitles}
+
+GENERIC REPLY RULE: For every post, include a generic reply template in the notes field that Cymate can use to respond to people who comment on the post. It should feel like a genuine, warm response — not a bot, not a sales pitch. It should acknowledge the commenter, add a small bit of value or continue the conversation, and optionally invite them to share their own experience. Write it to work for most comments on that post (e.g., someone saying "great post", "this is so true", "we've had this issue too"). The reply should match the tone and context of the post. Label it clearly: "Generic reply: [text]". Also include a subtle CTA: "Reminder: share this post to your Stories after posting to boost reach."
 
 Generate EXACTLY 5 Instagram posts. One post per weekday, no more, no less:
 1. Monday — ${dates.mon} — Static graphic poster
@@ -197,9 +207,10 @@ Generate EXACTLY 5 Instagram posts. One post per weekday, no more, no less:
 
 Rules:
 - Clean graphic/poster for all posts. No people in background. on_screen_text is always a short hook on the poster.
-- End every post with 5 relevant hashtags on their own line.
+- Every caption must include a natural save nudge (e.g. "Save this for your next campaign" or "Bookmark this before you start your next sequence"). Place it before the hashtags.
+- End every post with 5 relevant hashtags on their own line. Never repeat the same 5 hashtags from post to post — rotate from the pool.
 - NEVER use em dashes (—).
-- No duplicate topics from existing Cymate posts.
+- Do not duplicate any topic or angle from the recently published posts listed above.
 - The JSON array must have EXACTLY 5 objects — one per day listed above. Count them before returning.
 Return a JSON array of exactly 5 objects.`;
 
@@ -209,6 +220,9 @@ ${IG_HASHTAG_POOL}
 
 ${CLIENT_TESTIMONIALS}
 
+RECENTLY PUBLISHED POSTS (do not duplicate any of these topics or angles):
+${recentTitles}
+
 GENERIC REPLY RULE: For every post, include a generic reply template in the notes field that Cymate can use to respond to people who comment on the post. It should feel like a genuine, warm response — not a bot, not a sales pitch. It should acknowledge the commenter, add a small bit of value or continue the conversation, and optionally invite them to share their own experience. Write it to work for most comments on that post (e.g., someone saying "great post", "this is so true", "we've had this issue too"). The reply should match the tone and context of the post. Label it clearly: "Generic reply: [text]". Also include a subtle, non-obvious CTA idea in the notes (e.g., "Happy to share the full breakdown if useful" or "Drop a comment and we can dig into it together").
 
 Generate EXACTLY 3 LinkedIn posts. One post per publishing day, no more, no less:
@@ -217,9 +231,9 @@ Generate EXACTLY 3 LinkedIn posts. One post per publishing day, no more, no less
 3. Friday — ${dates.fri}
 
 Content per day:
-MONDAY (${dates.mon}): Insight, framework, hot take, or behind-the-scenes process post. Strong hook, story-driven, 280-350 words.
+MONDAY (${dates.mon}): Insight, framework, hot take, or behind-the-scenes process post. Directly relevant to a pain point Cymate's ICP faces. Strong hook, story-driven, 280-350 words.
 
-WEDNESDAY (${dates.wed}): Always a detailed case study. Fictional but realistic client, fresh industry, not reusing any real Cymate client name from the testimonials list. Include: the problem, what we did differently, specific metrics (meetings, pipeline, timeline), one thing that surprised us or went wrong. 300-380 words.
+WEDNESDAY (${dates.wed}): A case study post referencing a real result from Cymate's work. Write the post around a specific outcome or challenge (you can draw inspiration from the testimonials). The full case study lives on cymate.io — end the post with a natural line like "Full breakdown in the comments" or "I'll drop the link in the comments" and note in the notes field: "Poster: case study template. Drop the cymate.io case study link in the first comment after posting." 300-380 words.
 
 FRIDAY (${dates.fri}): Alternate every 2 weeks between:
 - A client testimonial/feedback post: pick one quote from the testimonials list, feature the client name and company authentically, add context around the result they achieved. 200-280 words.
@@ -231,8 +245,8 @@ RELEVANCE RULE: Every LinkedIn post must be directly relevant to the specific pr
 RULES FOR ALL 3 POSTS:
 - NEVER use em dashes (—). Use commas, short sentences, or line breaks instead.
 - End every post with a direct question to the reader (to drive comments).
-- End every post with 5 relevant hashtags on their own line.
-- Do not duplicate topics, client names, or angles already covered in existing Cymate content (Copybara, Prosal, Raylu, cold email stats, intro posts).
+- End every post with 5 relevant hashtags on their own line. Rotate hashtags — never reuse the same set across posts.
+- Do not duplicate topics, client names, or angles from the recently published posts listed above.
 - No fictional case study client should share a name with any real Cymate client listed in the testimonials.
 - The JSON array must have EXACTLY 3 objects — one for Monday, one for Wednesday, one for Friday. Count them before returning.
 
