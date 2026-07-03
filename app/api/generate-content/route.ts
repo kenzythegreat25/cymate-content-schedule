@@ -107,11 +107,11 @@ Each object:
   "platform": "Instagram" | "LinkedIn",
   "date": "YYYY-MM-DD",
   "title": "short topic-only title",
-  "on_screen_text": "Instagram: short, punchy hook (3-10 words) that appears on the poster graphic. LinkedIn text posts: empty string. Carousels: first slide hook only.",
-  "description": "Instagram: hook + 3-4 lines of value + CTA + blank line + 5 hashtags. Carousels: clean 2-4 line summary caption (not a slide list) that makes someone want to swipe, then hashtags. LinkedIn: 280-380 words, strong hook first line, story-driven, soft CTA at end, then 5 hashtags on their own line.",
+  "on_screen_text": "Instagram: short, punchy hook (3-10 words) that appears on the poster graphic. LinkedIn: short, punchy hook (3-10 words) that appears on the LinkedIn graphic (except case studies — leave empty for those). Carousels: first slide hook only.",
+  "description": "Instagram: hook + 3-4 lines of value + CTA + blank line + 5 hashtags. Carousels: clean 2-4 line summary caption (not a slide list) that makes someone want to swipe, then hashtags. LinkedIn: 280-380 words, strong hook first line, story-driven, ends with a direct question to the reader, soft CTA, then 5 hashtags on their own line.",
   "slides": ["slide 1 text", "slide 2 text", ...] — Carousel only, 5-6 slides. Omit for all other types.,
   "content_type": "Static" | "Carousel" | "Text" | "Reel",
-  "notes": "designer direction: clean graphic/poster for IG (no people in background), mood and visual style, reel script beats if Reel, or 'Client feedback post' if applicable"
+  "notes": "For IG: designer direction — clean graphic/poster, no people in background, mood and visual style. For Reels: beat-by-beat script. For LinkedIn insight/testimonial posts: describe the poster concept — dark or neutral background, bold short text overlay matching the on_screen_text hook, color palette and mood. Keep it clean and professional, no stock photos of people. Case study posts: leave poster direction empty (template already exists). Always include: Generic reply template + subtle CTA idea."
 }
 `.trim();
 
@@ -226,8 +226,11 @@ FRIDAY (${dates.fri}): Alternate every 2 weeks between:
 - An insight or tip post on B2B outbound strategy. 280-350 words.
 (This week: odd ISO week = testimonial, even ISO week = insight. Week ${isoWeek} is ${isoWeek % 2 === 1 ? "odd — use a testimonial" : "even — use an insight post"}.)
 
+RELEVANCE RULE: Every LinkedIn post must be directly relevant to the specific problems Cymate's target audience faces — B2B founders, sales leaders, SDR managers, and GTM teams at tech and SaaS companies. Topics must connect to real pain points: cold email deliverability, outbound sequencing, reply rates, pipeline generation, ICP definition, sender reputation, or scaling outbound without hiring. Never post generic business advice that could apply to any industry. Every post should make a sales leader or founder think "this is exactly what we deal with."
+
 RULES FOR ALL 3 POSTS:
 - NEVER use em dashes (—). Use commas, short sentences, or line breaks instead.
+- End every post with a direct question to the reader (to drive comments).
 - End every post with 5 relevant hashtags on their own line.
 - Do not duplicate topics, client names, or angles already covered in existing Cymate content (Copybara, Prosal, Raylu, cold email stats, intro posts).
 - No fictional case study client should share a name with any real Cymate client listed in the testimonials.
