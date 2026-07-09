@@ -113,7 +113,7 @@ Each object:
   "description": "Instagram static/reel: Structure the caption in clearly separated short blocks — NOT a continuous paragraph. Format exactly like this: [Line 1: Hook — one punchy sentence that stops the scroll] [blank line] [Line 2-4: Value — 2 to 3 short punchy sentences, each on its own line, max 10 words each. One idea per line. No run-ons.] [blank line] [Line 5: ONE primary ask — choose either a save nudge (e.g. 'Save this before your next campaign.') OR a direct interactive question (e.g. 'What's your biggest challenge with cold outreach right now?'). Never include both in the same caption. Vary which one you pick across the week's posts.] [blank line] [Line 6: Soft closing line — e.g. 'Link in bio for more.' Keep it short; this is a closing action, not a second ask.] [blank line] [5 hashtags on their own line]. Carousels: clean 2-4 line summary caption using the same short-line format, then the interactive question, then hashtags. LinkedIn: 280-380 words, strong hook first line, story-driven, short paragraphs with line breaks, ends with a direct question to the reader, soft CTA, then 5 hashtags on their own line.",
   "slides": ["slide 1 text", "slide 2 text", ...] — Carousel only, 5-6 slides. Omit for all other types.,
   "content_type": "Static" | "Carousel" | "Text" | "Reel",
-  "notes": "For IG: designer direction — clean graphic/poster, no people in background, mood and visual style. For Reels: beat-by-beat script. For LinkedIn insight/testimonial posts: describe the poster concept — dark or neutral background, bold short text overlay matching the on_screen_text hook, color palette and mood. Keep it clean and professional, no stock photos of people. Case study posts: leave poster direction empty (template already exists). Always include: Generic reply template + subtle CTA idea."
+  "notes": "IMPORTANT: Format this field with clear line breaks between every section. Do NOT write it as a single paragraph. Use this exact structure (each section on its own line, blank line between sections):\n\nPost at: [time]\n\n[Designer direction or Reel script — see rules below]\n\nQ&A Replies:\nQ1: [likely comment or question] — A: [warm, genuine reply that adds value]\nQ2: [likely comment or question] — A: [warm, genuine reply that adds value]\nQ3: [likely comment or question] — A: [warm, genuine reply that adds value]\nQ4: [likely comment or question] — A: [warm, genuine reply that adds value]\nQ5: [likely comment or question] — A: [warm, genuine reply that adds value]\n\n[Any additional notes — e.g. Stories reminder for IG, link drop reminder for LinkedIn]\n\nDesigner direction rules: For IG static posts, use Cymate brand colors. 3 out of 5 IG posts per week should feature real people (not stock-photo looking — candid, professional, authentic). The other 2 posts should be clean text/graphic posters with no people. Specify in each post's notes whether it should have a person or be graphic-only, and describe the mood and visual style. For Reels: write a beat-by-beat script instead of designer direction. For LinkedIn insight/testimonial posts: dark or neutral background, bold short text overlay matching the on_screen_text hook, Cymate brand colors, no stock photos of people. Case study posts: leave designer direction empty (template already exists)."
 }
 `.trim();
 
@@ -190,7 +190,6 @@ async function runGeneration(userId: string): Promise<Response> {
 Dates: Mon=${dates.mon} Tue=${dates.tue} Wed=${dates.wed} Thu=${dates.thu} Fri=${dates.fri}
 Tuesday IG: Carousel (5-6 slides)
 Thursday IG: ${includeReel ? "Reel (45-60s — include beat-by-beat script in notes)" : "Static graphic poster"}
-All IG posts: clean graphic/poster, no people in background needed. on_screen_text is always a short hook visible on the poster.
 `.trim();
 
   const igPrompt = `${BASE_INSTRUCTIONS}
@@ -200,7 +199,7 @@ ${IG_HASHTAG_POOL}
 RECENTLY PUBLISHED POSTS (do not duplicate any of these topics or angles):
 ${recentTitles}
 
-GENERIC REPLY RULE: For every post, include a generic reply template in the notes field that Cymate can use to respond to people who comment on the post. It should feel like a genuine, warm response — not a bot, not a sales pitch. It should acknowledge the commenter, add a small bit of value or continue the conversation, and optionally invite them to share their own experience. Write it to work for most comments on that post (e.g., someone saying "great post", "this is so true", "we've had this issue too"). The reply should match the tone and context of the post. Label it clearly: "Generic reply: [text]". Also include a subtle CTA: "Reminder: share this post to your Stories after posting to boost reach." Also add to notes: "Team: reply to all comments within 90 min of posting."
+GENERIC REPLY RULE: For every post, include 5 Q&A reply pairs in the notes field. Each pair should anticipate a real comment or question someone might leave on that specific post and provide a warm, genuine response that adds value — not a bot reply, not a sales pitch. The replies should feel like a real person continuing the conversation. Base each Q on a likely reaction to that post's specific content (e.g., "This happened to us too", "How do you handle X?", "What tool do you use for this?"). Format exactly as: Q1: [comment/question] — A: [reply]. Do this for Q1 through Q5. Also add at the end of notes: "Reminder: share this post to your Stories after posting to boost reach."
 
 Generate EXACTLY 5 Instagram posts. One post per weekday, no more, no less:
 1. Monday — ${dates.mon} — Static graphic poster
@@ -210,7 +209,9 @@ Generate EXACTLY 5 Instagram posts. One post per weekday, no more, no less:
 5. Friday — ${dates.fri} — Static graphic poster
 
 Rules:
-- Clean graphic/poster for all posts. No people in background. on_screen_text is always a short hook on the poster.
+- on_screen_text is always a short hook visible on the poster graphic.
+- 3 of the 5 posts this week should feature real people (candid, professional, authentic — not stock-photo looking). The other 2 should be clean text/graphic posters with no people. Decide which posts get people based on which content type fits best. Specify clearly in each post's designer direction notes whether it uses a person visual or a graphic-only poster.
+- Use Cymate brand colors throughout all graphic directions.
 - Every caption gets exactly ONE primary ask per the ONE ASK RULE above — a save nudge OR a direct question, never both. Don't default to the same one every day; vary it across the 5 posts.
 - End every post with 5 relevant hashtags on their own line. Never repeat the same 5 hashtags from post to post — rotate from the pool.
 - NEVER use em dashes (—).
@@ -229,7 +230,7 @@ ${CLIENT_TESTIMONIALS}
 RECENTLY PUBLISHED POSTS (do not duplicate any of these topics or angles):
 ${recentTitles}
 
-GENERIC REPLY RULE: For every post, include a generic reply template in the notes field that Cymate can use to respond to people who comment on the post. It should feel like a genuine, warm response — not a bot, not a sales pitch. It should acknowledge the commenter, add a small bit of value or continue the conversation, and optionally invite them to share their own experience. Write it to work for most comments on that post (e.g., someone saying "great post", "this is so true", "we've had this issue too"). The reply should match the tone and context of the post. Label it clearly: "Generic reply: [text]". Also include a subtle, non-obvious CTA idea in the notes (e.g., "Happy to share the full breakdown if useful" or "Drop a comment and we can dig into it together"). Also add to notes: "Team: reply to all comments within 90 min of posting. Loop in 2-3 teammates to comment (not just like) within 15 min of posting."
+GENERIC REPLY RULE: For every post, include 5 Q&A reply pairs in the notes field. Each pair should anticipate a real comment or question someone might leave on that specific post and provide a warm, genuine response that adds value — not a bot reply, not a sales pitch. The replies should feel like a real person continuing the conversation. Base each Q on a likely reaction to that post's specific content (e.g., "This happened to us too", "How do you handle X?", "What results did you actually see?"). Format exactly as: Q1: [comment/question] — A: [reply]. Do this for Q1 through Q5. Also include a subtle, non-obvious CTA idea in the notes (e.g., "Happy to share the full breakdown if useful" or "Drop a comment and we can dig into it together").
 
 Generate EXACTLY 3 LinkedIn posts. One post per publishing day, no more, no less:
 1. Monday — ${dates.mon}
