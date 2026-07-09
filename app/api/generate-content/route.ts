@@ -213,7 +213,7 @@ Rules:
 - End every post with 5 relevant hashtags on their own line. Never repeat the same 5 hashtags from post to post — rotate from the pool.
 - NEVER use em dashes (—).
 - Do not duplicate any topic or angle from the recently published posts listed above.
-- POSTING TIME: Include "Post at: 10:00 AM PHT" at the top of every notes field so the scheduler knows exactly when to publish.
+- POSTING TIME: Include "Post at: 8:00 PM PHT" at the top of every notes field so the scheduler knows exactly when to publish. (Audience peaks at 9 PM PHT — post 1 hour before to warm up distribution.)
 - The JSON array must have EXACTLY 5 objects — one per day listed above. Count them before returning.
 Return a JSON array of exactly 5 objects.`;
 
@@ -254,7 +254,7 @@ RULES FOR ALL 3 POSTS:
 - End every post with 5 relevant hashtags on their own line. Rotate hashtags — never reuse the same set across posts.
 - Do not duplicate topics, client names, or angles from the recently published posts listed above.
 - No fictional case study client should share a name with any real Cymate client listed in the testimonials.
-- POSTING TIME: Include "Post at: 8:00 AM PHT" at the top of every notes field so the scheduler knows exactly when to publish.
+- POSTING TIME: Include "Post at: 8:00 PM PHT" at the top of every notes field so the scheduler knows exactly when to publish. (Audience peaks at 9 PM PHT — post 1 hour before to warm up distribution.)
 - The JSON array must have EXACTLY 3 objects — one for Monday, one for Wednesday, one for Friday. Count them before returning.
 
 Return a JSON array of exactly 3 objects.`;
