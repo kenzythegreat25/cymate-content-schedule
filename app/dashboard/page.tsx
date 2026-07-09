@@ -773,6 +773,28 @@ function EmptyState({ onSeed, onAdd }: { onSeed: () => void; onAdd: () => void }
 
 /* ─────────────────────── Board view ─────────────────────── */
 
+function sortCardsByStatus(cards: ContentItem[], status: Status): ContentItem[] {
+  const today = new Date().toISOString().slice(0, 10);
+  if (status === "Posted") {
+    // Most recently posted first (newest date first)
+    return [...cards].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  }
+  if (status === "Scheduled") {
+    // Soonest date first — today's content at the top
+    return [...cards].sort((a, b) => {
+      const da = a.date || "9999";
+      const db = b.date || "9999";
+      // Prioritise today
+      const aToday = da === today ? 0 : 1;
+      const bToday = db === today ? 0 : 1;
+      if (aToday !== bToday) return aToday - bToday;
+      return da.localeCompare(db);
+    });
+  }
+  // Drafting and everything else — ascending date (earliest first)
+  return [...cards].sort((a, b) => (a.date || "9999").localeCompare(b.date || "9999"));
+}
+
 function BoardView({
   items,
   onEdit,
@@ -806,7 +828,7 @@ function BoardView({
           className="flex w-max gap-4 px-4 py-2 will-change-transform md:px-6"
         >
           {STATUSES.map((s) => {
-            const cards = items.filter((i) => i.status === s);
+            const cards = sortCardsByStatus(items.filter((i) => i.status === s), s);
             const meta = STATUS_META[s];
             return (
               <div key={s} className="flex w-72 shrink-0 items-center justify-between px-2">
@@ -832,7 +854,7 @@ function BoardView({
       <div ref={boardScrollRef} className="-mx-4 overflow-x-auto px-4 pb-10 md:-mx-6 md:px-6">
         <div className="flex min-h-full gap-4 pt-3">
           {STATUSES.map((s) => {
-            const cards = items.filter((i) => i.status === s);
+            const cards = sortCardsByStatus(items.filter((i) => i.status === s), s);
             const isDropTarget = dragOver === s;
             return (
               <div
