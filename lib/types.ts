@@ -1,6 +1,6 @@
 export type Platform = "LinkedIn" | "Instagram" | "Youtube" | "TikTok" | "X" | "Facebook";
 export type Status = "Idea" | "Review" | "Drafting" | "Scheduled" | "Posted" | "Archived";
-export type ContentType = "Text" | "Carousel" | "Static" | "Short-Form Video" | "Long-Form Video" | "Reel" | "Story" | "Feedback";
+export type ContentType = "Text" | "Carousel" | "Static" | "Short-Form Video" | "Medium-Form Video" | "Long-Form Video" | "Reel" | "Story" | "Feedback";
 export type ReviewStatus = "" | "pending" | "approved" | "needs-revision" | "on-hold";
 
 export const PLATFORMS: Platform[] = ["LinkedIn", "Instagram", "Youtube", "TikTok", "X", "Facebook"];
@@ -10,6 +10,7 @@ export const CONTENT_TYPES: ContentType[] = [
   "Carousel",
   "Static",
   "Short-Form Video",
+  "Medium-Form Video",
   "Long-Form Video",
   "Reel",
   "Story",
@@ -87,8 +88,9 @@ export const CONTENT_TYPE_META: Record<ContentType, { tint: string; text: string
   Text:               { tint: "bg-sky-100",      text: "text-sky-800",      ring: "ring-sky-200" },
   Carousel:           { tint: "bg-pink-100",     text: "text-pink-800",     ring: "ring-pink-200" },
   Static:             { tint: "bg-amber-100",    text: "text-amber-800",    ring: "ring-amber-200" },
-  "Short-Form Video": { tint: "bg-slate-700",    text: "text-slate-50",     ring: "ring-slate-600" },
-  "Long-Form Video":  { tint: "bg-indigo-700",   text: "text-indigo-50",    ring: "ring-indigo-600" },
+  "Short-Form Video":  { tint: "bg-slate-700",    text: "text-slate-50",     ring: "ring-slate-600" },
+  "Medium-Form Video": { tint: "bg-violet-700",   text: "text-violet-50",    ring: "ring-violet-600" },
+  "Long-Form Video":   { tint: "bg-indigo-700",   text: "text-indigo-50",    ring: "ring-indigo-600" },
   Reel:               { tint: "bg-rose-700",     text: "text-rose-50",      ring: "ring-rose-600" },
   Story:              { tint: "bg-fuchsia-100",  text: "text-fuchsia-800",  ring: "ring-fuchsia-200" },
   Feedback:           { tint: "bg-emerald-700",  text: "text-emerald-50",   ring: "ring-emerald-600" },

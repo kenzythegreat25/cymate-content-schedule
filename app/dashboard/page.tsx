@@ -1378,7 +1378,11 @@ function EditDrawer({
               <MediaPicker
                 postId={item.id}
                 urls={item.attachments}
+                platform={item.platforms[0] ?? ""}
+                contentType={item.contentType}
+                descriptionEmpty={!item.description.trim()}
                 onChange={(urls) => onChange({ attachments: urls })}
+                onCaptionGenerated={(caption) => onChange({ description: caption })}
               />
             </Field>
           </section>
@@ -1752,14 +1756,45 @@ const MAX_BYTES = 50 * 1024 * 1024;
 function MediaPicker({
   postId,
   urls,
+  platform,
+  contentType,
+  descriptionEmpty,
   onChange,
+  onCaptionGenerated,
 }: {
   postId: string;
   urls: string[];
+  platform: string;
+  contentType: string;
+  descriptionEmpty: boolean;
   onChange: (urls: string[]) => void;
+  onCaptionGenerated: (caption: string) => void;
 }) {
   const [uploading, setUploading] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [generatingCaption, setGeneratingCaption] = useState(false);
+
+  const generateCaption = async (imageUrl: string) => {
+    setGeneratingCaption(true);
+    try {
+      const sb = supabaseBrowser();
+      const { data: { session } } = await sb.auth.getSession();
+      const token = session?.access_token ?? "";
+      const res = await fetch("/api/generate-caption", {
+        method: "POST",
+        headers: { "content-type": "application/json", "authorization": `Bearer ${token}` },
+        body: JSON.stringify({ imageUrl, platform, contentType }),
+      });
+      if (res.ok) {
+        const { caption } = await res.json() as { caption: string };
+        if (caption) onCaptionGenerated(caption);
+      }
+    } catch {
+      // silent — caption generation is best-effort
+    } finally {
+      setGeneratingCaption(false);
+    }
+  };
 
   const handleFiles = async (files: FileList | File[]) => {
     const list = Array.from(files);
@@ -1786,14 +1821,23 @@ function MediaPicker({
 
     const next = [...urls];
     let failed = 0;
+    let firstNewUrl: string | null = null;
     for (const r of results) {
-      if (r) next.push(r.url);
-      else failed++;
+      if (r) {
+        if (!firstNewUrl) firstNewUrl = r.url;
+        next.push(r.url);
+      } else failed++;
     }
     if (failed > 0) {
       setError(`${failed} file${failed > 1 ? "s" : ""} failed to upload. Make sure the post-images bucket allows your file size.`);
     }
-    if (next.length !== urls.length) onChange(next);
+    if (next.length !== urls.length) {
+      onChange(next);
+      // Auto-generate caption from first uploaded media if description is empty
+      if (firstNewUrl && descriptionEmpty) {
+        generateCaption(firstNewUrl);
+      }
+    }
   };
 
   const removeAt = (idx: number) => {
@@ -1887,6 +1931,13 @@ function MediaPicker({
           }}
         />
       </label>
+
+      {generatingCaption && (
+        <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs text-sky-700 flex items-center gap-2">
+          <svg className="animate-spin h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+          Generating caption from your media…
+        </div>
+      )}
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-700">{error}</div>
