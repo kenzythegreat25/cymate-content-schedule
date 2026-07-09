@@ -27,7 +27,34 @@ export async function POST(req: Request) {
   const isVideo = /\.(mp4|mov|avi|webm|mkv)(\?|$)/i.test(imageUrl);
   const isDriveFolder = imageUrl.includes("drive.google.com/drive/folders") || imageUrl.includes("drive.google.com/open");
 
-  const captionPromptText = (context: string) => `You are writing social media content for Cymate, a B2B cold email outbound agency targeting founders, sales leaders, and GTM teams at tech/SaaS companies.
+  const isYouTube = (platform ?? "").toLowerCase() === "youtube";
+
+  const captionPromptText = (context: string) => {
+    if (isYouTube) {
+      return `You are writing YouTube content for Cymate, a B2B cold email outbound agency targeting founders, sales leaders, and GTM teams at tech/SaaS companies.
+
+${context}
+
+Write a YouTube video description for a ${contentType || "video"} post.
+
+YouTube description rules:
+- Line 1: Compelling video title suggestion in brackets e.g. [Suggested title: ...]
+- Blank line
+- 2-3 sentence hook paragraph that summarizes what viewers will learn — written to appear above the "Show more" fold
+- Blank line
+- What you will learn / cover in this video: (bullet points, 3-5 items)
+- Blank line
+- About Cymate: One short sentence — "Cymate is a B2B cold email agency helping tech and SaaS companies build outbound pipelines that actually convert."
+- Blank line
+- Links: "Website: cymate.io"
+- Blank line
+- Chapters: (suggest 4-6 timestamp chapters based on the topic, starting at 0:00)
+- Blank line
+- 8-10 SEO keywords as hashtags relevant to the topic and B2B outbound audience
+
+Rules: No em dashes. Professional but human tone. Keyword-rich for YouTube search. No emojis. Return only the description text, no labels or explanation.`;
+    }
+    return `You are writing social media content for Cymate, a B2B cold email outbound agency targeting founders, sales leaders, and GTM teams at tech/SaaS companies.
 
 ${context}
 
@@ -49,6 +76,7 @@ Caption rules:
 Rules: No em dashes. Professional but human. No emojis. Short lines, not paragraphs.
 
 Return only the caption text. No explanation, no labels.`;
+  };
 
   let messageContent: unknown[];
   let isFallback = false;
