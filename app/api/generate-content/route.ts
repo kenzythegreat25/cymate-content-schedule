@@ -181,6 +181,8 @@ async function runGeneration(userId: string): Promise<Response> {
 
   const isoWeek = Math.ceil((new Date(dates.mon).getDate() + new Date(new Date(dates.mon).getFullYear(), 0, 1).getDay()) / 7);
   const includeReel = isoWeek % 2 === 1;
+  // First week of the month = Monday falls on day 1–7 of the month
+  const isFirstWeekOfMonth = new Date(dates.mon).getUTCDate() <= 7;
 
   const scheduleCtx = `
 Dates: Mon=${dates.mon} Tue=${dates.tue} Wed=${dates.wed} Thu=${dates.thu} Fri=${dates.fri}
@@ -211,6 +213,7 @@ Rules:
 - End every post with 5 relevant hashtags on their own line. Never repeat the same 5 hashtags from post to post — rotate from the pool.
 - NEVER use em dashes (—).
 - Do not duplicate any topic or angle from the recently published posts listed above.
+- POSTING TIME: Include "Post at: 10:00 AM PHT" at the top of every notes field so the scheduler knows exactly when to publish.
 - The JSON array must have EXACTLY 5 objects — one per day listed above. Count them before returning.
 Return a JSON array of exactly 5 objects.`;
 
@@ -242,12 +245,16 @@ FRIDAY (${dates.fri}): Alternate every 2 weeks between:
 
 RELEVANCE RULE: Every LinkedIn post must be directly relevant to the specific problems Cymate's target audience faces — B2B founders, sales leaders, SDR managers, and GTM teams at tech and SaaS companies. Topics must connect to real pain points: cold email deliverability, outbound sequencing, reply rates, pipeline generation, ICP definition, sender reputation, or scaling outbound without hiring. Never post generic business advice that could apply to any industry. Every post should make a sales leader or founder think "this is exactly what we deal with."
 
+INSTAGRAM CROSS-PROMO RULE (this week only — first week of the month: ${isFirstWeekOfMonth}):
+${isFirstWeekOfMonth ? `This is the first week of the month. One of the 3 LinkedIn posts must include a natural, low-key mention of Cymate's Instagram account (@cymate_io) to encourage LinkedIn followers to follow on Instagram too. Work it in organically at the end of the post — not as a hard CTA, more like a casual mention: e.g. "If you prefer shorter-form tips, we also post daily on Instagram — @cymate_io." Pick whichever post fits most naturally (usually Monday or Friday). Do not force it into the case study.` : `No Instagram cross-promo this week.`}
+
 RULES FOR ALL 3 POSTS:
 - NEVER use em dashes (—). Use commas, short sentences, or line breaks instead.
 - End every post with a direct question to the reader (to drive comments).
 - End every post with 5 relevant hashtags on their own line. Rotate hashtags — never reuse the same set across posts.
 - Do not duplicate topics, client names, or angles from the recently published posts listed above.
 - No fictional case study client should share a name with any real Cymate client listed in the testimonials.
+- POSTING TIME: Include "Post at: 8:00 AM PHT" at the top of every notes field so the scheduler knows exactly when to publish.
 - The JSON array must have EXACTLY 3 objects — one for Monday, one for Wednesday, one for Friday. Count them before returning.
 
 Return a JSON array of exactly 3 objects.`;
