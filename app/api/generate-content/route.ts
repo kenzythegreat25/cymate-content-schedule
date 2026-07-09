@@ -31,7 +31,7 @@ function getWeekDates(): Record<string, string> {
 
 async function callClaude(prompt: string): Promise<string> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 25000); // 25s per call
+  const timer = setTimeout(() => controller.abort(), 55000); // 55s per call
   try {
     const res = await fetch(ANTHROPIC_URL, {
       method: "POST",
@@ -42,7 +42,7 @@ async function callClaude(prompt: string): Promise<string> {
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
-        max_tokens: 3500,
+        max_tokens: 5000,
         messages: [{ role: "user", content: prompt }],
       }),
       signal: controller.signal,
