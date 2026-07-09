@@ -96,6 +96,8 @@ HOOK RULE: Every post must open with a strong hook — one line that earns the n
 IG CTAs: Soft and natural. "Link in bio" style. Reserve comment-to-unlock only for high-value giveaways.
 LinkedIn CTAs: Soft and contextual. "visit cymate.io" or "link in the comments" for long URLs. Never "message us directly."
 
+ONE ASK RULE: Every post gets exactly ONE primary ask. Choose one: a save nudge, a direct question, or a link callout. Never stack more than one in the same caption/post. A short closing CTA line (e.g. "Link in bio") is fine as a passive exit action, but it does not count as a second ask — don't pair it with both a save nudge AND a question in the same post.
+
 AVOID: Copybara case study, Prosal case study, cold email is dead, $100M stat, 150+ companies stat, Instagram intro post, IGNITE competition.
 
 Return ONLY a valid JSON array. No markdown, no explanation.
@@ -108,7 +110,7 @@ Each object:
   "date": "YYYY-MM-DD",
   "title": "short topic-only title",
   "on_screen_text": "Instagram: short, punchy hook (3-10 words) that appears on the poster graphic. LinkedIn: short, punchy hook (3-10 words) that appears on the LinkedIn graphic (except case studies — leave empty for those). Carousels: first slide hook only.",
-  "description": "Instagram static/reel: Structure the caption in clearly separated short blocks — NOT a continuous paragraph. Format exactly like this: [Line 1: Hook — one punchy sentence that stops the scroll] [blank line] [Line 2-4: Value — 2 to 3 short punchy sentences, each on its own line, max 10 words each. One idea per line. No run-ons.] [blank line] [Line 5: Save nudge — e.g. 'Save this before your next campaign.'] [blank line] [Line 6: Interactive question OR reminder — ask the reader something specific and direct, e.g. 'What's your biggest challenge with cold outreach right now?' or 'Drop a comment if you've dealt with this.' This is required on every post.] [blank line] [Line 7: Soft CTA — e.g. 'Link in bio for more.'] [blank line] [5 hashtags on their own line]. Carousels: clean 2-4 line summary caption using the same short-line format, then the interactive question, then hashtags. LinkedIn: 280-380 words, strong hook first line, story-driven, short paragraphs with line breaks, ends with a direct question to the reader, soft CTA, then 5 hashtags on their own line.",
+  "description": "Instagram static/reel: Structure the caption in clearly separated short blocks — NOT a continuous paragraph. Format exactly like this: [Line 1: Hook — one punchy sentence that stops the scroll] [blank line] [Line 2-4: Value — 2 to 3 short punchy sentences, each on its own line, max 10 words each. One idea per line. No run-ons.] [blank line] [Line 5: ONE primary ask — choose either a save nudge (e.g. 'Save this before your next campaign.') OR a direct interactive question (e.g. 'What's your biggest challenge with cold outreach right now?'). Never include both in the same caption. Vary which one you pick across the week's posts.] [blank line] [Line 6: Soft closing line — e.g. 'Link in bio for more.' Keep it short; this is a closing action, not a second ask.] [blank line] [5 hashtags on their own line]. Carousels: clean 2-4 line summary caption using the same short-line format, then the interactive question, then hashtags. LinkedIn: 280-380 words, strong hook first line, story-driven, short paragraphs with line breaks, ends with a direct question to the reader, soft CTA, then 5 hashtags on their own line.",
   "slides": ["slide 1 text", "slide 2 text", ...] — Carousel only, 5-6 slides. Omit for all other types.,
   "content_type": "Static" | "Carousel" | "Text" | "Reel",
   "notes": "For IG: designer direction — clean graphic/poster, no people in background, mood and visual style. For Reels: beat-by-beat script. For LinkedIn insight/testimonial posts: describe the poster concept — dark or neutral background, bold short text overlay matching the on_screen_text hook, color palette and mood. Keep it clean and professional, no stock photos of people. Case study posts: leave poster direction empty (template already exists). Always include: Generic reply template + subtle CTA idea."
@@ -198,7 +200,7 @@ ${IG_HASHTAG_POOL}
 RECENTLY PUBLISHED POSTS (do not duplicate any of these topics or angles):
 ${recentTitles}
 
-GENERIC REPLY RULE: For every post, include a generic reply template in the notes field that Cymate can use to respond to people who comment on the post. It should feel like a genuine, warm response — not a bot, not a sales pitch. It should acknowledge the commenter, add a small bit of value or continue the conversation, and optionally invite them to share their own experience. Write it to work for most comments on that post (e.g., someone saying "great post", "this is so true", "we've had this issue too"). The reply should match the tone and context of the post. Label it clearly: "Generic reply: [text]". Also include a subtle CTA: "Reminder: share this post to your Stories after posting to boost reach."
+GENERIC REPLY RULE: For every post, include a generic reply template in the notes field that Cymate can use to respond to people who comment on the post. It should feel like a genuine, warm response — not a bot, not a sales pitch. It should acknowledge the commenter, add a small bit of value or continue the conversation, and optionally invite them to share their own experience. Write it to work for most comments on that post (e.g., someone saying "great post", "this is so true", "we've had this issue too"). The reply should match the tone and context of the post. Label it clearly: "Generic reply: [text]". Also include a subtle CTA: "Reminder: share this post to your Stories after posting to boost reach." Also add to notes: "Team: reply to all comments within 90 min of posting."
 
 Generate EXACTLY 5 Instagram posts. One post per weekday, no more, no less:
 1. Monday — ${dates.mon} — Static graphic poster
@@ -209,12 +211,13 @@ Generate EXACTLY 5 Instagram posts. One post per weekday, no more, no less:
 
 Rules:
 - Clean graphic/poster for all posts. No people in background. on_screen_text is always a short hook on the poster.
-- Every caption must include a natural save nudge (e.g. "Save this for your next campaign" or "Bookmark this before you start your next sequence"). Place it before the hashtags.
+- Every caption gets exactly ONE primary ask per the ONE ASK RULE above — a save nudge OR a direct question, never both. Don't default to the same one every day; vary it across the 5 posts.
 - End every post with 5 relevant hashtags on their own line. Never repeat the same 5 hashtags from post to post — rotate from the pool.
 - NEVER use em dashes (—).
 - Do not duplicate any topic or angle from the recently published posts listed above.
 - POSTING TIME: Include "Post at: 8:00 PM PHT" at the top of every notes field so the scheduler knows exactly when to publish. (Audience peaks at 9 PM PHT — post 1 hour before to warm up distribution.)
 - The JSON array must have EXACTLY 5 objects — one per day listed above. Count them before returning.
+- Before returning the JSON, check each post: does the first line work as a hook with zero context, and is there exactly ONE primary ask (not stacked)? Revise any post that fails either check.
 Return a JSON array of exactly 5 objects.`;
 
   const liPrompt = `${BASE_INSTRUCTIONS}
@@ -226,7 +229,7 @@ ${CLIENT_TESTIMONIALS}
 RECENTLY PUBLISHED POSTS (do not duplicate any of these topics or angles):
 ${recentTitles}
 
-GENERIC REPLY RULE: For every post, include a generic reply template in the notes field that Cymate can use to respond to people who comment on the post. It should feel like a genuine, warm response — not a bot, not a sales pitch. It should acknowledge the commenter, add a small bit of value or continue the conversation, and optionally invite them to share their own experience. Write it to work for most comments on that post (e.g., someone saying "great post", "this is so true", "we've had this issue too"). The reply should match the tone and context of the post. Label it clearly: "Generic reply: [text]". Also include a subtle, non-obvious CTA idea in the notes (e.g., "Happy to share the full breakdown if useful" or "Drop a comment and we can dig into it together").
+GENERIC REPLY RULE: For every post, include a generic reply template in the notes field that Cymate can use to respond to people who comment on the post. It should feel like a genuine, warm response — not a bot, not a sales pitch. It should acknowledge the commenter, add a small bit of value or continue the conversation, and optionally invite them to share their own experience. Write it to work for most comments on that post (e.g., someone saying "great post", "this is so true", "we've had this issue too"). The reply should match the tone and context of the post. Label it clearly: "Generic reply: [text]". Also include a subtle, non-obvious CTA idea in the notes (e.g., "Happy to share the full breakdown if useful" or "Drop a comment and we can dig into it together"). Also add to notes: "Team: reply to all comments within 90 min of posting. Loop in 2-3 teammates to comment (not just like) within 15 min of posting."
 
 Generate EXACTLY 3 LinkedIn posts. One post per publishing day, no more, no less:
 1. Monday — ${dates.mon}
@@ -236,10 +239,10 @@ Generate EXACTLY 3 LinkedIn posts. One post per publishing day, no more, no less
 Content per day:
 MONDAY (${dates.mon}): Insight, framework, hot take, or behind-the-scenes process post. Directly relevant to a pain point Cymate's ICP faces. Strong hook, story-driven, 280-350 words.
 
-WEDNESDAY (${dates.wed}): A case study post referencing a real result from Cymate's work. Write the post around a specific outcome or challenge (you can draw inspiration from the testimonials). The full case study lives on cymate.io — end the post with a natural line like "Full breakdown in the comments" or "I'll drop the link in the comments" and note in the notes field: "Poster: case study template. Drop the cymate.io case study link in the first comment after posting." 300-380 words.
+WEDNESDAY (${dates.wed}): A case study post referencing a real result from Cymate's work. Write the post around a specific outcome or challenge (you can draw inspiration from the testimonials). The full case study lives on cymate.io — end the post with a natural line like "Full breakdown in the comments" or "I'll drop the link in the comments" and note in the notes field: "Poster: case study template. Drop the cymate.io case study link in the first comment after posting." The link callout is this post's ONE primary ask — keep the closing question soft/rhetorical rather than a second demanding ask. 300-380 words.
 
 FRIDAY (${dates.fri}): Alternate every 2 weeks between:
-- A client testimonial/feedback post: pick one quote from the testimonials list, feature the client name and company authentically, add context around the result they achieved. 200-280 words.
+- A client testimonial/feedback post: pick one quote from the testimonials list, feature the client name and company authentically, add context around the result they achieved. If tagging the featured client's company page is a natural fit for this quote, add to notes: "Consider @-tagging [Client] — confirm they're comfortable being tagged before publishing." 200-280 words.
 - An insight or tip post on B2B outbound strategy. 280-350 words.
 (This week: odd ISO week = testimonial, even ISO week = insight. Week ${isoWeek} is ${isoWeek % 2 === 1 ? "odd — use a testimonial" : "even — use an insight post"}.)
 
@@ -256,8 +259,9 @@ RULES FOR ALL 3 POSTS:
 - End every post with 5 relevant hashtags on their own line. Rotate hashtags — never reuse the same set across posts.
 - Do not duplicate topics, client names, or angles from the recently published posts listed above.
 - No fictional case study client should share a name with any real Cymate client listed in the testimonials.
-- POSTING TIME: Include "Post at: 8:00 PM PHT" at the top of every notes field so the scheduler knows exactly when to publish. (Audience peaks at 9 PM PHT — post 1 hour before to warm up distribution.)
+- POSTING TIME: Include "Post at: 8:00 PM PHT" at the top of every notes field so the scheduler knows exactly when to publish. (TODO: verify against real LinkedIn analytics for this audience — 8 PM PHT lands ~6-9 AM across Bogotá/Mexico City/Buenos Aires; if the actual peak is the 8-10 AM local window, 9:30-10:00 PM PHT would land closer. Keep 8 PM PHT until confirmed with data.)
 - The JSON array must have EXACTLY 3 objects — one for Monday, one for Wednesday, one for Friday. Count them before returning.
+- Before returning the JSON, check each post: does the first line work as a hook with zero context, and is there exactly ONE primary ask (not stacked)? Revise any post that fails either check.
 
 Return a JSON array of exactly 3 objects.`;
 
