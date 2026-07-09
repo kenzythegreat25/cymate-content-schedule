@@ -1751,7 +1751,7 @@ function CharCounter({ text, platforms }: { text: string; platforms: Platform[] 
   );
 }
 
-const MAX_BYTES = 50 * 1024 * 1024;
+const MAX_BYTES = 500 * 1024 * 1024; // 500MB
 
 function MediaPicker({
   postId,
@@ -1808,7 +1808,7 @@ function MediaPicker({
         continue;
       }
       if (f.size > MAX_BYTES) {
-        setError(`"${f.name}" is too large. Max 50MB per file.`);
+        setError(`"${f.name}" is too large. Max 500MB per file.`);
         continue;
       }
       accepted.push(f);
@@ -1918,7 +1918,7 @@ function MediaPicker({
             ? "Drop images or videos, or click to upload"
             : "Add more"}
         </span>
-        <span className="text-[11px] text-muted">PNG · JPG · WebP · MP4 · MOV — up to 50MB each</span>
+        <span className="text-[11px] text-muted">PNG · JPG · WebP · MP4 · MOV — up to 500MB each</span>
         <input
           type="file"
           accept="image/*,video/*"
