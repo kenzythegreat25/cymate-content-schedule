@@ -15,39 +15,69 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabaseAdmin.auth.getUser(jwt);
   if (!user) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { imageUrl, platform, contentType } = await req.json() as {
+  const { imageUrl, platform, contentType, description: userDescription } = await req.json() as {
     imageUrl: string;
     platform: string;
     contentType: string;
+    description?: string;
   };
 
   if (!imageUrl) return NextResponse.json({ error: "imageUrl is required" }, { status: 400 });
 
   const isVideo = /\.(mp4|mov|avi|webm|mkv)(\?|$)/i.test(imageUrl);
+  const isDriveFolder = imageUrl.includes("drive.google.com/drive/folders") || imageUrl.includes("drive.google.com/open");
+
+  const captionPromptText = (context: string) => `You are writing social media content for Cymate, a B2B cold email outbound agency targeting founders, sales leaders, and GTM teams at tech/SaaS companies.
+
+${context}
+
+Write a caption for a ${contentType || "post"} on ${platform || "Instagram"}.
+
+Caption rules:
+- Line 1: Strong hook — one punchy sentence directly related to the media or topic
+- Blank line
+- 2-3 short value lines — one idea per line, max 10 words each
+- Blank line
+- Save nudge — e.g. "Save this before your next campaign."
+- Blank line
+- Interactive question — ask the reader something specific and direct related to the topic
+- Blank line
+- Soft CTA — e.g. "Link in bio for more." or "Visit cymate.io for the full breakdown."
+- Blank line
+- 5 relevant hashtags from: #B2BOutbound #ColdEmail #LeadGeneration #OutboundSales #GTMStrategy #SalesProspecting #B2BSales #SalesDevelopment #RevenueGrowth #EmailOutreach #OutboundMarketing #B2BMarketing #SalesStrategy #PipelineGeneration #BookMoreMeetings #SDR #SalesLeadership #StartupGrowth #GrowthStrategy #DemandGeneration
+
+Rules: No em dashes. Professional but human. No emojis. Short lines, not paragraphs.
+
+Return only the caption text. No explanation, no labels.`;
 
   let messageContent: unknown[];
+  let isFallback = false;
 
-  if (isVideo) {
-    messageContent = [{
-      type: "text",
-      text: `Generate a caption for a ${contentType || "video"} post on ${platform || "Instagram"} for Cymate, a B2B cold email outbound agency. The post is a video attachment. Write a caption that feels natural, has a strong hook on the first line, adds value, includes a save nudge, ends with an interactive question for the audience, and closes with a soft CTA. Keep it concise and punchy — short lines, not a wall of text. No em dashes. Professional but human tone. Return only the caption text, nothing else.`,
-    }];
+  // If user provided a description (fallback path) or it's a folder/non-fetchable link
+  if (userDescription) {
+    isFallback = false;
+    messageContent = [{ type: "text", text: captionPromptText(`The media shows: ${userDescription}`) }];
+  } else if (isVideo || isDriveFolder) {
+    messageContent = [{ type: "text", text: captionPromptText(`The post is a ${isVideo ? "video" : "media folder"} attachment. Generate a caption that works for outbound/cold email content.`) }];
   } else {
     // Fetch image and convert to base64
     let base64: string;
     let mediaType: string;
     try {
-      const imgRes = await fetch(imageUrl);
-      if (!imgRes.ok) throw new Error(`Failed to fetch image: ${imgRes.status}`);
+      const imgRes = await fetch(imageUrl, { signal: AbortSignal.timeout(8000) });
+      if (!imgRes.ok) throw new Error(`Failed to fetch: ${imgRes.status}`);
+      const contentTypeHeader = imgRes.headers.get("content-type") ?? "";
+      // If response is not an image (e.g. Drive HTML redirect page), fall back
+      if (!contentTypeHeader.startsWith("image/")) throw new Error("Not a direct image");
       const buffer = await imgRes.arrayBuffer();
       base64 = Buffer.from(buffer).toString("base64");
-      mediaType = imgRes.headers.get("content-type") ?? "image/jpeg";
-      // Clamp to supported types
+      mediaType = contentTypeHeader.split(";")[0].trim();
       if (!["image/jpeg", "image/png", "image/gif", "image/webp"].includes(mediaType)) {
         mediaType = "image/jpeg";
       }
-    } catch (e) {
-      return NextResponse.json({ error: `Could not fetch image: ${String(e)}` }, { status: 400 });
+    } catch {
+      // Can't fetch the image — return fallback signal so UI can ask for description
+      return NextResponse.json({ caption: "", fallback: true });
     }
 
     messageContent = [
@@ -57,26 +87,7 @@ export async function POST(req: Request) {
       },
       {
         type: "text",
-        text: `You are writing social media content for Cymate, a B2B cold email outbound agency targeting founders, sales leaders, and GTM teams at tech/SaaS companies.
-
-Look at this image and write a caption for a ${contentType || "post"} on ${platform || "Instagram"}.
-
-Caption rules:
-- Line 1: Strong hook — one punchy sentence directly related to what the image shows or the message it conveys
-- Blank line
-- 2-3 short value lines — one idea per line, max 10 words each
-- Blank line
-- Save nudge — e.g. "Save this before your next campaign."
-- Blank line
-- Interactive question — ask the reader something specific and direct related to the image or topic
-- Blank line
-- Soft CTA — e.g. "Link in bio for more." or "Visit cymate.io for the full breakdown."
-- Blank line
-- 5 relevant hashtags from: #B2BOutbound #ColdEmail #LeadGeneration #OutboundSales #GTMStrategy #SalesProspecting #B2BSales #SalesDevelopment #RevenueGrowth #EmailOutreach #OutboundMarketing #B2BMarketing #SalesStrategy #PipelineGeneration #BookMoreMeetings #SDR #SalesLeadership #StartupGrowth #GrowthStrategy #DemandGeneration
-
-Rules: No em dashes. Professional but human. No emojis. Short lines, not paragraphs.
-
-Return only the caption text. No explanation, no labels.`,
+        text: captionPromptText("Look at this image and write a caption based on what you see."),
       },
     ];
   }
@@ -103,7 +114,7 @@ Return only the caption text. No explanation, no labels.`,
 
     const data = await res.json() as { content: { text: string }[] };
     const caption = data.content[0].text.trim();
-    return NextResponse.json({ caption });
+    return NextResponse.json({ caption, fallback: isFallback });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }

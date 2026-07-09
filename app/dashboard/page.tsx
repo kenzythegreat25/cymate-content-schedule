@@ -1773,6 +1773,9 @@ function MediaPicker({
   const [uploading, setUploading] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [generatingCaption, setGeneratingCaption] = useState(false);
+  const [mediaLink, setMediaLink] = useState("");
+  const [mediaDescription, setMediaDescription] = useState("");
+  const [linkFailed, setLinkFailed] = useState(false);
 
   const generateCaption = async (imageUrl: string) => {
     setGeneratingCaption(true);
@@ -1791,6 +1794,31 @@ function MediaPicker({
       }
     } catch {
       // silent — caption generation is best-effort
+    } finally {
+      setGeneratingCaption(false);
+    }
+  };
+
+  const generateCaptionFromLink = async () => {
+    if (!mediaLink.trim()) return;
+    setLinkFailed(false);
+    setGeneratingCaption(true);
+    try {
+      const sb = supabaseBrowser();
+      const { data: { session } } = await sb.auth.getSession();
+      const token = session?.access_token ?? "";
+      const res = await fetch("/api/generate-caption", {
+        method: "POST",
+        headers: { "content-type": "application/json", "authorization": `Bearer ${token}` },
+        body: JSON.stringify({ imageUrl: mediaLink.trim(), platform, contentType, description: mediaDescription }),
+      });
+      if (res.ok) {
+        const { caption, fallback } = await res.json() as { caption: string; fallback?: boolean };
+        if (caption) onCaptionGenerated(caption);
+        if (fallback) setLinkFailed(true);
+      }
+    } catch {
+      setLinkFailed(true);
     } finally {
       setGeneratingCaption(false);
     }
@@ -1931,6 +1959,48 @@ function MediaPicker({
           }}
         />
       </label>
+
+      {/* External media link + caption generator */}
+      <div className="rounded-lg border border-line bg-surface-2 px-3 py-3 space-y-2">
+        <p className="text-[11px] font-medium text-ink-soft">Generate caption from a link (Google Drive, etc.)</p>
+        <div className="flex gap-2">
+          <input
+            type="url"
+            value={mediaLink}
+            onChange={(e) => { setMediaLink(e.target.value); setLinkFailed(false); setMediaDescription(""); }}
+            placeholder="Paste a Drive or media link…"
+            className="input flex-1 text-xs py-1.5"
+          />
+          <button
+            onClick={generateCaptionFromLink}
+            disabled={!mediaLink.trim() || generatingCaption}
+            className="shrink-0 rounded-md bg-ink px-3 py-1.5 text-xs font-semibold text-surface disabled:opacity-40 transition hover:opacity-80"
+          >
+            Generate
+          </button>
+        </div>
+        {linkFailed && (
+          <div className="space-y-1.5">
+            <p className="text-[11px] text-amber-700">Could not view this link directly. Briefly describe what the media shows and we will generate the caption from that.</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={mediaDescription}
+                onChange={(e) => setMediaDescription(e.target.value)}
+                placeholder="e.g. A short video showing cold email open rate stats"
+                className="input flex-1 text-xs py-1.5"
+              />
+              <button
+                onClick={generateCaptionFromLink}
+                disabled={!mediaDescription.trim() || generatingCaption}
+                className="shrink-0 rounded-md bg-ink px-3 py-1.5 text-xs font-semibold text-surface disabled:opacity-40 transition hover:opacity-80"
+              >
+                Try again
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {generatingCaption && (
         <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs text-sky-700 flex items-center gap-2">
