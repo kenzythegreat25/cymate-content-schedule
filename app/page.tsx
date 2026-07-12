@@ -1,5 +1,8 @@
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { ThemeChip } from "./(auth)/ThemeChip";
+
+const LightRays = dynamic(() => import("../components/LightRays"), { ssr: false });
 
 export default function Landing() {
   return (
@@ -51,9 +54,26 @@ function Nav() {
 function Hero() {
   return (
     <section className="relative overflow-hidden">
+      {/* LightRays WebGL background */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <LightRays
+          raysOrigin="top-center"
+          raysColor="#00e6ff"
+          raysSpeed={0.4}
+          lightSpread={1}
+          rayLength={1.5}
+          followMouse={true}
+          mouseInfluence={0.1}
+          noiseAmount={0.1}
+          distortion={0.05}
+          fadeDistance={0.8}
+          saturation={1.3}
+        />
+      </div>
+      {/* Keep the soft blur blobs for light-mode fallback warmth */}
       <div className="absolute -left-32 top-20 h-80 w-80 rounded-full bg-accent/15 blur-3xl" />
       <div className="absolute -right-20 top-40 h-72 w-72 rounded-full bg-[#00e6ff]/20 blur-3xl" />
-      <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-6 pb-20 pt-16 lg:grid-cols-12 lg:gap-8 lg:pt-24">
+      <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-6 pb-20 pt-16 lg:grid-cols-12 lg:gap-8 lg:pt-24">
         <div className="lg:col-span-6">
           <div className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-2.5 py-1 text-[11px] text-ink-soft backdrop-blur">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
