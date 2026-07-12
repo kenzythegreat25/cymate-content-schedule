@@ -1,8 +1,6 @@
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { ThemeChip } from "./(auth)/ThemeChip";
-
-const LightRays = dynamic(() => import("../components/LightRays"), { ssr: false });
+import LightRays from "../components/LightRays";
 
 export default function Landing() {
   return (
