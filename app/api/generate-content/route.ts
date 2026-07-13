@@ -167,8 +167,8 @@ export async function POST(req: Request) {
   if (!user || user.email !== ALLOWED_EMAIL) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  // user.id is already known — pass it directly, no listUsers needed
-  return runGeneration(user.id);
+  const body = await req.json().catch(() => ({}));
+  return runGeneration(user.id, body);
 }
 
 type PostDraft = {
@@ -201,11 +201,124 @@ function textTooSimilar(a: string, b: string, threshold = 0.55): boolean {
   return shared.length / Math.min(na.length, nb.length) >= threshold;
 }
 
-async function runGeneration(userId: string): Promise<Response> {
+async function runSinglePostGeneration(
+  userId: string,
+  opts: { platform?: string; contentType?: string; date?: string; topicHint?: string },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabaseAdmin: any
+): Promise<Response> {
+  const { platform = "Instagram", contentType = "Static", date, topicHint } = opts;
+
+  // Fetch all existing posts for dedup
+  const { data: allPostsRaw } = await supabaseAdmin
+    .from("posts")
+    .select("title, description, platform, date, status")
+    .order("created_at", { ascending: false });
+
+  const allPosts = (allPostsRaw ?? []) as { title: string; description: string; platform: string; date: string; status: string }[];
+
+  const allExistingTitles = allPosts.map(p => p.title.toLowerCase());
+  const allExistingHooks  = allPosts.map(p => (p.description ?? "").split("\n")[0].toLowerCase());
+  const recentTitles = allPosts.map(p => {
+    const hook = (p.description ?? "").split("\n")[0].slice(0, 80);
+    return `[${p.platform}] ${p.title} | hook: "${hook}" (${p.date} · ${p.status})`;
+  }).join("\n") || "None";
+
+  const topicLine = topicHint ? `\nTOPIC HINT: The post should be about: "${topicHint}". Use this as the angle — don't ignore it.` : "";
+
+  const prompt = `${BASE_INSTRUCTIONS}
+
+${IG_HASHTAG_POOL}
+
+${platform === "LinkedIn" ? CLIENT_TESTIMONIALS + "\n\n" : ""}EXISTING POSTS — ALL STATUSES:
+${recentTitles}
+
+DEDUPLICATION RULE (hard): Every title, hook, and topic above is off-limits — including similar angles, the same subject reframed, and close variations on the same theme. The opening hook line must also be distinct from any existing hook shown above.
+${topicLine}
+
+Generate EXACTLY 1 ${platform} post. Content type: ${contentType}. Date: ${date ?? new Date().toISOString().slice(0, 10)}.
+
+Rules:
+- Follow all BASE_INSTRUCTIONS above.
+- NEVER use em dashes (—).
+- End with 5 relevant hashtags on their own line.
+- POSTING TIME: Include "Post at: 8:00 PM PHT" at the top of the notes field.
+- Include 3 Q&A reply pairs in notes (Q1–Q3 format).
+- Before returning, verify: strong hook, exactly ONE primary ask, no em dashes.
+
+Return a JSON array with EXACTLY 1 object using the same schema as always.`;
+
+  let posts: PostDraft[];
+  try {
+    const raw = await callClaude(prompt);
+    posts = parseJson(raw);
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
+
+  if (posts.length !== 1) {
+    return NextResponse.json({ error: `Expected 1 post, got ${posts.length}` }, { status: 500 });
+  }
+
+  // Duplicate check
+  const post = posts[0];
+  const generatedHook = (post.description ?? "").split("\n")[0];
+  for (const existing of allExistingTitles) {
+    if (textTooSimilar(post.title, existing)) {
+      return NextResponse.json(
+        { error: `Title "${post.title}" is too similar to an existing post. Try again.` },
+        { status: 409 }
+      );
+    }
+  }
+  for (const existingHook of allExistingHooks) {
+    if (existingHook.length > 10 && textTooSimilar(generatedHook, existingHook, 0.6)) {
+      return NextResponse.json(
+        { error: `Caption hook is too similar to an existing post. Try again.` },
+        { status: 409 }
+      );
+    }
+  }
+
+  const now = new Date().toISOString();
+  const record = {
+    id: crypto.randomUUID(),
+    user_id: userId,
+    title: post.title ?? "",
+    date: post.date || date || null,
+    on_screen_text: post.on_screen_text ?? "",
+    description: post.description ?? "",
+    platforms: [platform],
+    content_type: post.content_type ?? contentType,
+    status: "Drafting",
+    notes: post.notes ?? "",
+    performance_score: null,
+    review_status: null,
+    review_note: null,
+    reviewed_by: null,
+    reviewed_at: null,
+    slides: Array.isArray(post.slides) ? post.slides : [],
+    share_token: null,
+    created_at: now,
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error: insertError } = await supabaseAdmin.from("posts").insert([record as any]);
+  if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 });
+
+  return NextResponse.json({ generated: 1, post: record });
+}
+
+async function runGeneration(userId: string, opts: { mode?: string; platform?: string; contentType?: string; date?: string; topicHint?: string } = {}): Promise<Response> {
   if (!ANTHROPIC_KEY) return NextResponse.json({ error: "ANTHROPIC_API_KEY not set" }, { status: 500 });
   if (!SERVICE_KEY)   return NextResponse.json({ error: "SUPABASE_SERVICE_ROLE_KEY not set" }, { status: 500 });
 
   const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_KEY);
+
+  if (opts.mode === "single") {
+    return runSinglePostGeneration(userId, opts, supabaseAdmin);
+  }
+
   const dates = getWeekDates();
 
   // Block generation if posts already exist for any of this week's dates

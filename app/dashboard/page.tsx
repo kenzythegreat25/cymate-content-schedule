@@ -473,11 +473,49 @@ function AirtableSyncButton({ items }: { items: ContentItem[] }) {
 }
 
 function GenerateContentButton({ onGenerated }: { onGenerated: () => void }) {
-  const [state, setState] = useState<"idle" | "running" | "done" | "error">("idle");
-  const [message, setMessage] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  return (
+    <>
+      <button
+        onClick={() => setShowModal(true)}
+        className="flex h-9 items-center gap-1.5 rounded-lg border border-line bg-surface px-3 text-sm font-medium text-ink-soft transition hover:bg-surface-2 hover:text-ink"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+        <span className="hidden sm:inline">Generate</span>
+      </button>
+      {showModal && <GenerateModal onClose={() => setShowModal(false)} onGenerated={() => { setShowModal(false); onGenerated(); }} />}
+    </>
+  );
+}
+
+const TYPES_BY_PLATFORM: Record<string, string[]> = {
+  Instagram: ["Static", "Carousel", "Reel", "Story"],
+  LinkedIn:  ["Text", "Image", "Carousel", "Document"],
+  Youtube:   ["Long-Form Video", "Short-Form Video"],
+  Facebook:  ["Static", "Reel", "Carousel"],
+  TikTok:    ["Short-Form Video", "Carousel"],
+};
+
+function GenerateModal({ onClose, onGenerated }: { onClose: () => void; onGenerated: () => void }) {
+  const [mode, setMode]             = useState<"week" | "single">("week");
+  const [platform, setPlatform]     = useState("Instagram");
+  const [contentType, setContentType] = useState("Static");
+  const [date, setDate]             = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().slice(0, 10);
+  });
+  const [topicHint, setTopicHint]   = useState("");
+  const [genState, setGenState]     = useState<"idle" | "running" | "done" | "error">("idle");
+  const [message, setMessage]       = useState("");
+
+  const types = TYPES_BY_PLATFORM[platform] ?? [];
+
+  // When platform changes, reset contentType to first available
+  useEffect(() => {
+    setContentType(TYPES_BY_PLATFORM[platform]?.[0] ?? "");
+  }, [platform]);
 
   const handleGenerate = async () => {
-    setState("running");
+    setGenState("running");
     setMessage("");
     const supabase = supabaseBrowser();
     const { data: sessionData } = await supabase.auth.getSession();
@@ -485,55 +523,193 @@ function GenerateContentButton({ onGenerated }: { onGenerated: () => void }) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 65000);
     try {
+      const body = mode === "week"
+        ? {}
+        : { mode: "single", platform, contentType, date, topicHint: topicHint.trim() || undefined };
       const res = await fetch("/api/generate-content", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({}),
+        body: JSON.stringify(body),
         signal: controller.signal,
       });
       clearTimeout(timeout);
       const result = await res.json();
       if (result.error) {
-        setState("error");
+        setGenState("error");
         setMessage(result.error);
-        setTimeout(() => { setState("idle"); setMessage(""); }, 6000);
       } else {
-        setState("done");
-        setMessage(`${result.generated} posts added`);
+        setGenState("done");
+        setMessage(mode === "week" ? `${result.generated} posts added` : "Post added to Drafting");
         onGenerated();
-        setTimeout(() => { setState("idle"); setMessage(""); }, 5000);
+        setTimeout(onClose, 2000);
       }
     } catch {
       clearTimeout(timeout);
-      setState("error");
+      setGenState("error");
       setMessage("Timed out — try again");
-      setTimeout(() => { setState("idle"); setMessage(""); }, 6000);
     }
   };
 
+  // Close on backdrop click
+  const handleBackdrop = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) onClose();
+  };
+
   return (
-    <div className="relative flex items-center">
-      <button
-        onClick={handleGenerate}
-        disabled={state === "running"}
-        title="Generate next week's content"
-        className="flex h-9 items-center gap-1.5 rounded-lg border border-line bg-surface px-3 text-sm font-medium text-ink-soft transition hover:bg-surface-2 hover:text-ink disabled:opacity-50"
-      >
-        {state === "running" ? (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-        ) : (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-        )}
-        <span className="hidden sm:inline">
-          {state === "running" ? "Generating…" : state === "done" ? message : state === "error" ? "Error" : "Generate"}
-        </span>
-      </button>
-      {message && state === "error" && (
-        <span className="absolute top-full mt-1 right-0 whitespace-nowrap rounded bg-red-100 px-2 py-1 text-[11px] text-red-600 max-w-xs truncate">{message}</span>
-      )}
-      {message && state === "done" && (
-        <span className="absolute top-full mt-1 right-0 whitespace-nowrap rounded bg-green-100 px-2 py-1 text-[11px] text-green-700">{message}</span>
-      )}
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}
+      onClick={handleBackdrop}
+    >
+      <div className="w-full max-w-lg rounded-2xl border border-line-strong bg-surface shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-line px-5 py-4">
+          <span className="text-[15px] font-semibold tracking-tight text-ink">Generate content</span>
+          <button
+            onClick={onClose}
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-line text-muted hover:bg-surface-2 hover:text-ink transition"
+          >✕</button>
+        </div>
+
+        {/* Body */}
+        <div className="flex flex-col gap-5 p-5">
+
+          {/* Mode */}
+          <div>
+            <div className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted">What do you need?</div>
+            <div className="grid grid-cols-2 gap-2">
+              {(["week", "single"] as const).map(m => (
+                <button
+                  key={m}
+                  onClick={() => setMode(m)}
+                  className={`flex flex-col gap-1.5 rounded-xl border p-3.5 text-left transition ${
+                    mode === m
+                      ? "border-accent bg-accent/10"
+                      : "border-line-strong bg-surface-2 hover:bg-surface-2 hover:border-line-strong"
+                  }`}
+                >
+                  <span className="text-[18px]">{m === "week" ? "📅" : "✦"}</span>
+                  <span className="text-[13px] font-semibold text-ink">{m === "week" ? "Full week" : "Single post"}</span>
+                  <span className="text-[11px] leading-snug text-ink-soft">
+                    {m === "week"
+                      ? "5 IG posts + 3 LinkedIn posts, Mon – Fri"
+                      : "Pick a platform, type, and optional topic"}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Single-post config */}
+          {mode === "single" && (
+            <div className="flex flex-col gap-4">
+
+              {/* Platform */}
+              <div>
+                <div className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted">Platform</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {Object.keys(TYPES_BY_PLATFORM).map(p => (
+                    <button
+                      key={p}
+                      onClick={() => setPlatform(p)}
+                      className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                        platform === p
+                          ? "border-accent bg-accent/10 text-ink"
+                          : "border-line-strong bg-surface-2 text-ink-soft hover:text-ink"
+                      }`}
+                    >{p}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Content type */}
+              <div>
+                <div className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted">Content type</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {types.map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setContentType(t)}
+                      className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                        contentType === t
+                          ? "border-accent bg-accent/10 text-ink"
+                          : "border-line-strong bg-surface-2 text-ink-soft hover:text-ink"
+                      }`}
+                    >{t}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Date */}
+              <div>
+                <div className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted">Date</div>
+                <input
+                  type="date"
+                  value={date}
+                  min={new Date().toISOString().slice(0, 10)}
+                  onChange={e => setDate(e.target.value)}
+                  className="w-full rounded-lg border border-line-strong bg-surface-2 px-3 py-2 text-[13px] text-ink outline-none focus:border-accent transition"
+                />
+              </div>
+
+              {/* Topic hint */}
+              <div>
+                <div className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted">
+                  Topic hint <span className="normal-case font-normal tracking-normal text-muted">— optional</span>
+                </div>
+                <textarea
+                  rows={2}
+                  value={topicHint}
+                  onChange={e => setTopicHint(e.target.value)}
+                  placeholder="e.g. 'cold email deliverability for SaaS founders' — or leave blank and Claude decides"
+                  className="w-full resize-none rounded-lg border border-line-strong bg-surface-2 px-3 py-2 text-[13px] text-ink placeholder:text-muted outline-none focus:border-accent transition leading-relaxed"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Error message */}
+          {genState === "error" && message && (
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-[12px] text-red-400 leading-relaxed max-h-28 overflow-y-auto whitespace-pre-wrap">
+              {message}
+            </div>
+          )}
+
+          {/* Success */}
+          {genState === "done" && (
+            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-[12px] text-emerald-400">
+              {message}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between gap-3 border-t border-line px-5 py-4">
+          <p className="text-[11px] text-muted leading-snug max-w-[220px]">
+            {mode === "week"
+              ? "Generates 8 posts. Blocked if that week already has content."
+              : `${platform} · ${contentType}${date ? ` · ${date}` : ""}`}
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={onClose}
+              disabled={genState === "running"}
+              className="rounded-lg border border-line-strong bg-transparent px-3 py-2 text-[13px] text-ink-soft hover:bg-surface-2 hover:text-ink transition disabled:opacity-40"
+            >Cancel</button>
+            <button
+              onClick={handleGenerate}
+              disabled={genState === "running" || genState === "done"}
+              className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-[13px] font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
+            >
+              {genState === "running" ? (
+                <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Generating…</>
+              ) : (
+                <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg> Generate</>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
