@@ -201,6 +201,13 @@ function textTooSimilar(a: string, b: string, threshold = 0.55): boolean {
   return shared.length / Math.min(na.length, nb.length) >= threshold;
 }
 
+// Returns true if two full captions/descriptions are too similar in body content
+function descriptionTooSimilar(a: string, b: string): boolean {
+  // Strip hashtags before comparing
+  const strip = (s: string) => s.replace(/#\S+/g, "").replace(/\s+/g, " ").trim();
+  return textTooSimilar(strip(a), strip(b), 0.45);
+}
+
 async function runSinglePostGeneration(
   userId: string,
   opts: { platform?: string; contentType?: string; date?: string; topicHint?: string },
@@ -217,11 +224,12 @@ async function runSinglePostGeneration(
 
   const allPosts = (allPostsRaw ?? []) as { title: string; description: string; platform: string; date: string; status: string }[];
 
-  const allExistingTitles = allPosts.map(p => p.title.toLowerCase());
-  const allExistingHooks  = allPosts.map(p => (p.description ?? "").split("\n")[0].toLowerCase());
+  const allExistingTitles       = allPosts.map(p => p.title.toLowerCase());
+  const allExistingHooks        = allPosts.map(p => (p.description ?? "").split("\n")[0].toLowerCase());
+  const allExistingDescriptions = allPosts.map(p => (p.description ?? "").toLowerCase());
   const recentTitles = allPosts.map(p => {
-    const hook = (p.description ?? "").split("\n")[0].slice(0, 80);
-    return `[${p.platform}] ${p.title} | hook: "${hook}" (${p.date} · ${p.status})`;
+    const desc = (p.description ?? "").replace(/#\S+/g, "").trim().slice(0, 160);
+    return `[${p.platform}] ${p.title} | caption: "${desc}" (${p.date} · ${p.status})`;
   }).join("\n") || "None";
 
   const topicLine = topicHint ? `\nTOPIC HINT: The post should be about: "${topicHint}". Use this as the angle — don't ignore it.` : "";
@@ -260,7 +268,7 @@ Return a JSON array with EXACTLY 1 object using the same schema as always.`;
     return NextResponse.json({ error: `Expected 1 post, got ${posts.length}` }, { status: 500 });
   }
 
-  // Duplicate check
+  // Duplicate check — title, hook, and full description
   const post = posts[0];
   const generatedHook = (post.description ?? "").split("\n")[0];
   for (const existing of allExistingTitles) {
@@ -275,6 +283,14 @@ Return a JSON array with EXACTLY 1 object using the same schema as always.`;
     if (existingHook.length > 10 && textTooSimilar(generatedHook, existingHook, 0.6)) {
       return NextResponse.json(
         { error: `Caption hook is too similar to an existing post. Try again.` },
+        { status: 409 }
+      );
+    }
+  }
+  for (const existingDesc of allExistingDescriptions) {
+    if (existingDesc.length > 40 && descriptionTooSimilar(post.description ?? "", existingDesc)) {
+      return NextResponse.json(
+        { error: `Caption body is too similar to an existing post. Try again with a different angle.` },
         { status: 409 }
       );
     }
@@ -344,11 +360,12 @@ async function runGeneration(userId: string, opts: { mode?: string; platform?: s
     .from("posts")
     .select("title, description, platform, date, status")
     .order("created_at", { ascending: false });
-  const allExistingTitles = recentPosts?.map(p => p.title.toLowerCase()) ?? [];
-  const allExistingHooks  = recentPosts?.map(p => (p.description ?? "").split("\n")[0].toLowerCase()) ?? [];
+  const allExistingTitles       = recentPosts?.map(p => p.title.toLowerCase()) ?? [];
+  const allExistingHooks        = recentPosts?.map(p => (p.description ?? "").split("\n")[0].toLowerCase()) ?? [];
+  const allExistingDescriptions = recentPosts?.map(p => (p.description ?? "").toLowerCase()) ?? [];
   const recentTitles = recentPosts?.map(p => {
-    const hook = (p.description ?? "").split("\n")[0].slice(0, 80);
-    return `[${p.platform}] ${p.title} | hook: "${hook}" (${p.date} · ${p.status})`;
+    const desc = (p.description ?? "").replace(/#\S+/g, "").trim().slice(0, 160);
+    return `[${p.platform}] ${p.title} | caption: "${desc}" (${p.date} · ${p.status})`;
   }).join("\n") ?? "None";
 
   const isoWeek = Math.ceil((new Date(dates.mon).getDate() + new Date(new Date(dates.mon).getFullYear(), 0, 1).getDay()) / 7);
@@ -452,7 +469,7 @@ Return a JSON array of exactly 3 objects.`;
   if (igPosts.length !== 5) return NextResponse.json({ error: `Expected 5 IG posts, got ${igPosts.length}` }, { status: 500 });
   if (liPosts.length !== 3) return NextResponse.json({ error: `Expected 3 LinkedIn posts, got ${liPosts.length}` }, { status: 500 });
 
-  // Post-generation duplicate check: reject if any generated title or caption hook is too similar to an existing one
+  // Post-generation duplicate check: title, hook, and full description body
   const allGenerated = [...igPosts, ...liPosts];
   const duplicates: string[] = [];
   for (const post of allGenerated) {
@@ -468,6 +485,13 @@ Return a JSON array of exactly 3 objects.`;
     for (const existingHook of allExistingHooks) {
       if (existingHook.length > 10 && textTooSimilar(generatedHook, existingHook, 0.6)) {
         duplicates.push(`Caption hook "${generatedHook.slice(0, 60)}…" is too similar to an existing post's hook`);
+        break;
+      }
+    }
+
+    for (const existingDesc of allExistingDescriptions) {
+      if (existingDesc.length > 40 && descriptionTooSimilar(post.description ?? "", existingDesc)) {
+        duplicates.push(`Caption body for "${post.title}" is too similar to an existing post's caption`);
         break;
       }
     }
