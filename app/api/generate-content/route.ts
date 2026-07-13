@@ -192,14 +192,13 @@ function normalizeTitle(t: string): string {
   return t.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\b(a|an|the|your|our|why|how|what|when|is|are|to|in|on|of|for|and|with|that|this)\b/g, "").replace(/\s+/g, " ").trim();
 }
 
-// Returns true if two titles share enough core words to be considered duplicates
-function titlesTooSimilar(a: string, b: string): boolean {
-  const na = normalizeTitle(a).split(" ").filter(Boolean);
-  const nb = normalizeTitle(b).split(" ").filter(Boolean);
+// Returns true if two strings share enough core words to be considered duplicates
+function textTooSimilar(a: string, b: string, threshold = 0.55): boolean {
+  const na = normalizeTitle(a).split(" ").filter(w => w.length > 3);
+  const nb = normalizeTitle(b).split(" ").filter(w => w.length > 3);
   if (na.length === 0 || nb.length === 0) return false;
-  const shared = na.filter(w => w.length > 3 && nb.includes(w));
-  const similarity = shared.length / Math.min(na.length, nb.length);
-  return similarity >= 0.55; // 55% keyword overlap = too similar
+  const shared = na.filter(w => nb.includes(w));
+  return shared.length / Math.min(na.length, nb.length) >= threshold;
 }
 
 async function runGeneration(userId: string): Promise<Response> {
@@ -227,13 +226,17 @@ async function runGeneration(userId: string): Promise<Response> {
     );
   }
 
-  // Fetch ALL existing post titles for deduplication — no limit
+  // Fetch ALL existing posts (title + first line of description) for deduplication — no limit
   const { data: recentPosts } = await supabaseAdmin
     .from("posts")
-    .select("title, platform, date, status")
+    .select("title, description, platform, date, status")
     .order("created_at", { ascending: false });
   const allExistingTitles = recentPosts?.map(p => p.title.toLowerCase()) ?? [];
-  const recentTitles = recentPosts?.map(p => `[${p.platform}] ${p.title} (${p.date} · ${p.status})`).join("\n") ?? "None";
+  const allExistingHooks  = recentPosts?.map(p => (p.description ?? "").split("\n")[0].toLowerCase()) ?? [];
+  const recentTitles = recentPosts?.map(p => {
+    const hook = (p.description ?? "").split("\n")[0].slice(0, 80);
+    return `[${p.platform}] ${p.title} | hook: "${hook}" (${p.date} · ${p.status})`;
+  }).join("\n") ?? "None";
 
   const isoWeek = Math.ceil((new Date(dates.mon).getDate() + new Date(new Date(dates.mon).getFullYear(), 0, 1).getDay()) / 7);
   const includeReel = isoWeek % 2 === 1;
@@ -253,7 +256,7 @@ ${IG_HASHTAG_POOL}
 EXISTING POSTS — ALL STATUSES (Drafting, Review, Scheduled, Posted):
 ${recentTitles}
 
-DEDUPLICATION RULE (hard): Every title and topic above is off-limits — including similar angles, the same subject reframed, and close variations on the same theme. Do not post about reply rates if a reply-rate post already exists. Do not post about deliverability if a deliverability post already exists. The test: could someone read both posts and think "this is basically the same topic"? If yes, pick something else entirely.
+DEDUPLICATION RULE (hard): Every title, hook, and topic above is off-limits — including similar angles, the same subject reframed, and close variations on the same theme. Do not post about reply rates if a reply-rate post already exists. Do not post about deliverability if a deliverability post already exists. The opening hook line of each caption must also be distinct — do not start a caption with the same premise or framing as any existing hook shown above. The test: could someone read both posts and think "this is basically the same topic" or "this hook makes the same point"? If yes, pick something else entirely.
 
 GENERIC REPLY RULE: For every post, include 3 Q&A reply pairs in the notes field. Each pair should anticipate a real comment or question someone might leave on that specific post and provide a warm, genuine response that adds value — not a bot reply, not a sales pitch. The replies should feel like a real person continuing the conversation. Base each Q on a likely reaction to that post's specific content. Format exactly as: Q1: [comment/question] — A: [reply]. Do this for Q1 through Q3. Keep each reply one or two sentences. Also add at the end of notes: "Reminder: share this post to your Stories after posting to boost reach."
 
@@ -286,7 +289,7 @@ ${CLIENT_TESTIMONIALS}
 EXISTING POSTS — ALL STATUSES (Drafting, Review, Scheduled, Posted):
 ${recentTitles}
 
-DEDUPLICATION RULE (hard): Every title and topic above is off-limits — including similar angles, the same subject reframed, and close variations on the same theme. Do not post about reply rates if a reply-rate post already exists. Do not post about deliverability if a deliverability post already exists. The test: could someone read both posts and think "this is basically the same topic"? If yes, pick something else entirely.
+DEDUPLICATION RULE (hard): Every title, hook, and topic above is off-limits — including similar angles, the same subject reframed, and close variations on the same theme. Do not post about reply rates if a reply-rate post already exists. Do not post about deliverability if a deliverability post already exists. The opening hook line of each caption must also be distinct — do not start a caption with the same premise or framing as any existing hook shown above. The test: could someone read both posts and think "this is basically the same topic" or "this hook makes the same point"? If yes, pick something else entirely.
 
 GENERIC REPLY RULE: For every post, include 3 Q&A reply pairs in the notes field. Each pair should anticipate a real comment or question someone might leave on that specific post and provide a warm, genuine response that adds value — not a bot reply, not a sales pitch. The replies should feel like a real person continuing the conversation. Base each Q on a likely reaction to that post's specific content. Format exactly as: Q1: [comment/question] — A: [reply]. Do this for Q1 through Q3. Keep each reply one or two sentences. Also include a subtle, non-obvious CTA idea in the notes (e.g., "Happy to share the full breakdown if useful" or "Drop a comment and we can dig into it together").
 
@@ -336,13 +339,22 @@ Return a JSON array of exactly 3 objects.`;
   if (igPosts.length !== 5) return NextResponse.json({ error: `Expected 5 IG posts, got ${igPosts.length}` }, { status: 500 });
   if (liPosts.length !== 3) return NextResponse.json({ error: `Expected 3 LinkedIn posts, got ${liPosts.length}` }, { status: 500 });
 
-  // Post-generation duplicate check: reject if any generated title is too similar to an existing one
+  // Post-generation duplicate check: reject if any generated title or caption hook is too similar to an existing one
   const allGenerated = [...igPosts, ...liPosts];
   const duplicates: string[] = [];
   for (const post of allGenerated) {
+    const generatedHook = (post.description ?? "").split("\n")[0];
+
     for (const existing of allExistingTitles) {
-      if (titlesTooSimilar(post.title, existing)) {
-        duplicates.push(`"${post.title}" is too similar to existing: "${existing}"`);
+      if (textTooSimilar(post.title, existing)) {
+        duplicates.push(`Title "${post.title}" is too similar to existing: "${existing}"`);
+        break;
+      }
+    }
+
+    for (const existingHook of allExistingHooks) {
+      if (existingHook.length > 10 && textTooSimilar(generatedHook, existingHook, 0.6)) {
+        duplicates.push(`Caption hook "${generatedHook.slice(0, 60)}…" is too similar to an existing post's hook`);
         break;
       }
     }
