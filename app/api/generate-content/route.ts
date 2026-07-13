@@ -187,6 +187,21 @@ function parseJson(raw: string): PostDraft[] {
   return JSON.parse(cleaned);
 }
 
+// Normalize a title to key words for fuzzy comparison
+function normalizeTitle(t: string): string {
+  return t.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\b(a|an|the|your|our|why|how|what|when|is|are|to|in|on|of|for|and|with|that|this)\b/g, "").replace(/\s+/g, " ").trim();
+}
+
+// Returns true if two titles share enough core words to be considered duplicates
+function titlesTooSimilar(a: string, b: string): boolean {
+  const na = normalizeTitle(a).split(" ").filter(Boolean);
+  const nb = normalizeTitle(b).split(" ").filter(Boolean);
+  if (na.length === 0 || nb.length === 0) return false;
+  const shared = na.filter(w => w.length > 3 && nb.includes(w));
+  const similarity = shared.length / Math.min(na.length, nb.length);
+  return similarity >= 0.55; // 55% keyword overlap = too similar
+}
+
 async function runGeneration(userId: string): Promise<Response> {
   if (!ANTHROPIC_KEY) return NextResponse.json({ error: "ANTHROPIC_API_KEY not set" }, { status: 500 });
   if (!SERVICE_KEY)   return NextResponse.json({ error: "SUPABASE_SERVICE_ROLE_KEY not set" }, { status: 500 });
@@ -212,12 +227,12 @@ async function runGeneration(userId: string): Promise<Response> {
     );
   }
 
-  // Fetch last 60 post titles across all statuses for real topic deduplication
+  // Fetch ALL existing post titles for deduplication — no limit
   const { data: recentPosts } = await supabaseAdmin
     .from("posts")
     .select("title, platform, date, status")
-    .order("created_at", { ascending: false })
-    .limit(60);
+    .order("created_at", { ascending: false });
+  const allExistingTitles = recentPosts?.map(p => p.title.toLowerCase()) ?? [];
   const recentTitles = recentPosts?.map(p => `[${p.platform}] ${p.title} (${p.date} · ${p.status})`).join("\n") ?? "None";
 
   const isoWeek = Math.ceil((new Date(dates.mon).getDate() + new Date(new Date(dates.mon).getFullYear(), 0, 1).getDay()) / 7);
@@ -235,8 +250,10 @@ Thursday IG: ${includeReel ? "Reel (45-60s — include beat-by-beat script in no
 
 ${IG_HASHTAG_POOL}
 
-RECENTLY PUBLISHED POSTS (do not duplicate any of these topics or angles):
+EXISTING POSTS — ALL STATUSES (Drafting, Review, Scheduled, Posted):
 ${recentTitles}
+
+DEDUPLICATION RULE (hard): Every title and topic above is off-limits — including similar angles, the same subject reframed, and close variations on the same theme. Do not post about reply rates if a reply-rate post already exists. Do not post about deliverability if a deliverability post already exists. The test: could someone read both posts and think "this is basically the same topic"? If yes, pick something else entirely.
 
 GENERIC REPLY RULE: For every post, include 3 Q&A reply pairs in the notes field. Each pair should anticipate a real comment or question someone might leave on that specific post and provide a warm, genuine response that adds value — not a bot reply, not a sales pitch. The replies should feel like a real person continuing the conversation. Base each Q on a likely reaction to that post's specific content. Format exactly as: Q1: [comment/question] — A: [reply]. Do this for Q1 through Q3. Keep each reply one or two sentences. Also add at the end of notes: "Reminder: share this post to your Stories after posting to boost reach."
 
@@ -266,8 +283,10 @@ ${IG_HASHTAG_POOL}
 
 ${CLIENT_TESTIMONIALS}
 
-RECENTLY PUBLISHED POSTS (do not duplicate any of these topics or angles):
+EXISTING POSTS — ALL STATUSES (Drafting, Review, Scheduled, Posted):
 ${recentTitles}
+
+DEDUPLICATION RULE (hard): Every title and topic above is off-limits — including similar angles, the same subject reframed, and close variations on the same theme. Do not post about reply rates if a reply-rate post already exists. Do not post about deliverability if a deliverability post already exists. The test: could someone read both posts and think "this is basically the same topic"? If yes, pick something else entirely.
 
 GENERIC REPLY RULE: For every post, include 3 Q&A reply pairs in the notes field. Each pair should anticipate a real comment or question someone might leave on that specific post and provide a warm, genuine response that adds value — not a bot reply, not a sales pitch. The replies should feel like a real person continuing the conversation. Base each Q on a likely reaction to that post's specific content. Format exactly as: Q1: [comment/question] — A: [reply]. Do this for Q1 through Q3. Keep each reply one or two sentences. Also include a subtle, non-obvious CTA idea in the notes (e.g., "Happy to share the full breakdown if useful" or "Drop a comment and we can dig into it together").
 
@@ -316,6 +335,24 @@ Return a JSON array of exactly 3 objects.`;
 
   if (igPosts.length !== 5) return NextResponse.json({ error: `Expected 5 IG posts, got ${igPosts.length}` }, { status: 500 });
   if (liPosts.length !== 3) return NextResponse.json({ error: `Expected 3 LinkedIn posts, got ${liPosts.length}` }, { status: 500 });
+
+  // Post-generation duplicate check: reject if any generated title is too similar to an existing one
+  const allGenerated = [...igPosts, ...liPosts];
+  const duplicates: string[] = [];
+  for (const post of allGenerated) {
+    for (const existing of allExistingTitles) {
+      if (titlesTooSimilar(post.title, existing)) {
+        duplicates.push(`"${post.title}" is too similar to existing: "${existing}"`);
+        break;
+      }
+    }
+  }
+  if (duplicates.length > 0) {
+    return NextResponse.json(
+      { error: `Generated content too similar to existing posts. Try again — Claude will pick different angles.\n\nConflicts:\n${duplicates.join("\n")}` },
+      { status: 409 }
+    );
+  }
 
   const allPosts = [...igPosts, ...liPosts];
 
