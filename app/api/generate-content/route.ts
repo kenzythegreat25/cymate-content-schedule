@@ -30,32 +30,49 @@ function getWeekDates(): Record<string, string> {
 }
 
 async function callClaude(prompt: string): Promise<string> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 55000); // 55s per call
-  try {
-    const res = await fetch(ANTHROPIC_URL, {
-      method: "POST",
-      headers: {
-        "x-api-key": ANTHROPIC_KEY,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 5000,
-        messages: [{ role: "user", content: prompt }],
-      }),
-      signal: controller.signal,
-    });
-    if (!res.ok) {
-      const err = await res.text().catch(() => res.status.toString());
-      throw new Error(`Claude API ${res.status}: ${err}`);
+  const MAX_RETRIES = 3;
+  const RETRY_DELAYS = [4000, 10000, 20000]; // ms between retries on 529
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 55000);
+    try {
+      const res = await fetch(ANTHROPIC_URL, {
+        method: "POST",
+        headers: {
+          "x-api-key": ANTHROPIC_KEY,
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 5000,
+          messages: [{ role: "user", content: prompt }],
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+
+      if (res.status === 529 && attempt < MAX_RETRIES) {
+        await new Promise(r => setTimeout(r, RETRY_DELAYS[attempt]));
+        continue;
+      }
+      if (!res.ok) {
+        const err = await res.text().catch(() => res.status.toString());
+        throw new Error(`Claude API ${res.status}: ${err}`);
+      }
+      const data = await res.json() as { content: { text: string }[] };
+      return data.content[0].text;
+    } catch (e) {
+      clearTimeout(timer);
+      if (attempt < MAX_RETRIES && (e as Error).name !== "AbortError") {
+        await new Promise(r => setTimeout(r, RETRY_DELAYS[attempt]));
+        continue;
+      }
+      throw e;
     }
-    const data = await res.json() as { content: { text: string }[] };
-    return data.content[0].text;
-  } finally {
-    clearTimeout(timer);
   }
+  throw new Error("Claude API failed after retries");
 }
 
 const IG_HASHTAG_POOL = `
