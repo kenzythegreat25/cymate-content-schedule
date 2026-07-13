@@ -177,13 +177,31 @@ async function runGeneration(userId: string): Promise<Response> {
   const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_KEY);
   const dates = getWeekDates();
 
-  // Fetch last 30 post titles to give Claude real deduplication context
+  // Block generation if posts already exist for any of this week's dates
+  const weekDates = Object.values(dates);
+  const { data: existingWeekPosts } = await supabaseAdmin
+    .from("posts")
+    .select("date, title, status")
+    .in("date", weekDates)
+    .neq("status", "Archived");
+
+  if (existingWeekPosts && existingWeekPosts.length > 0) {
+    const summary = existingWeekPosts
+      .map(p => `${p.date} — "${p.title}" (${p.status})`)
+      .join(", ");
+    return NextResponse.json(
+      { error: `Posts for this week already exist (${existingWeekPosts.length} found): ${summary}. Archive or delete them before generating new content.` },
+      { status: 409 }
+    );
+  }
+
+  // Fetch last 60 post titles across all statuses for real topic deduplication
   const { data: recentPosts } = await supabaseAdmin
     .from("posts")
-    .select("title, platform, date")
+    .select("title, platform, date, status")
     .order("created_at", { ascending: false })
-    .limit(30);
-  const recentTitles = recentPosts?.map(p => `[${p.platform}] ${p.title} (${p.date})`).join("\n") ?? "None";
+    .limit(60);
+  const recentTitles = recentPosts?.map(p => `[${p.platform}] ${p.title} (${p.date} · ${p.status})`).join("\n") ?? "None";
 
   const isoWeek = Math.ceil((new Date(dates.mon).getDate() + new Date(new Date(dates.mon).getFullYear(), 0, 1).getDay()) / 7);
   const includeReel = isoWeek % 2 === 1;
