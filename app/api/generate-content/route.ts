@@ -183,8 +183,16 @@ type PostDraft = {
 };
 
 function parseJson(raw: string): PostDraft[] {
-  const cleaned = raw.replace(/^```[a-z]*\n?/i, "").replace(/```$/i, "").trim();
-  return JSON.parse(cleaned);
+  // Find the first '[' and walk to its matching ']', ignoring any text before/after
+  const start = raw.indexOf("[");
+  if (start === -1) throw new Error("No JSON array found in Claude response");
+  let depth = 0, end = -1;
+  for (let i = start; i < raw.length; i++) {
+    if (raw[i] === "[") depth++;
+    else if (raw[i] === "]") { if (--depth === 0) { end = i; break; } }
+  }
+  if (end === -1) throw new Error("Unclosed JSON array in Claude response");
+  return JSON.parse(raw.slice(start, end + 1));
 }
 
 // Normalize a title to key words for fuzzy comparison
