@@ -50,6 +50,7 @@ const TASK_CAT_META: Record<TaskCategory, { dot: string; bg: string; text: strin
 type Task = {
   id: string;
   title: string;
+  description: string;
   category: TaskCategory;
   deadline: string; // YYYY-MM-DD or ""
   done: boolean;
@@ -2622,6 +2623,7 @@ function TasksView() {
   const [tab, setTab] = useState<"today" | "week" | "completed">("today");
   const [adding, setAdding] = useState(false);
   const [newTitle, setNewTitle] = useState("");
+  const [newDesc, setNewDesc] = useState("");
   const [newCat, setNewCat] = useState<TaskCategory>("Cold Email");
   const [newDeadline, setNewDeadline] = useState("");
   const titleRef = useRef<HTMLInputElement>(null);
@@ -2632,9 +2634,9 @@ function TasksView() {
 
   const addTask = () => {
     if (!newTitle.trim()) return;
-    const t: Task = { id: crypto.randomUUID(), title: newTitle.trim(), category: newCat, deadline: newDeadline, done: false, createdAt: new Date().toISOString() };
+    const t: Task = { id: crypto.randomUUID(), title: newTitle.trim(), description: newDesc.trim(), category: newCat, deadline: newDeadline, done: false, createdAt: new Date().toISOString() };
     persist([...tasks, t]);
-    setNewTitle(""); setNewDeadline(""); setAdding(false);
+    setNewTitle(""); setNewDesc(""); setNewDeadline(""); setAdding(false);
   };
 
   const toggle = (id: string) => persist(tasks.map(t => t.id === id ? { ...t, done: !t.done } : t));
@@ -2707,9 +2709,16 @@ function TasksView() {
             ref={titleRef}
             value={newTitle}
             onChange={e => setNewTitle(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter") addTask(); if (e.key === "Escape") setAdding(false); }}
+            onKeyDown={e => { if (e.key === "Escape") setAdding(false); }}
             placeholder="Task title…"
             className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-[13px] text-ink placeholder:text-muted outline-none focus:border-accent"
+          />
+          <textarea
+            value={newDesc}
+            onChange={e => setNewDesc(e.target.value)}
+            placeholder="Description — what needs to be done? (optional)"
+            rows={3}
+            className="w-full resize-none rounded-lg border border-line bg-surface-2 px-3 py-2 text-[13px] text-ink placeholder:text-muted outline-none focus:border-accent leading-relaxed"
           />
           <div className="flex gap-2">
             <select
@@ -2773,10 +2782,17 @@ function TasksView() {
                           {t.done && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
                         </button>
 
-                        {/* Title */}
-                        <span className={`flex-1 text-[13px] leading-snug ${t.done ? "line-through text-muted" : overdue ? "text-red-700 dark:text-red-400 font-medium" : "text-ink"}`}>
-                          {t.title}
-                        </span>
+                        {/* Title + description */}
+                        <div className="flex-1 min-w-0">
+                          <span className={`text-[13px] leading-snug ${t.done ? "line-through text-muted" : overdue ? "text-red-700 dark:text-red-400 font-medium" : "text-ink"}`}>
+                            {t.title}
+                          </span>
+                          {t.description && (
+                            <p className={`mt-0.5 text-[11px] leading-relaxed whitespace-pre-wrap ${t.done ? "text-muted line-through" : "text-ink-soft"}`}>
+                              {t.description}
+                            </p>
+                          )}
+                        </div>
 
                         {/* Deadline + overdue badge */}
                         <div className="flex items-center gap-1.5 shrink-0">
