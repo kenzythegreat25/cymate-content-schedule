@@ -2619,7 +2619,7 @@ function TaskIcon() {
 
 function TasksView() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [tab, setTab] = useState<"today" | "week">("today");
+  const [tab, setTab] = useState<"today" | "week" | "completed">("today");
   const [adding, setAdding] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newCat, setNewCat] = useState<TaskCategory>("Cold Email");
@@ -2667,9 +2667,11 @@ function TasksView() {
   });
 
   const grouped = TASK_CATEGORIES.reduce<Record<TaskCategory, Task[]>>((acc, cat) => {
-    acc[cat] = sorted.filter(t => t.category === cat);
+    acc[cat] = sorted.filter(t => t.category === cat && !t.done);
     return acc;
   }, {} as Record<TaskCategory, Task[]>);
+
+  const completedTasks = [...tasks].filter(t => t.done).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   return (
     <div className="flex h-full flex-col px-6 py-6">
@@ -2690,10 +2692,10 @@ function TasksView() {
 
       {/* Tabs */}
       <div className="mb-4 flex gap-1 border-b border-line pb-0">
-        {(["today","week"] as const).map(t => (
+        {(["today","week","completed"] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-3 py-1.5 text-[12px] font-medium transition border-b-2 -mb-px ${tab === t ? "border-accent text-ink" : "border-transparent text-muted hover:text-ink-soft"}`}>
-            {t === "today" ? "All tasks" : "This week"}
+            {t === "today" ? "All tasks" : t === "week" ? "This week" : `Completed${completedTasks.length ? ` · ${completedTasks.length}` : ""}`}
           </button>
         ))}
       </div>
@@ -2804,6 +2806,43 @@ function TasksView() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Completed view */}
+      {tab === "completed" && (
+        <div className="flex-1 overflow-y-auto">
+          {completedTasks.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="mb-3 text-3xl">○</div>
+              <p className="text-sm font-medium text-ink-soft">Nothing completed yet</p>
+              <p className="text-[11px] text-muted mt-1">Finished tasks will appear here</p>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {completedTasks.map(t => {
+                const m = TASK_CAT_META[t.category];
+                return (
+                  <div key={t.id} className="group flex items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2.5 opacity-60 transition hover:opacity-80">
+                    <button onClick={() => toggle(t.id)}
+                      className="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-accent bg-accent transition"
+                    >
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </button>
+                    <span className="flex-1 text-[13px] line-through text-muted">{t.title}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ${m.bg} ${m.text} ${m.ring}`}>{t.category}</span>
+                    {t.deadline && <span className="text-[11px] text-muted">{t.deadline}</span>}
+                    <button onClick={() => remove(t.id)}
+                      className="hidden rounded p-0.5 text-muted hover:bg-red-50 hover:text-red-500 group-hover:flex dark:hover:bg-red-950/40"
+                      aria-label="Delete task"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
