@@ -35,7 +35,35 @@ import {
 import { supabaseBrowser } from "../../lib/supabase/client";
 import { useTheme, type Theme } from "../../lib/theme";
 
-type View = "board" | "calendar" | "list";
+type View = "board" | "calendar" | "list" | "tasks";
+
+/* ─── Task types (localStorage-only, never touches content DB) ─── */
+type TaskCategory = "Cold Email" | "Content" | "Client" | "Admin";
+const TASK_CATEGORIES: TaskCategory[] = ["Cold Email", "Content", "Client", "Admin"];
+const TASK_CAT_META: Record<TaskCategory, { dot: string; bg: string; text: string; ring: string }> = {
+  "Cold Email": { dot: "bg-blue-500",   bg: "bg-blue-50 dark:bg-blue-950/40",   text: "text-blue-700 dark:text-blue-300",   ring: "ring-blue-200 dark:ring-blue-800" },
+  "Content":    { dot: "bg-violet-500", bg: "bg-violet-50 dark:bg-violet-950/40", text: "text-violet-700 dark:text-violet-300", ring: "ring-violet-200 dark:ring-violet-800" },
+  "Client":     { dot: "bg-emerald-500",bg: "bg-emerald-50 dark:bg-emerald-950/40",text: "text-emerald-700 dark:text-emerald-300",ring: "ring-emerald-200 dark:ring-emerald-800" },
+  "Admin":      { dot: "bg-slate-400",  bg: "bg-slate-50 dark:bg-slate-800/40",  text: "text-slate-600 dark:text-slate-300",  ring: "ring-slate-200 dark:ring-slate-700" },
+};
+type Task = {
+  id: string;
+  title: string;
+  category: TaskCategory;
+  deadline: string; // YYYY-MM-DD or ""
+  done: boolean;
+  createdAt: string;
+};
+const TASKS_KEY = "cymate-tasks-v1";
+function loadTasks(): Task[] {
+  if (typeof window === "undefined") return [];
+  try { return JSON.parse(localStorage.getItem(TASKS_KEY) ?? "[]"); } catch { return []; }
+}
+function saveTasks(tasks: Task[]) {
+  localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
+}
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+function isOverdue(t: Task) { return !t.done && !!t.deadline && t.deadline < todayStr(); }
 
 export default function Home() {
   const router = useRouter();
@@ -247,7 +275,9 @@ export default function Home() {
         />
         <PageHeader stats={stats} />
 
-        {loading ? (
+        {view === "tasks" ? (
+          <TasksView />
+        ) : loading ? (
           <div className="flex flex-1 items-center justify-center text-sm text-muted">Loading your workspace…</div>
         ) : items.length === 0 ? (
           <EmptyState onSeed={seed} onAdd={() => addRow()} />
@@ -364,6 +394,12 @@ function Sidebar({
           onClick={() => setView("list")}
           icon={<ListIcon />}
           label="List"
+        />
+        <SidebarItem
+          active={view === "tasks"}
+          onClick={() => setView("tasks")}
+          icon={<TaskIcon />}
+          label="Tasks"
         />
       </SidebarSection>
 
@@ -2572,6 +2608,244 @@ function PlusIcon({ size = 16 }: { size?: number }) {
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
   );
 }
+function TaskIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="6" height="6" rx="1"/><path d="M3 17h6M13 7h8M13 12h8M13 17h5"/></svg>
+  );
+}
+
+/* ─────────────────────── Tasks view ─────────────────────── */
+
+function TasksView() {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tab, setTab] = useState<"today" | "week">("today");
+  const [adding, setAdding] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newCat, setNewCat] = useState<TaskCategory>("Cold Email");
+  const [newDeadline, setNewDeadline] = useState("");
+  const titleRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { setTasks(loadTasks()); }, []);
+
+  const persist = (next: Task[]) => { setTasks(next); saveTasks(next); };
+
+  const addTask = () => {
+    if (!newTitle.trim()) return;
+    const t: Task = { id: crypto.randomUUID(), title: newTitle.trim(), category: newCat, deadline: newDeadline, done: false, createdAt: new Date().toISOString() };
+    persist([...tasks, t]);
+    setNewTitle(""); setNewDeadline(""); setAdding(false);
+  };
+
+  const toggle = (id: string) => persist(tasks.map(t => t.id === id ? { ...t, done: !t.done } : t));
+  const remove = (id: string) => persist(tasks.filter(t => t.id !== id));
+  const updateDeadline = (id: string, d: string) => persist(tasks.map(t => t.id === id ? { ...t, deadline: d } : t));
+
+  const today = todayStr();
+  const done = tasks.filter(t => t.done).length;
+
+  // Week grid helpers
+  const weekDays = (() => {
+    const d = new Date();
+    const dow = d.getDay(); // 0=Sun
+    const mon = new Date(d); mon.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
+    return Array.from({ length: 5 }, (_, i) => {
+      const day = new Date(mon); day.setDate(mon.getDate() + i);
+      return { label: ["Mon","Tue","Wed","Thu","Fri"][i], date: day.toISOString().slice(0, 10) };
+    });
+  })();
+
+  const tasksByDay = (date: string) => tasks.filter(t => t.deadline === date);
+
+  // Today view: overdue first, then by deadline, then no deadline
+  const sorted = [...tasks].sort((a, b) => {
+    const ao = isOverdue(a), bo = isOverdue(b);
+    if (ao !== bo) return ao ? -1 : 1;
+    if (!a.deadline && b.deadline) return 1;
+    if (a.deadline && !b.deadline) return -1;
+    return a.deadline.localeCompare(b.deadline);
+  });
+
+  const grouped = TASK_CATEGORIES.reduce<Record<TaskCategory, Task[]>>((acc, cat) => {
+    acc[cat] = sorted.filter(t => t.category === cat);
+    return acc;
+  }, {} as Record<TaskCategory, Task[]>);
+
+  return (
+    <div className="flex h-full flex-col px-6 py-6">
+      {/* Header */}
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight text-ink">Tasks</h2>
+          <p className="text-[11px] text-muted">{done} of {tasks.length} done</p>
+        </div>
+        <button
+          onClick={() => { setAdding(true); setTimeout(() => titleRef.current?.focus(), 50); }}
+          className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-[12px] font-medium text-ink-soft hover:bg-surface-2 hover:text-ink transition"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          Add task
+        </button>
+      </div>
+
+      {/* Tabs */}
+      <div className="mb-4 flex gap-1 border-b border-line pb-0">
+        {(["today","week"] as const).map(t => (
+          <button key={t} onClick={() => setTab(t)}
+            className={`px-3 py-1.5 text-[12px] font-medium transition border-b-2 -mb-px ${tab === t ? "border-accent text-ink" : "border-transparent text-muted hover:text-ink-soft"}`}>
+            {t === "today" ? "All tasks" : "This week"}
+          </button>
+        ))}
+      </div>
+
+      {/* Add task form */}
+      {adding && (
+        <div className="mb-4 flex flex-col gap-2 rounded-xl border border-line bg-surface p-3 shadow-sm">
+          <input
+            ref={titleRef}
+            value={newTitle}
+            onChange={e => setNewTitle(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") addTask(); if (e.key === "Escape") setAdding(false); }}
+            placeholder="Task title…"
+            className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-[13px] text-ink placeholder:text-muted outline-none focus:border-accent"
+          />
+          <div className="flex gap-2">
+            <select
+              value={newCat}
+              onChange={e => setNewCat(e.target.value as TaskCategory)}
+              className="flex-1 rounded-lg border border-line bg-surface-2 px-2 py-1.5 text-[12px] text-ink outline-none focus:border-accent"
+            >
+              {TASK_CATEGORIES.map(c => <option key={c}>{c}</option>)}
+            </select>
+            <input
+              type="date"
+              value={newDeadline}
+              onChange={e => setNewDeadline(e.target.value)}
+              className="flex-1 rounded-lg border border-line bg-surface-2 px-2 py-1.5 text-[12px] text-ink outline-none focus:border-accent"
+            />
+          </div>
+          <div className="flex gap-2">
+            <button onClick={addTask} className="flex-1 rounded-lg bg-accent py-1.5 text-[12px] font-semibold text-white hover:opacity-90 transition">Add</button>
+            <button onClick={() => setAdding(false)} className="flex-1 rounded-lg border border-line bg-surface py-1.5 text-[12px] text-ink-soft hover:bg-surface-2 transition">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {/* All tasks view */}
+      {tab === "today" && (
+        <div className="flex-1 overflow-y-auto space-y-6">
+          {tasks.length === 0 && !adding && (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="mb-3 text-3xl">✓</div>
+              <p className="text-sm font-medium text-ink-soft">No tasks yet</p>
+              <p className="text-[11px] text-muted mt-1">Add your first task above</p>
+            </div>
+          )}
+          {TASK_CATEGORIES.map(cat => {
+            const catTasks = grouped[cat];
+            if (catTasks.length === 0) return null;
+            const m = TASK_CAT_META[cat];
+            return (
+              <div key={cat}>
+                <div className="mb-2 flex items-center gap-2">
+                  <span className={`h-2 w-2 rounded-full ${m.dot}`} />
+                  <span className="text-[10px] font-semibold uppercase tracking-widest text-muted">{cat}</span>
+                  <span className="text-[10px] text-muted">{catTasks.filter(t=>!t.done).length} left</span>
+                </div>
+                <div className="space-y-1.5">
+                  {catTasks.map(t => {
+                    const overdue = isOverdue(t);
+                    return (
+                      <div key={t.id}
+                        className={`group flex items-start gap-3 rounded-xl border px-3 py-2.5 transition ${
+                          overdue ? "border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/30"
+                          : "border-line bg-surface hover:border-line-strong"
+                        }`}
+                      >
+                        {/* Checkbox */}
+                        <button onClick={() => toggle(t.id)}
+                          className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition ${
+                            t.done ? "border-accent bg-accent" : overdue ? "border-red-400" : "border-line-strong hover:border-accent"
+                          }`}
+                        >
+                          {t.done && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                        </button>
+
+                        {/* Title */}
+                        <span className={`flex-1 text-[13px] leading-snug ${t.done ? "line-through text-muted" : overdue ? "text-red-700 dark:text-red-400 font-medium" : "text-ink"}`}>
+                          {t.title}
+                        </span>
+
+                        {/* Deadline + overdue badge */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {overdue && !t.done && (
+                            <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-600 dark:bg-red-900/40 dark:text-red-400">Overdue</span>
+                          )}
+                          <input
+                            type="date"
+                            value={t.deadline}
+                            onChange={e => updateDeadline(t.id, e.target.value)}
+                            className={`rounded-md border px-1.5 py-0.5 text-[11px] outline-none focus:border-accent transition ${
+                              overdue ? "border-red-300 bg-red-50 text-red-600 dark:border-red-800 dark:bg-transparent dark:text-red-400"
+                              : "border-line bg-surface-2 text-muted"
+                            }`}
+                          />
+                          <button onClick={() => remove(t.id)}
+                            className="hidden rounded p-0.5 text-muted hover:bg-red-50 hover:text-red-500 group-hover:flex dark:hover:bg-red-950/40"
+                            aria-label="Delete task"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Weekly view */}
+      {tab === "week" && (
+        <div className="flex-1 overflow-x-auto">
+          <div className="grid min-w-[640px] grid-cols-5 gap-3">
+            {weekDays.map(({ label, date }) => {
+              const dayTasks = tasksByDay(date);
+              const isToday = date === today;
+              return (
+                <div key={date} className={`rounded-xl border ${isToday ? "border-accent/40 bg-accent/5" : "border-line bg-surface"}`}>
+                  <div className={`border-b px-3 py-2 ${isToday ? "border-accent/30" : "border-line"}`}>
+                    <div className={`text-[10px] font-semibold uppercase tracking-widest ${isToday ? "text-accent" : "text-muted"}`}>{label}</div>
+                    <div className={`text-[11px] ${isToday ? "font-semibold text-accent" : "text-muted"}`}>
+                      {new Date(date + "T12:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                    </div>
+                  </div>
+                  <div className="space-y-1.5 p-2">
+                    {dayTasks.length === 0 && (
+                      <div className="py-3 text-center text-[10px] text-muted">No tasks</div>
+                    )}
+                    {dayTasks.map(t => {
+                      const m = TASK_CAT_META[t.category];
+                      return (
+                        <button key={t.id} onClick={() => toggle(t.id)}
+                          className={`w-full rounded-lg px-2 py-1.5 text-left text-[11px] font-medium ring-1 transition ${m.bg} ${m.text} ${m.ring} ${t.done ? "opacity-40 line-through" : ""}`}
+                        >
+                          {t.title}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SearchIcon({ className = "" }: { className?: string }) {
   return (
     <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
