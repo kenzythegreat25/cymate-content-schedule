@@ -38,13 +38,14 @@ import { useTheme, type Theme } from "../../lib/theme";
 type View = "board" | "calendar" | "list" | "tasks";
 
 /* ─── Task types (localStorage-only, never touches content DB) ─── */
-type TaskCategory = "Cold Email" | "Content" | "Client" | "Admin";
-const TASK_CATEGORIES: TaskCategory[] = ["Cold Email", "Content", "Client", "Admin"];
+type TaskCategory = "Cold Email" | "Content" | "Client" | "Admin" | "Other";
+const TASK_CATEGORIES: TaskCategory[] = ["Cold Email", "Content", "Client", "Admin", "Other"];
 const TASK_CAT_META: Record<TaskCategory, { dot: string; bg: string; text: string; ring: string }> = {
   "Cold Email": { dot: "bg-blue-500",   bg: "bg-blue-50 dark:bg-blue-950/40",   text: "text-blue-700 dark:text-blue-300",   ring: "ring-blue-200 dark:ring-blue-800" },
   "Content":    { dot: "bg-violet-500", bg: "bg-violet-50 dark:bg-violet-950/40", text: "text-violet-700 dark:text-violet-300", ring: "ring-violet-200 dark:ring-violet-800" },
   "Client":     { dot: "bg-emerald-500",bg: "bg-emerald-50 dark:bg-emerald-950/40",text: "text-emerald-700 dark:text-emerald-300",ring: "ring-emerald-200 dark:ring-emerald-800" },
   "Admin":      { dot: "bg-slate-400",  bg: "bg-slate-50 dark:bg-slate-800/40",  text: "text-slate-600 dark:text-slate-300",  ring: "ring-slate-200 dark:ring-slate-700" },
+  "Other":      { dot: "bg-amber-400",  bg: "bg-amber-50 dark:bg-amber-950/40",  text: "text-amber-700 dark:text-amber-300",  ring: "ring-amber-200 dark:ring-amber-800" },
 };
 type Task = {
   id: string;
