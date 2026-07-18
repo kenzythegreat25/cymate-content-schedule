@@ -392,7 +392,13 @@ CONTENT STRATEGY — STRICTLY ENFORCED:
 - IG is for STRATEGY and WINS only. Every post must be educational, strategic, or results-oriented content directly related to Cymate's work, methodology, or GTM approach.
 - NEVER generate testimonials, client feedback posts, or case studies from clients on Instagram. Do not reference specific clients by name, do not quote client results, do not write posts framed as "a client told us..." or "one of our clients achieved...". These content types are off-limits on IG entirely.
 - Focus on: outbound frameworks, deliverability insights, cold email strategy, ICP definition, pipeline thinking, sequencing tactics, founder GTM lessons, or Cymate's own process/results shared as a brand.
-- Every caption MUST end with a clear, soft CTA on its own line. Use context to pick the right one — e.g. "Book a discovery call — link in bio." for service-oriented posts, "Learn more — link in bio." for educational posts, or "Follow for more — link in bio." when the post is a quick tip. The CTA should feel natural for that post's angle, not copy-pasted.
+- CAPTION STRUCTURE — this exact order, every single post, no exceptions:
+  1. Hook line (grabs attention immediately)
+  2. Body (educational/strategic content, 3-6 short paragraphs or punchy lines)
+  3. Engaging question (invites a reply — one sentence ending with "?")
+  4. CTA on its own line — pick based on post angle: "Book a discovery call — link in bio." / "Let's talk — link in bio." / "Learn more — link in bio." / "Follow for daily outbound tips." The CTA must ALWAYS appear here, after the question and BEFORE the hashtags. Never skip it. Never bury it.
+  5. Hashtags (5, on their own line)
+- The engaging question and CTA are BOTH required in every caption — the question drives comments, the CTA drives action. They are not interchangeable and neither replaces the other.
 
 Rules:
 - on_screen_text is always a short hook visible on the poster graphic.
