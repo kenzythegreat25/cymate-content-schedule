@@ -11,10 +11,15 @@ const SERVICE_KEY   = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 const SLACK_TOKEN   = process.env.SLACK_TOKEN ?? "";
 const WINS_CHANNEL  = "C07GM6BHVMG";
 
+type SlackMessage = {
+  text?: string;
+  ts?: string;
+  files?: Array<{ permalink?: string; url_private?: string; mimetype?: string }>;
+};
+
 async function fetchSlackWins(): Promise<string> {
   if (!SLACK_TOKEN) return "";
   try {
-    // Pull wins from April 1 2025 to now
     const oldest = Math.floor(new Date("2025-04-01T00:00:00Z").getTime() / 1000).toString();
     const res = await fetch(
       `https://slack.com/api/conversations.history?channel=${WINS_CHANNEL}&oldest=${oldest}&limit=100`,
@@ -23,23 +28,39 @@ async function fetchSlackWins(): Promise<string> {
     const data = await res.json();
     if (!data.ok) return "";
 
-    const wins: string[] = data.messages
-      .filter((m: { text?: string }) =>
+    const wins: string[] = (data.messages as SlackMessage[])
+      .filter((m) =>
         m.text &&
         !m.text.includes("has joined") &&
         !m.text.includes("has renamed") &&
         !m.text.includes("has left") &&
         m.text.length > 40
       )
-      .map((m: { text: string }) =>
-        m.text
+      .map((m) => {
+        const text = (m.text ?? "")
           .replace(/<@[A-Z0-9]+(\|[^>]+)?>/g, "a team member")
           .replace(/<https?:\/\/[^>]+>/g, "")
           .replace(/:[a-z_]+:/g, "")
           .replace(/\s{2,}/g, " ")
-          .trim()
-      )
-      .filter((t: string) => t.length > 30)
+          .trim();
+
+        // Build Slack permalink from channel + timestamp
+        const ts = m.ts ?? "";
+        const slackLink = ts
+          ? `https://cymate.slack.com/archives/${WINS_CHANNEL}/p${ts.replace(".", "")}`
+          : "";
+
+        // Collect any image file URLs attached to this message
+        const imageFiles = (m.files ?? [])
+          .filter((f) => f.mimetype?.startsWith("image/") && f.permalink)
+          .map((f) => f.permalink ?? "");
+
+        let entry = text;
+        if (slackLink) entry += ` [slack: ${slackLink}]`;
+        if (imageFiles.length > 0) entry += ` [images: ${imageFiles.join(", ")}]`;
+        return entry;
+      })
+      .filter((t) => t.length > 30)
       .slice(0, 25);
 
     return wins.length > 0 ? wins.join("\n") : "";
@@ -435,7 +456,12 @@ CONTENT STRATEGY — STRICTLY ENFORCED:
 - IG is for STRATEGY and WINS only. Every post must be educational, strategic, or results-oriented content directly related to Cymate's work, methodology, or GTM approach.
 - NEVER generate testimonials, client feedback posts, or case studies from clients on Instagram. Do not reference specific clients by name, do not quote client results, do not write posts framed as "a client told us..." or "one of our clients achieved...". These content types are off-limits on IG entirely.
 
-WINS POSTS (Monday + Wednesday): Draw inspiration from the RECENT WINS CONTEXT above. Turn a real win pattern into a punchy, credible post. STYLE GUIDE for wins posts — follow this exactly:
+WINS POSTS (Monday + Wednesday): Draw inspiration from the RECENT WINS CONTEXT above. Turn a real win pattern into a punchy, credible post. IMPORTANT: Each win entry in the context may include a [slack: URL] and/or [images: URL] tag. When you use a win as inspiration for a post, copy those URLs into the notes field exactly as-is, on their own line, formatted as:
+"Source: [slack URL]"
+"Images: [image URL(s)]"
+This lets the scheduler find the original Slack message and grab the photo to attach. If no slack/image URL is present for that win, skip those lines.
+
+STYLE GUIDE for wins posts — follow this exactly:
 - Hook = a specific result or metric in the first line, no fluff. Examples: "8-12 meetings booked every week for a client. No ads. No organic. Just cold email." / "New campaign launched. Meeting booked within 2 hours." / "One copy tweak. Two meetings in three days."
 - Body = short paragraphs of 1-3 sentences max. Break down the HOW — what system, infrastructure change, or process made it happen. Attribute results to process and methodology, never luck or individual talent.
 - Use specific numbers where possible (draw from wins context — anonymize client names but keep the numbers).
@@ -486,7 +512,12 @@ MONDAY (${dates.mon}): A strategy or educational post. Teach something — a con
 
 WEDNESDAY (${dates.wed}): A framework, process, or insight post. Share something actionable — a step-by-step approach, a mental model, or a lesson from running outbound campaigns. Make the reader feel like they're getting access to Cymate's internal playbook. 280-350 words.
 
-FRIDAY (${dates.fri}): A wins-inspired post. Draw from the RECENT WINS CONTEXT above. STYLE GUIDE — follow this exactly, modeled after top-performing outbound thought leadership posts:
+FRIDAY (${dates.fri}): A wins-inspired post. Draw from the RECENT WINS CONTEXT above. IMPORTANT: Each win entry may include a [slack: URL] and/or [images: URL] tag. When you use a win as the basis for this post, copy those URLs into the notes field exactly as-is:
+"Source: [slack URL]"
+"Images: [image URL(s)]"
+This lets the scheduler find the original Slack message and grab the photo to attach. If no slack/image URL is present, skip those lines.
+
+STYLE GUIDE — follow this exactly, modeled after top-performing outbound thought leadership posts:
 - Hook = a specific result or metric in the very first line. No preamble. Examples: "8-12 meetings booked every week. No ads. No organic. Just cold email." / "New campaign. Meeting booked in 2 hours." / "One copy change. Two meetings in three days."
 - Body = short paragraphs, 1-3 sentences max. Break down the HOW — the system, infrastructure fix, copy approach, or process change that drove the result. Attribute wins to methodology and process, never luck.
 - Use specific numbers from the wins context where possible. Anonymize client names — never name them.
