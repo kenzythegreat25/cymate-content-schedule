@@ -50,10 +50,11 @@ async function fetchSlackWins(): Promise<string> {
           ? `https://cymate.slack.com/archives/${WINS_CHANNEL}/p${ts.replace(".", "")}`
           : "";
 
-        // Collect any image file URLs attached to this message
+        // Collect any image file URLs attached to this message (permalink preferred, url_private as fallback)
         const imageFiles = (m.files ?? [])
-          .filter((f) => f.mimetype?.startsWith("image/") && f.permalink)
-          .map((f) => f.permalink ?? "");
+          .filter((f) => f.mimetype?.startsWith("image/"))
+          .map((f) => f.permalink ?? f.url_private ?? "")
+          .filter(Boolean);
 
         let entry = text;
         if (slackLink) entry += ` [slack: ${slackLink}]`;
