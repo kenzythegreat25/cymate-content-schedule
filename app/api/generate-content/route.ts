@@ -187,8 +187,10 @@ LANGUAGE STANDARDS: Use professional business language at all times. Avoid slang
 
 HOOK RULE: Every post must open with a strong hook — one line that earns the next. Challenge a common assumption, share a specific outcome, or open with a question that resonates with the target reader. The hook is the most important line.
 
-IG CTAs: Soft and natural. "Link in bio" style. Reserve comment-to-unlock only for high-value giveaways.
-LinkedIn CTAs: Soft and contextual. "visit cymate.io" or "link in the comments" for long URLs. Never "message us directly."
+BOOKING LINK: The booking page is cymate.io/intro-meeting. Always use this exact URL whenever directing someone to book a call. Never use the full tracking URL, never use a different URL.
+
+IG CTAs: Soft and natural. For booking calls, use "Book a call — cymate.io/intro-meeting" or "Link in bio." style.
+LinkedIn CTAs: Soft and contextual. For booking calls, use "cymate.io/intro-meeting" inline or say "drop the link in the comments" when the post will have the link as a comment. Never "message us directly."
 
 ONE ASK RULE: Every post gets exactly ONE primary ask. Choose one: a save nudge, a direct question, or a link callout. Never stack more than one in the same caption/post. A short closing CTA line (e.g. "Link in bio") is fine as a passive exit action, but it does not count as a second ask — don't pair it with both a save nudge AND a question in the same post.
 
@@ -496,7 +498,7 @@ STRATEGY POSTS (Tuesday, Thursday, Friday): Pure educational/framework content. 
   1. Hook line (grabs attention immediately)
   2. Body (educational/strategic content, 3-6 short paragraphs or punchy lines)
   3. Engaging question (invites a reply — one sentence ending with "?")
-  4. CTA on its own line — pick based on post angle: "Book a discovery call — link in bio." / "Let's talk — link in bio." / "Learn more — link in bio." / "Follow for daily outbound tips." The CTA must ALWAYS appear here, after the question and BEFORE the hashtags. Never skip it. Never bury it.
+  4. CTA on its own line — pick based on post angle: "Book a call — cymate.io/intro-meeting" / "Let's talk — cymate.io/intro-meeting" / "Link in bio." / "Follow for daily outbound tips." The CTA must ALWAYS appear here, after the question and BEFORE the hashtags. Never skip it. Never bury it. When the CTA is about booking a call, always include cymate.io/intro-meeting.
   5. Hashtags (5, on their own line)
 - The engaging question and CTA are BOTH required in every caption — the question drives comments, the CTA drives action. They are not interchangeable and neither replaces the other.
 
@@ -558,7 +560,7 @@ RULES FOR ALL 3 POSTS:
   1. Hook (first line — stops the scroll)
   2. Body (short paragraphs, story/insight/framework)
   3. Engaging question (one sentence ending with "?" — drives comments)
-  4. Soft CTA — always after the question, always before hashtags. Keep it natural and low-pressure, e.g. "If you want to dig into this for your own outbound, feel free to book a call — link in bio." or "Happy to walk through how we'd approach this for your team — grab a time at cymate.io." or "If this resonates, let's talk — book a quick call via the link in bio." Vary the wording — never copy-paste the same line post to post.
+  4. Soft CTA — always after the question, always before hashtags. Keep it natural and low-pressure. Always use cymate.io/intro-meeting as the booking URL. Examples (vary the wording — never copy-paste the same line post to post): "If you want to dig into this for your own outbound, feel free to book a call — cymate.io/intro-meeting" / "Happy to walk through how we'd approach this for your team — cymate.io/intro-meeting" / "If this resonates, let's talk — cymate.io/intro-meeting" / "Drop a comment or book a quick call — link in the comments." Use "link in the comments" only when the post will have the URL as a first comment. Otherwise use the URL directly.
   5. Hashtags (5, on their own line)
 - The engaging question and soft CTA are BOTH required in every post. Neither replaces the other.
 - End every post with 5 relevant hashtags on their own line. Rotate — never reuse the same set across posts.
