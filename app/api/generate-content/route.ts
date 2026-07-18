@@ -425,16 +425,21 @@ DEDUPLICATION RULE (hard): Every title, hook, and topic above is off-limits — 
 GENERIC REPLY RULE: For every post, include 3 Q&A reply pairs in the notes field. Each pair should anticipate a real comment or question someone might leave on that specific post and provide a warm, genuine response that adds value — not a bot reply, not a sales pitch. The replies should feel like a real person continuing the conversation. Base each Q on a likely reaction to that post's specific content. Format exactly as: Q1: [comment/question] — A: [reply]. Do this for Q1 through Q3. Keep each reply one or two sentences. Also add at the end of notes: "Reminder: share this post to your Stories after posting to boost reach."
 
 Generate EXACTLY 5 Instagram posts. One post per weekday, no more, no less:
-1. Monday — ${dates.mon} — Static graphic poster
-2. Tuesday — ${dates.tue} — Carousel (5-6 slides)
-3. Wednesday — ${dates.wed} — Static graphic poster
-4. Thursday — ${dates.thu} — ${includeReel ? "Reel (45-60s)" : "Static graphic poster"}
-5. Friday — ${dates.fri} — Static graphic poster
+1. Monday — ${dates.mon} — Static graphic poster [WINS POST]
+2. Tuesday — ${dates.tue} — Carousel (5-6 slides) [STRATEGY POST]
+3. Wednesday — ${dates.wed} — Static graphic poster [WINS POST]
+4. Thursday — ${dates.thu} — ${includeReel ? "Reel (45-60s)" : "Static graphic poster"} [STRATEGY POST]
+5. Friday — ${dates.fri} — Static graphic poster [STRATEGY POST]
 
 CONTENT STRATEGY — STRICTLY ENFORCED:
 - IG is for STRATEGY and WINS only. Every post must be educational, strategic, or results-oriented content directly related to Cymate's work, methodology, or GTM approach.
 - NEVER generate testimonials, client feedback posts, or case studies from clients on Instagram. Do not reference specific clients by name, do not quote client results, do not write posts framed as "a client told us..." or "one of our clients achieved...". These content types are off-limits on IG entirely.
-- Focus on: outbound frameworks, deliverability insights, cold email strategy, ICP definition, pipeline thinking, sequencing tactics, founder GTM lessons, or Cymate's own process/results shared as a brand.
+
+WINS POSTS (Monday + Wednesday): Draw inspiration from the RECENT WINS CONTEXT above. Turn a real win pattern into a strategic insight — e.g. "We booked a meeting with a Fortune 500 on day 1 of a new campaign. Here's what changed." Do NOT name the client. Frame it as a result Cymate achieved, a pattern we noticed, or a lesson we learned. Keep it punchy, specific, and credible.
+
+STRATEGY POSTS (Tuesday, Thursday, Friday): Pure educational/framework content. Outbound frameworks, deliverability insights, cold email strategy, ICP definition, pipeline thinking, sequencing tactics, founder GTM lessons, or Cymate's own process shared as a brand. No wins framing needed here — just straight value.
+
+- Focus on: making every post feel like it comes from a team that's actually in the trenches doing outbound every day.
 - CAPTION STRUCTURE — this exact order, every single post, no exceptions:
   1. Hook line (grabs attention immediately)
   2. Body (educational/strategic content, 3-6 short paragraphs or punchy lines)
@@ -465,23 +470,29 @@ ${recentTitles}
 
 DEDUPLICATION RULE (hard): Every title, hook, and topic above is off-limits — including similar angles, the same subject reframed, and close variations on the same theme. The test: could someone read both posts and think "this is basically the same topic"? If yes, pick something else entirely.
 
-Generate EXACTLY 1 LinkedIn post for this week. Choose the best day from Monday (${dates.mon}), Wednesday (${dates.wed}), or Friday (${dates.fri}) based on the topic's fit.
+Generate EXACTLY 2 LinkedIn posts for this week:
+1. Wednesday — ${dates.wed}
+2. Friday — ${dates.fri}
 
-CONTENT STRATEGY: This post must be strategic and directly related to what Cymate does — cold email infrastructure, outbound sequencing, B2B deliverability, ICP targeting, or GTM execution for SaaS and tech companies. Write from Cymate's perspective as a practitioner. Share a framework, insight, process, or lesson that is directly tied to Cymate's work and would resonate with B2B founders, sales leaders, or SDR managers. This is NOT a testimonial, case study, or client feedback post — it is a strategic thought leadership post.
+CONTENT STRATEGY: Both posts must be strategic and directly related to what Cymate does — cold email infrastructure, outbound sequencing, B2B deliverability, ICP targeting, or GTM execution for SaaS and tech companies. Write from Cymate's perspective as a practitioner. These are NOT testimonial, case study, or client feedback posts — they are strategic thought leadership posts.
+
+WEDNESDAY (${dates.wed}): A framework, process, or insight post. Share something actionable — a step-by-step approach, a mental model, or a lesson from running outbound campaigns. Make the reader feel like they're getting access to Cymate's internal playbook.
+
+FRIDAY (${dates.fri}): A wins-inspired post. Draw from the RECENT WINS CONTEXT above — take a real result pattern (meeting booked day 1, re-engagement campaign reviving a dead account, copy variant turning things around) and turn it into a story-driven post. Do NOT name the client. Frame it as "we tried X, here's what happened." Specific, credible, and punchy. 200-280 words.
 
 AUDIENCE: B2B founders, sales leaders, and GTM teams at SaaS/tech companies. Many are in Latin America (Colombia, Argentina, Costa Rica, Mexico) — lean teams, founder-led sales, scrappy outbound. Write in English with empathy for that reality.
 
-RULES:
+RULES FOR BOTH POSTS:
 - Strong opening hook — must work with zero context as the first line
-- 280-380 words
-- Exactly ONE primary ask (end with a direct question to drive comments)
-- End with 5 relevant hashtags on their own line
+- Wednesday: 280-350 words. Friday: 200-280 words.
+- Exactly ONE primary ask per post (end with a direct question to drive comments)
+- End every post with 5 relevant hashtags on their own line. Rotate — never reuse the same set.
 - NEVER use em dashes (—)
-- POSTING TIME: Include "Post at: 8:00 PM PHT" at the top of the notes field
+- POSTING TIME: Include "Post at: 8:00 PM PHT" at the top of each notes field
 - Include 3 Q&A reply pairs in notes (Q1/Q2/Q3 format, warm and genuine)
-- The JSON array must have EXACTLY 1 object. Count before returning.
+- The JSON array must have EXACTLY 2 objects. Count before returning.
 
-Return a JSON array of exactly 1 object.`;
+Return a JSON array of exactly 2 objects.`;
 
   let igPosts: PostDraft[], liPosts: PostDraft[];
   try {
@@ -493,7 +504,7 @@ Return a JSON array of exactly 1 object.`;
   }
 
   if (igPosts.length !== 5) return NextResponse.json({ error: `Expected 5 IG posts, got ${igPosts.length}` }, { status: 500 });
-  if (liPosts.length !== 1) return NextResponse.json({ error: `Expected 1 LinkedIn post, got ${liPosts.length}` }, { status: 500 });
+  if (liPosts.length !== 2) return NextResponse.json({ error: `Expected 2 LinkedIn posts, got ${liPosts.length}` }, { status: 500 });
 
   // Post-generation duplicate check: title, hook, and full description body
   const allGenerated = [...igPosts, ...liPosts];
