@@ -8,6 +8,45 @@ const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY ?? "";
 const SUPABASE_URL  = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const SERVICE_KEY   = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+const SLACK_TOKEN   = process.env.SLACK_TOKEN ?? "";
+const WINS_CHANNEL  = "C07GM6BHVMG";
+
+async function fetchSlackWins(): Promise<string> {
+  if (!SLACK_TOKEN) return "";
+  try {
+    // Pull wins from April 1 2025 to now
+    const oldest = Math.floor(new Date("2025-04-01T00:00:00Z").getTime() / 1000).toString();
+    const res = await fetch(
+      `https://slack.com/api/conversations.history?channel=${WINS_CHANNEL}&oldest=${oldest}&limit=100`,
+      { headers: { Authorization: `Bearer ${SLACK_TOKEN}` } }
+    );
+    const data = await res.json();
+    if (!data.ok) return "";
+
+    const wins: string[] = data.messages
+      .filter((m: { text?: string }) =>
+        m.text &&
+        !m.text.includes("has joined") &&
+        !m.text.includes("has renamed") &&
+        !m.text.includes("has left") &&
+        m.text.length > 40
+      )
+      .map((m: { text: string }) =>
+        m.text
+          .replace(/<@[A-Z0-9]+(\|[^>]+)?>/g, "a team member")
+          .replace(/<https?:\/\/[^>]+>/g, "")
+          .replace(/:[a-z_]+:/g, "")
+          .replace(/\s{2,}/g, " ")
+          .trim()
+      )
+      .filter((t: string) => t.length > 30)
+      .slice(0, 25);
+
+    return wins.length > 0 ? wins.join("\n") : "";
+  } catch {
+    return "";
+  }
+}
 
 // Sunday 10 AM PH = Sunday 02:00 UTC → cron "0 2 * * 0"
 
@@ -361,8 +400,12 @@ async function runGeneration(userId: string, opts: { mode?: string; platform?: s
 
   const isoWeek = Math.ceil((new Date(dates.mon).getDate() + new Date(new Date(dates.mon).getFullYear(), 0, 1).getDay()) / 7);
   const includeReel = isoWeek % 2 === 1;
-  // First week of the month = Monday falls on day 1–7 of the month
   const isFirstWeekOfMonth = new Date(dates.mon).getUTCDate() <= 7;
+
+  const winsRaw = await fetchSlackWins();
+  const winsContext = winsRaw
+    ? `\nRECENT WINS CONTEXT (use as INSPIRATION only — do NOT name specific clients, do NOT write testimonials, anonymize all company and client names, extract the strategic insight or result pattern):\n${winsRaw}\n`
+    : "";
 
   const scheduleCtx = `
 Dates: Mon=${dates.mon} Tue=${dates.tue} Wed=${dates.wed} Thu=${dates.thu} Fri=${dates.fri}
@@ -373,7 +416,7 @@ Thursday IG: ${includeReel ? "Reel (45-60s — include beat-by-beat script in no
   const igPrompt = `${BASE_INSTRUCTIONS}
 
 ${IG_HASHTAG_POOL}
-
+${winsContext}
 EXISTING POSTS — ALL STATUSES (Drafting, Review, Scheduled, Posted):
 ${recentTitles}
 
@@ -416,7 +459,7 @@ Return a JSON array of exactly 5 objects.`;
   const liWeeklyPrompt = `${BASE_INSTRUCTIONS}
 
 ${IG_HASHTAG_POOL}
-
+${winsContext}
 EXISTING POSTS — ALL STATUSES (Drafting, Review, Scheduled, Posted):
 ${recentTitles}
 
