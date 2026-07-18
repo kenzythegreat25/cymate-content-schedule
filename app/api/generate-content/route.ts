@@ -345,23 +345,6 @@ async function runGeneration(userId: string, opts: { mode?: string; platform?: s
 
   const dates = getWeekDates();
 
-  // Block generation if posts already exist for any of this week's dates
-  const weekDates = Object.values(dates);
-  const { data: existingWeekPosts } = await supabaseAdmin
-    .from("posts")
-    .select("date, title, status")
-    .in("date", weekDates)
-    .neq("status", "Archived");
-
-  if (existingWeekPosts && existingWeekPosts.length > 0) {
-    const summary = existingWeekPosts
-      .map(p => `${p.date} — "${p.title}" (${p.status})`)
-      .join(", ");
-    return NextResponse.json(
-      { error: `Posts for this week already exist (${existingWeekPosts.length} found): ${summary}. Archive or delete them before generating new content.` },
-      { status: 409 }
-    );
-  }
 
   // Fetch ALL existing posts (title + first line of description) for deduplication — no limit
   const { data: recentPosts } = await supabaseAdmin

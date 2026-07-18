@@ -725,7 +725,7 @@ function GenerateModal({ onClose, onGenerated }: { onClose: () => void; onGenera
         <div className="flex items-center justify-between gap-3 border-t border-line px-5 py-4">
           <p className="text-[11px] text-muted leading-snug max-w-[220px]">
             {mode === "week"
-              ? "Generates 6 posts. Blocked if that week already has content."
+              ? "Generates 6 posts. New drafts are added alongside existing content."
               : `${platform} · ${contentType}${date ? ` · ${date}` : ""}`}
           </p>
           <div className="flex gap-2">
