@@ -470,29 +470,31 @@ ${recentTitles}
 
 DEDUPLICATION RULE (hard): Every title, hook, and topic above is off-limits — including similar angles, the same subject reframed, and close variations on the same theme. The test: could someone read both posts and think "this is basically the same topic"? If yes, pick something else entirely.
 
-Generate EXACTLY 2 LinkedIn posts for this week:
-1. Wednesday — ${dates.wed}
-2. Friday — ${dates.fri}
+Generate EXACTLY 3 LinkedIn posts for this week:
+1. Monday — ${dates.mon}
+2. Wednesday — ${dates.wed}
+3. Friday — ${dates.fri}
 
-CONTENT STRATEGY: Both posts must be strategic and directly related to what Cymate does — cold email infrastructure, outbound sequencing, B2B deliverability, ICP targeting, or GTM execution for SaaS and tech companies. Write from Cymate's perspective as a practitioner. These are NOT testimonial, case study, or client feedback posts — they are strategic thought leadership posts.
+CONTENT STRATEGY: All posts must be directly related to what Cymate does — cold email infrastructure, outbound sequencing, B2B deliverability, ICP targeting, or GTM execution for SaaS and tech companies. Write from Cymate's perspective as a practitioner. These are NOT testimonial, case study, or client feedback posts — they are strategic thought leadership posts.
 
-WEDNESDAY (${dates.wed}): A framework, process, or insight post. Share something actionable — a step-by-step approach, a mental model, or a lesson from running outbound campaigns. Make the reader feel like they're getting access to Cymate's internal playbook.
+MONDAY (${dates.mon}): A strategy or educational post. Teach something — a concept, a framework, a common mistake and how to fix it, or a principle behind great outbound. Make it feel like a lesson from someone who runs campaigns every day. 280-350 words.
+
+WEDNESDAY (${dates.wed}): A framework, process, or insight post. Share something actionable — a step-by-step approach, a mental model, or a lesson from running outbound campaigns. Make the reader feel like they're getting access to Cymate's internal playbook. 280-350 words.
 
 FRIDAY (${dates.fri}): A wins-inspired post. Draw from the RECENT WINS CONTEXT above — take a real result pattern (meeting booked day 1, re-engagement campaign reviving a dead account, copy variant turning things around) and turn it into a story-driven post. Do NOT name the client. Frame it as "we tried X, here's what happened." Specific, credible, and punchy. 200-280 words.
 
 AUDIENCE: B2B founders, sales leaders, and GTM teams at SaaS/tech companies. Many are in Latin America (Colombia, Argentina, Costa Rica, Mexico) — lean teams, founder-led sales, scrappy outbound. Write in English with empathy for that reality.
 
-RULES FOR BOTH POSTS:
+RULES FOR ALL 3 POSTS:
 - Strong opening hook — must work with zero context as the first line
-- Wednesday: 280-350 words. Friday: 200-280 words.
 - Exactly ONE primary ask per post (end with a direct question to drive comments)
-- End every post with 5 relevant hashtags on their own line. Rotate — never reuse the same set.
+- End every post with 5 relevant hashtags on their own line. Rotate — never reuse the same set across posts.
 - NEVER use em dashes (—)
 - POSTING TIME: Include "Post at: 8:00 PM PHT" at the top of each notes field
 - Include 3 Q&A reply pairs in notes (Q1/Q2/Q3 format, warm and genuine)
-- The JSON array must have EXACTLY 2 objects. Count before returning.
+- The JSON array must have EXACTLY 3 objects. Count before returning.
 
-Return a JSON array of exactly 2 objects.`;
+Return a JSON array of exactly 3 objects.`;
 
   let igPosts: PostDraft[], liPosts: PostDraft[];
   try {
@@ -504,7 +506,7 @@ Return a JSON array of exactly 2 objects.`;
   }
 
   if (igPosts.length !== 5) return NextResponse.json({ error: `Expected 5 IG posts, got ${igPosts.length}` }, { status: 500 });
-  if (liPosts.length !== 2) return NextResponse.json({ error: `Expected 2 LinkedIn posts, got ${liPosts.length}` }, { status: 500 });
+  if (liPosts.length !== 3) return NextResponse.json({ error: `Expected 3 LinkedIn posts, got ${liPosts.length}` }, { status: 500 });
 
   // Post-generation duplicate check: title, hook, and full description body
   const allGenerated = [...igPosts, ...liPosts];
