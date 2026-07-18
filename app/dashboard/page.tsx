@@ -227,6 +227,16 @@ export default function Home() {
     await deletePost(id);
   };
 
+  const bulkDeleteRows = async (ids: string[]) => {
+    setItems((prev) => prev.filter((i) => !ids.includes(i.id)));
+    if (editingId && ids.includes(editingId)) setEditingId(null);
+    ids.forEach((id) => {
+      delete pendingPatches.current[id];
+      clearTimeout(flushTimers.current[id]);
+    });
+    await Promise.all(ids.map((id) => deletePost(id)));
+  };
+
   const seed = async () => {
     const today = new Date();
     const iso = (d: Date) => d.toISOString().slice(0, 10);
@@ -302,7 +312,7 @@ export default function Home() {
               />
             )}
             {view === "list" && (
-              <ListView items={filtered} onEdit={setEditingId} onDelete={deleteRow} />
+              <ListView items={filtered} onEdit={setEditingId} onDelete={deleteRow} onBulkDelete={bulkDeleteRows} />
             )}
           </div>
         )}
@@ -1378,15 +1388,61 @@ function ListView({
   items,
   onEdit,
   onDelete,
+  onBulkDelete,
 }: {
   items: ContentItem[];
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
+  onBulkDelete: (ids: string[]) => void;
 }) {
+  const [bulkMode, setBulkMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const toggleBulkMode = () => {
+    setBulkMode((v) => !v);
+    setSelected(new Set());
+  };
+
+  const toggleOne = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const allSelected = items.length > 0 && selected.size === items.length;
+  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(items.map((i) => i.id)));
+
+  const handleBulkDelete = () => {
+    if (selected.size === 0) return;
+    if (!confirm(`Delete ${selected.size} post${selected.size > 1 ? "s" : ""}? This cannot be undone.`)) return;
+    onBulkDelete([...selected]);
+    setSelected(new Set());
+    setBulkMode(false);
+  };
+
   return (
     <div className="px-4 pb-10 md:px-6">
+      {/* Toolbar */}
+      <div className="mb-3 flex items-center justify-end">
+        <button
+          onClick={toggleBulkMode}
+          className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${bulkMode ? "bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400" : "bg-surface-2 text-ink-soft hover:text-ink"}`}
+        >
+          {bulkMode ? "Cancel" : "Select"}
+        </button>
+      </div>
+
       <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
-        <div className="hidden grid-cols-[2fr_120px_120px_1.5fr_120px_60px] gap-4 border-b border-line bg-surface-2 px-5 py-3 text-[11px] uppercase tracking-wider text-muted md:grid">
+        {/* Header */}
+        <div className="hidden gap-4 border-b border-line bg-surface-2 px-5 py-3 text-[11px] uppercase tracking-wider text-muted md:grid"
+          style={{ gridTemplateColumns: bulkMode ? "32px 2fr 120px 120px 1.5fr 120px 60px" : "2fr 120px 120px 1.5fr 120px 60px" }}>
+          {bulkMode && (
+            <span className="flex items-center">
+              <input type="checkbox" checked={allSelected} onChange={toggleAll} className="h-4 w-4 cursor-pointer accent-accent" />
+            </span>
+          )}
           <span>Title</span>
           <span>Date</span>
           <span>Status</span>
@@ -1394,57 +1450,80 @@ function ListView({
           <span>Performance</span>
           <span></span>
         </div>
+
         {items.length === 0 && (
           <div className="px-5 py-16 text-center text-sm text-muted">No posts match the current filter.</div>
         )}
-        {items.map((it) => (
-          <button
-            key={it.id}
-            onClick={() => onEdit(it.id)}
-            className="group flex w-full flex-col gap-2 border-b border-line px-4 py-3 text-left text-sm last:border-b-0 hover:bg-surface-2 md:grid md:grid-cols-[2fr_120px_120px_1.5fr_120px_60px] md:items-center md:gap-4 md:px-5"
-          >
-            <div className="flex min-w-0 items-center gap-3">
-              {it.attachments[0] ? (
-                isVideoUrl(it.attachments[0]) ? (
-                  <video src={it.attachments[0]} className="h-10 w-10 shrink-0 rounded-md object-cover ring-1 ring-line" muted playsInline preload="metadata" />
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={it.attachments[0]} alt="" className="h-10 w-10 shrink-0 rounded-md object-cover ring-1 ring-line" loading="lazy" />
-                )
-              ) : (
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-surface-2 text-muted ring-1 ring-line">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+
+        {items.map((it) => {
+          const isSelected = selected.has(it.id);
+          return (
+            <div
+              key={it.id}
+              onClick={() => bulkMode ? toggleOne(it.id) : onEdit(it.id)}
+              className={`group flex w-full cursor-pointer flex-col gap-2 border-b border-line px-4 py-3 text-left text-sm last:border-b-0 transition hover:bg-surface-2 md:grid md:items-center md:gap-4 md:px-5 ${isSelected ? "bg-accent/5" : ""}`}
+              style={{ gridTemplateColumns: bulkMode ? "32px 2fr 120px 120px 1.5fr 120px 60px" : "2fr 120px 120px 1.5fr 120px 60px" }}
+            >
+              {bulkMode && (
+                <span className="flex items-center" onClick={(e) => { e.stopPropagation(); toggleOne(it.id); }}>
+                  <input type="checkbox" checked={isSelected} onChange={() => toggleOne(it.id)} className="h-4 w-4 cursor-pointer accent-accent" />
                 </span>
               )}
-              <div className="min-w-0 flex-1">
-                <div className="truncate font-medium">{it.title || <span className="text-muted">Untitled</span>}</div>
-                {it.description && <div className="truncate text-xs text-ink-soft">{it.description}</div>}
+              <div className="flex min-w-0 items-center gap-3">
+                {it.attachments[0] ? (
+                  isVideoUrl(it.attachments[0]) ? (
+                    <video src={it.attachments[0]} className="h-10 w-10 shrink-0 rounded-md object-cover ring-1 ring-line" muted playsInline preload="metadata" />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={it.attachments[0]} alt="" className="h-10 w-10 shrink-0 rounded-md object-cover ring-1 ring-line" loading="lazy" />
+                  )
+                ) : (
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-surface-2 text-muted ring-1 ring-line">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                  </span>
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-medium">{it.title || <span className="text-muted">Untitled</span>}</div>
+                  {it.description && <div className="truncate text-xs text-ink-soft">{it.description}</div>}
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-ink-soft md:contents">
+                <div className="md:block">{it.date ? formatDate(it.date) : <span className="text-muted">—</span>}</div>
+                <div className="flex items-center gap-1.5">
+                  <StatusBadge status={it.status} />
+                  {it.contentType && <ContentTypeChip type={it.contentType} />}
+                </div>
+                <div><PlatformStack platforms={it.platforms} /></div>
+                <div className="md:block">{it.performanceScore || <span className="text-muted">—</span>}</div>
+              </div>
+              <div className="hidden md:block md:text-right">
+                {!bulkMode && (
+                  <span
+                    role="button"
+                    onClick={(e) => { e.stopPropagation(); if (confirm("Delete this post?")) onDelete(it.id); }}
+                    className="inline-block rounded p-1 opacity-0 transition group-hover:opacity-100 text-muted hover:text-red-600"
+                  >
+                    <TrashIcon />
+                  </span>
+                )}
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-ink-soft md:contents">
-              <div className="md:block">{it.date ? formatDate(it.date) : <span className="text-muted">—</span>}</div>
-              <div className="flex items-center gap-1.5">
-                <StatusBadge status={it.status} />
-                {it.contentType && <ContentTypeChip type={it.contentType} />}
-              </div>
-              <div><PlatformStack platforms={it.platforms} /></div>
-              <div className="md:block">{it.performanceScore || <span className="text-muted">—</span>}</div>
-            </div>
-            <div className="hidden md:block md:text-right">
-              <span
-                role="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (confirm("Delete this post?")) onDelete(it.id);
-                }}
-                className="inline-block rounded p-1 opacity-0 transition group-hover:opacity-100 text-muted hover:text-red-600"
-              >
-                <TrashIcon />
-              </span>
-            </div>
-          </button>
-        ))}
+          );
+        })}
       </div>
+
+      {/* Floating bulk action bar */}
+      {bulkMode && selected.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 rounded-2xl border border-line bg-surface px-5 py-3 shadow-xl">
+          <span className="text-sm text-ink-soft">{selected.size} selected</span>
+          <button
+            onClick={handleBulkDelete}
+            className="rounded-lg bg-red-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-red-700 transition"
+          >
+            Delete {selected.size}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
