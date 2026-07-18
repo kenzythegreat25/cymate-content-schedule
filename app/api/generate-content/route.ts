@@ -529,7 +529,13 @@ AUDIENCE: B2B founders, sales leaders, and GTM teams at SaaS/tech companies. Man
 
 RULES FOR ALL 3 POSTS:
 - Strong opening hook — must work with zero context as the first line
-- Exactly ONE primary ask per post (end with a direct question to drive comments)
+- CAPTION STRUCTURE — this exact order, every single post, no exceptions:
+  1. Hook (first line — stops the scroll)
+  2. Body (short paragraphs, story/insight/framework)
+  3. Engaging question (one sentence ending with "?" — drives comments)
+  4. Soft CTA — always after the question, always before hashtags. Keep it natural and low-pressure, e.g. "If you want to dig into this for your own outbound, feel free to book a call — link in bio." or "Happy to walk through how we'd approach this for your team — grab a time at cymate.io." or "If this resonates, let's talk — book a quick call via the link in bio." Vary the wording — never copy-paste the same line post to post.
+  5. Hashtags (5, on their own line)
+- The engaging question and soft CTA are BOTH required in every post. Neither replaces the other.
 - End every post with 5 relevant hashtags on their own line. Rotate — never reuse the same set across posts.
 - NEVER use em dashes (—)
 - POSTING TIME: Include "Post at: 8:00 PM PHT" at the top of each notes field
