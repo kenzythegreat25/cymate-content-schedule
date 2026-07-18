@@ -424,18 +424,47 @@ Rules:
 - Before returning the JSON, check each post: does the first line work as a hook with zero context, is there exactly ONE primary ask (not stacked), and does it end with a CTA? Revise any post that fails any of these checks.
 Return a JSON array of exactly 5 objects.`;
 
-  let igPosts: PostDraft[];
+  const liWeeklyPrompt = `${BASE_INSTRUCTIONS}
+
+${IG_HASHTAG_POOL}
+
+EXISTING POSTS — ALL STATUSES (Drafting, Review, Scheduled, Posted):
+${recentTitles}
+
+DEDUPLICATION RULE (hard): Every title, hook, and topic above is off-limits — including similar angles, the same subject reframed, and close variations on the same theme. The test: could someone read both posts and think "this is basically the same topic"? If yes, pick something else entirely.
+
+Generate EXACTLY 1 LinkedIn post for this week. Choose the best day from Monday (${dates.mon}), Wednesday (${dates.wed}), or Friday (${dates.fri}) based on the topic's fit.
+
+CONTENT STRATEGY: This post must be strategic and directly related to what Cymate does — cold email infrastructure, outbound sequencing, B2B deliverability, ICP targeting, or GTM execution for SaaS and tech companies. Write from Cymate's perspective as a practitioner. Share a framework, insight, process, or lesson that is directly tied to Cymate's work and would resonate with B2B founders, sales leaders, or SDR managers. This is NOT a testimonial, case study, or client feedback post — it is a strategic thought leadership post.
+
+AUDIENCE: B2B founders, sales leaders, and GTM teams at SaaS/tech companies. Many are in Latin America (Colombia, Argentina, Costa Rica, Mexico) — lean teams, founder-led sales, scrappy outbound. Write in English with empathy for that reality.
+
+RULES:
+- Strong opening hook — must work with zero context as the first line
+- 280-380 words
+- Exactly ONE primary ask (end with a direct question to drive comments)
+- End with 5 relevant hashtags on their own line
+- NEVER use em dashes (—)
+- POSTING TIME: Include "Post at: 8:00 PM PHT" at the top of the notes field
+- Include 3 Q&A reply pairs in notes (Q1/Q2/Q3 format, warm and genuine)
+- The JSON array must have EXACTLY 1 object. Count before returning.
+
+Return a JSON array of exactly 1 object.`;
+
+  let igPosts: PostDraft[], liPosts: PostDraft[];
   try {
-    const igRaw = await callClaude(igPrompt);
+    const [igRaw, liRaw] = await Promise.all([callClaude(igPrompt), callClaude(liWeeklyPrompt)]);
     igPosts = parseJson(igRaw);
+    liPosts = parseJson(liRaw);
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }
 
   if (igPosts.length !== 5) return NextResponse.json({ error: `Expected 5 IG posts, got ${igPosts.length}` }, { status: 500 });
+  if (liPosts.length !== 1) return NextResponse.json({ error: `Expected 1 LinkedIn post, got ${liPosts.length}` }, { status: 500 });
 
   // Post-generation duplicate check: title, hook, and full description body
-  const allGenerated = igPosts;
+  const allGenerated = [...igPosts, ...liPosts];
   const duplicates: string[] = [];
   for (const post of allGenerated) {
     const generatedHook = (post.description ?? "").split("\n")[0];
@@ -468,7 +497,7 @@ Return a JSON array of exactly 5 objects.`;
     );
   }
 
-  const allPosts = igPosts;
+  const allPosts = [...igPosts, ...liPosts];
 
   const now = new Date().toISOString();
   const records = allPosts.map((p) => ({
