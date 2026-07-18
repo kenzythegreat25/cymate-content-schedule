@@ -301,6 +301,7 @@ export default function Home() {
                 onEdit={setEditingId}
                 onMove={(id, s) => updateRow(id, { status: s })}
                 onAdd={(s) => addRow({ status: s })}
+                onBulkDelete={bulkDeleteRows}
               />
             )}
             {view === "calendar" && (
@@ -1024,14 +1025,28 @@ function BoardView({
   onEdit,
   onMove,
   onAdd,
+  onBulkDelete,
 }: {
   items: ContentItem[];
   onEdit: (id: string) => void;
   onMove: (id: string, s: Status) => void;
   onAdd: (s: Status) => void;
+  onBulkDelete: (ids: string[]) => void;
 }) {
   const [dragOver, setDragOver] = useState<Status | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const toggleBulkMode = () => { setBulkMode((v) => !v); setSelected(new Set()); };
+  const toggleOne = (id: string) => setSelected((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const handleBulkDelete = () => {
+    if (selected.size === 0) return;
+    if (!confirm(`Delete ${selected.size} post${selected.size > 1 ? "s" : ""}? This cannot be undone.`)) return;
+    onBulkDelete([...selected]);
+    setSelected(new Set());
+    setBulkMode(false);
+  };
   const headerInnerRef = useRef<HTMLDivElement>(null);
   const boardScrollRef = useRef<HTMLDivElement>(null);
 
@@ -1046,11 +1061,18 @@ function BoardView({
 
   return (
     <div className="px-4 md:px-6">
-      <div className="sticky top-[148px] z-[5] -mx-4 overflow-hidden border-b border-line bg-canvas md:-mx-6">
-        <div
-          ref={headerInnerRef}
-          className="flex w-max gap-4 px-4 py-2 will-change-transform md:px-6"
+      {/* Select toggle */}
+      <div className="flex justify-end pb-2 pt-1">
+        <button
+          onClick={toggleBulkMode}
+          className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${bulkMode ? "bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400" : "bg-surface-2 text-ink-soft hover:text-ink"}`}
         >
+          {bulkMode ? "Cancel" : "Select"}
+        </button>
+      </div>
+
+      <div className="sticky top-[148px] z-[5] -mx-4 overflow-hidden border-b border-line bg-canvas md:-mx-6">
+        <div ref={headerInnerRef} className="flex w-max gap-4 px-4 py-2 will-change-transform md:px-6">
           {STATUSES.map((s) => {
             const cards = sortCardsByStatus(items.filter((i) => i.status === s), s);
             const meta = STATUS_META[s];
@@ -1061,14 +1083,11 @@ function BoardView({
                   <span className="text-sm font-medium">{meta.label}</span>
                   <span className="text-xs text-muted">{cards.length}</span>
                 </div>
-                <button
-                  onClick={() => onAdd(s)}
-                  className="rounded-md p-1 text-muted hover:bg-line/60 hover:text-ink"
-                  aria-label={`Add to ${s}`}
-                  title={`Add to ${s}`}
-                >
-                  <PlusIcon size={14} />
-                </button>
+                {!bulkMode && (
+                  <button onClick={() => onAdd(s)} className="rounded-md p-1 text-muted hover:bg-line/60 hover:text-ink" aria-label={`Add to ${s}`}>
+                    <PlusIcon size={14} />
+                  </button>
+                )}
               </div>
             );
           })}
@@ -1084,30 +1103,13 @@ function BoardView({
               <div
                 key={s}
                 className={`flex w-72 shrink-0 flex-col rounded-xl transition ${isDropTarget ? "bg-accent-soft/60 ring-2 ring-accent/40" : ""}`}
-                onDragOver={(e) => {
-                  if (!dragId) return;
-                  e.preventDefault();
-                  e.dataTransfer.dropEffect = "move";
-                  if (dragOver !== s) setDragOver(s);
-                }}
-                onDragLeave={(e) => {
-                  if (e.currentTarget.contains(e.relatedTarget as Node)) return;
-                  if (dragOver === s) setDragOver(null);
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const id = e.dataTransfer.getData("text/plain") || dragId;
-                  if (id) onMove(id, s);
-                  setDragOver(null);
-                  setDragId(null);
-                }}
+                onDragOver={(e) => { if (!dragId || bulkMode) return; e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOver !== s) setDragOver(s); }}
+                onDragLeave={(e) => { if (e.currentTarget.contains(e.relatedTarget as Node)) return; if (dragOver === s) setDragOver(null); }}
+                onDrop={(e) => { e.preventDefault(); const id = e.dataTransfer.getData("text/plain") || dragId; if (id) onMove(id, s); setDragOver(null); setDragId(null); }}
               >
                 <div className="flex flex-1 flex-col gap-2.5 px-2 pb-2 pt-1">
-                  {cards.length === 0 && (
-                    <button
-                      onClick={() => onAdd(s)}
-                      className="rounded-xl border border-dashed border-line py-6 text-xs text-muted hover:border-line-strong hover:text-ink"
-                    >
+                  {cards.length === 0 && !bulkMode && (
+                    <button onClick={() => onAdd(s)} className="rounded-xl border border-dashed border-line py-6 text-xs text-muted hover:border-line-strong hover:text-ink">
                       + Add card
                     </button>
                   )}
@@ -1115,11 +1117,14 @@ function BoardView({
                     <BoardCard
                       key={c.id}
                       item={c}
-                      onClick={() => onEdit(c.id)}
+                      onClick={() => bulkMode ? toggleOne(c.id) : onEdit(c.id)}
                       onMove={onMove}
-                      isDragging={dragId === c.id}
-                      onDragStart={() => setDragId(c.id)}
+                      isDragging={!bulkMode && dragId === c.id}
+                      onDragStart={() => !bulkMode && setDragId(c.id)}
                       onDragEnd={() => { setDragId(null); setDragOver(null); }}
+                      bulkMode={bulkMode}
+                      selected={selected.has(c.id)}
+                      onToggleSelect={() => toggleOne(c.id)}
                     />
                   ))}
                 </div>
@@ -1128,6 +1133,16 @@ function BoardView({
           })}
         </div>
       </div>
+
+      {/* Floating bulk action bar */}
+      {bulkMode && selected.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 rounded-2xl border border-line bg-surface px-5 py-3 shadow-xl">
+          <span className="text-sm text-ink-soft">{selected.size} selected</span>
+          <button onClick={handleBulkDelete} className="rounded-lg bg-red-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-red-700 transition">
+            Delete {selected.size}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1139,6 +1154,9 @@ function BoardCard({
   isDragging,
   onDragStart,
   onDragEnd,
+  bulkMode,
+  selected,
+  onToggleSelect,
 }: {
   item: ContentItem;
   onClick: () => void;
@@ -1146,9 +1164,20 @@ function BoardCard({
   isDragging?: boolean;
   onDragStart?: () => void;
   onDragEnd?: () => void;
+  bulkMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }) {
   return (
-    <div
+    <div className="relative">{bulkMode && (
+        <span
+          onClick={(e) => { e.stopPropagation(); onToggleSelect?.(); }}
+          className="absolute left-2 top-2 z-10 flex h-5 w-5 cursor-pointer items-center justify-center rounded-md border-2 border-white/30 bg-black/40 backdrop-blur-sm transition hover:bg-black/60"
+        >
+          {selected && <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1.5 5L4 7.5L8.5 2.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+        </span>
+      )}
+    <div className={selected ? "ring-2 ring-accent rounded-xl" : ""}><div
       onClick={onClick}
       draggable
       onDragStart={(e) => {
@@ -1210,7 +1239,7 @@ function BoardCard({
         )}
       </div>
       </div>
-    </div>
+    </div></div></div>
   );
 }
 
