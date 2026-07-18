@@ -405,6 +405,12 @@ Generate EXACTLY 5 Instagram posts. One post per weekday, no more, no less:
 4. Thursday — ${dates.thu} — ${includeReel ? "Reel (45-60s)" : "Static graphic poster"}
 5. Friday — ${dates.fri} — Static graphic poster
 
+CONTENT STRATEGY — STRICTLY ENFORCED:
+- IG is for STRATEGY and WINS only. Every post must be educational, strategic, or results-oriented content directly related to Cymate's work, methodology, or GTM approach.
+- NEVER generate testimonials, client feedback posts, or case studies from clients on Instagram. Do not reference specific clients by name, do not quote client results, do not write posts framed as "a client told us..." or "one of our clients achieved...". These content types are off-limits on IG entirely.
+- Focus on: outbound frameworks, deliverability insights, cold email strategy, ICP definition, pipeline thinking, sequencing tactics, founder GTM lessons, or Cymate's own process/results shared as a brand.
+- Every caption MUST end with a clear, soft CTA on its own line. Use context to pick the right one — e.g. "Book a discovery call — link in bio." for service-oriented posts, "Learn more — link in bio." for educational posts, or "Follow for more — link in bio." when the post is a quick tip. The CTA should feel natural for that post's angle, not copy-pasted.
+
 Rules:
 - on_screen_text is always a short hook visible on the poster graphic.
 - 3 of the 5 posts this week should feature real people (candid, professional, authentic — not stock-photo looking). The other 2 should be clean text/graphic posters with no people. Decide which posts get people based on which content type fits best. Specify clearly in each post's designer direction notes whether it uses a person visual or a graphic-only poster.
@@ -415,70 +421,21 @@ Rules:
 - Do not duplicate any topic or angle from the recently published posts listed above.
 - POSTING TIME: Include "Post at: 8:00 PM PHT" at the top of every notes field so the scheduler knows exactly when to publish. (Audience peaks at 9 PM PHT — post 1 hour before to warm up distribution.)
 - The JSON array must have EXACTLY 5 objects — one per day listed above. Count them before returning.
-- Before returning the JSON, check each post: does the first line work as a hook with zero context, and is there exactly ONE primary ask (not stacked)? Revise any post that fails either check.
+- Before returning the JSON, check each post: does the first line work as a hook with zero context, is there exactly ONE primary ask (not stacked), and does it end with a CTA? Revise any post that fails any of these checks.
 Return a JSON array of exactly 5 objects.`;
 
-  const liPrompt = `${BASE_INSTRUCTIONS}
-
-${IG_HASHTAG_POOL}
-
-${CLIENT_TESTIMONIALS}
-
-EXISTING POSTS — ALL STATUSES (Drafting, Review, Scheduled, Posted):
-${recentTitles}
-
-DEDUPLICATION RULE (hard): Every title, hook, and topic above is off-limits — including similar angles, the same subject reframed, and close variations on the same theme. Do not post about reply rates if a reply-rate post already exists. Do not post about deliverability if a deliverability post already exists. The opening hook line of each caption must also be distinct — do not start a caption with the same premise or framing as any existing hook shown above. The test: could someone read both posts and think "this is basically the same topic" or "this hook makes the same point"? If yes, pick something else entirely.
-
-GENERIC REPLY RULE: For every post, include 3 Q&A reply pairs in the notes field. Each pair should anticipate a real comment or question someone might leave on that specific post and provide a warm, genuine response that adds value — not a bot reply, not a sales pitch. The replies should feel like a real person continuing the conversation. Base each Q on a likely reaction to that post's specific content. Format exactly as: Q1: [comment/question] — A: [reply]. Do this for Q1 through Q3. Keep each reply one or two sentences. Also include a subtle, non-obvious CTA idea in the notes (e.g., "Happy to share the full breakdown if useful" or "Drop a comment and we can dig into it together").
-
-Generate EXACTLY 3 LinkedIn posts. One post per publishing day, no more, no less:
-1. Monday — ${dates.mon}
-2. Wednesday — ${dates.wed}
-3. Friday — ${dates.fri}
-
-Content per day:
-MONDAY (${dates.mon}): Insight, framework, hot take, or behind-the-scenes process post. Directly relevant to a pain point Cymate's ICP faces. Strong hook, story-driven, 280-350 words.
-
-WEDNESDAY (${dates.wed}): A case study post referencing a real result from Cymate's work. Write the post around a specific outcome or challenge (you can draw inspiration from the testimonials). The full case study lives on cymate.io — end the post with a natural line like "Full breakdown in the comments" or "I'll drop the link in the comments" and note in the notes field: "Poster: case study template. Drop the cymate.io case study link in the first comment after posting." The link callout is this post's ONE primary ask — keep the closing question soft/rhetorical rather than a second demanding ask. 300-380 words.
-
-FRIDAY (${dates.fri}): Alternate every 2 weeks between:
-- A client testimonial/feedback post: pick one quote from the testimonials list, feature the client name and company authentically, add context around the result they achieved. If tagging the featured client's company page is a natural fit for this quote, add to notes: "Consider @-tagging [Client] — confirm they're comfortable being tagged before publishing." 200-280 words.
-- An insight or tip post on B2B outbound strategy. 280-350 words.
-(This week: odd ISO week = testimonial, even ISO week = insight. Week ${isoWeek} is ${isoWeek % 2 === 1 ? "odd — use a testimonial" : "even — use an insight post"}.)
-
-RELEVANCE RULE: Every LinkedIn post must be directly relevant to the specific problems Cymate's target audience faces — B2B founders, sales leaders, SDR managers, and GTM teams at tech and SaaS companies. Topics must connect to real pain points: cold email deliverability, outbound sequencing, reply rates, pipeline generation, ICP definition, sender reputation, or scaling outbound without hiring. Never post generic business advice that could apply to any industry. Every post should make a sales leader or founder think "this is exactly what we deal with."
-
-AUDIENCE CONTEXT: Cymate's LinkedIn audience is predominantly Latin American — Colombia, Argentina, Costa Rica, and Mexico make up the largest share of followers. Write with this audience in mind. These are B2B founders and sales leaders in growth-stage companies, often with lean teams, tighter budgets, and heavily founder-led sales motions. They are scrappy, relationship-driven, and often doing outbound themselves before they can afford to outsource it. Speak to that reality. Occasionally reference pain points that resonate in emerging and growth markets: smaller SDR teams, founder-as-closer dynamics, budget constraints on tooling, and the challenge of building outbound from scratch without a large sales org. The tone can be slightly warmer and more direct than a typical US B2B post — LATAM business culture is more relationship-oriented. Do not change the language (keep everything in English) but let the empathy and context reflect who is actually reading.
-
-INSTAGRAM CROSS-PROMO RULE (this week only — first week of the month: ${isFirstWeekOfMonth}):
-${isFirstWeekOfMonth ? `This is the first week of the month. One of the 3 LinkedIn posts must include a natural, low-key mention of Cymate's Instagram account (@cymate_io) to encourage LinkedIn followers to follow on Instagram too. Work it in organically at the end of the post — not as a hard CTA, more like a casual mention: e.g. "If you prefer shorter-form tips, we also post daily on Instagram — @cymate_io." Pick whichever post fits most naturally (usually Monday or Friday). Do not force it into the case study.` : `No Instagram cross-promo this week.`}
-
-RULES FOR ALL 3 POSTS:
-- NEVER use em dashes (—). Use commas, short sentences, or line breaks instead.
-- End every post with a direct question to the reader (to drive comments).
-- End every post with 5 relevant hashtags on their own line. Rotate hashtags — never reuse the same set across posts.
-- Do not duplicate topics, client names, or angles from the recently published posts listed above.
-- No fictional case study client should share a name with any real Cymate client listed in the testimonials.
-- POSTING TIME: Include "Post at: 8:00 PM PHT" at the top of every notes field so the scheduler knows exactly when to publish. (TODO: verify against real LinkedIn analytics for this audience — 8 PM PHT lands ~6-9 AM across Bogotá/Mexico City/Buenos Aires; if the actual peak is the 8-10 AM local window, 9:30-10:00 PM PHT would land closer. Keep 8 PM PHT until confirmed with data.)
-- The JSON array must have EXACTLY 3 objects — one for Monday, one for Wednesday, one for Friday. Count them before returning.
-- Before returning the JSON, check each post: does the first line work as a hook with zero context, and is there exactly ONE primary ask (not stacked)? Revise any post that fails either check.
-
-Return a JSON array of exactly 3 objects.`;
-
-  let igPosts: PostDraft[], liPosts: PostDraft[];
+  let igPosts: PostDraft[];
   try {
-    const [igRaw, liRaw] = await Promise.all([callClaude(igPrompt), callClaude(liPrompt)]);
+    const igRaw = await callClaude(igPrompt);
     igPosts = parseJson(igRaw);
-    liPosts = parseJson(liRaw);
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }
 
   if (igPosts.length !== 5) return NextResponse.json({ error: `Expected 5 IG posts, got ${igPosts.length}` }, { status: 500 });
-  if (liPosts.length !== 3) return NextResponse.json({ error: `Expected 3 LinkedIn posts, got ${liPosts.length}` }, { status: 500 });
 
   // Post-generation duplicate check: title, hook, and full description body
-  const allGenerated = [...igPosts, ...liPosts];
+  const allGenerated = igPosts;
   const duplicates: string[] = [];
   for (const post of allGenerated) {
     const generatedHook = (post.description ?? "").split("\n")[0];
@@ -511,7 +468,7 @@ Return a JSON array of exactly 3 objects.`;
     );
   }
 
-  const allPosts = [...igPosts, ...liPosts];
+  const allPosts = igPosts;
 
   const now = new Date().toISOString();
   const records = allPosts.map((p) => ({
