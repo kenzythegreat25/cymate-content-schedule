@@ -17,6 +17,23 @@ type SlackMessage = {
   files?: Array<{ permalink?: string; url_private?: string; mimetype?: string }>;
 };
 
+// Keywords that signal a message is about Cymate's actual outbound results
+const WINS_RELEVANCE_KEYWORDS = [
+  "meeting", "booked", "booking", "demo", "call scheduled", "calendar",
+  "reply", "replied", "positive response", "interested", "responded",
+  "campaign", "sequence", "outbound", "cold email", "cold outreach",
+  "pipeline", "deal", "closed", "signed", "revenue", "conversion",
+  "lead", "prospect", "inbox", "deliverability", "open rate", "click rate",
+  "client", "results", "win", "performance", "launch", "went live",
+  "meetings booked", "responses", "batch", "send volume", "sent",
+];
+
+function isRelevantWin(text: string): boolean {
+  const lower = text.toLowerCase();
+  // Must contain at least one outbound/results keyword
+  return WINS_RELEVANCE_KEYWORDS.some((kw) => lower.includes(kw));
+}
+
 async function fetchSlackWins(): Promise<string> {
   if (!SLACK_TOKEN) return "";
   try {
@@ -33,7 +50,9 @@ async function fetchSlackWins(): Promise<string> {
         !m.text.includes("has joined") &&
         !m.text.includes("has renamed") &&
         !m.text.includes("has left") &&
-        m.text.length > 40
+        !m.text.includes("has set the channel") &&
+        m.text.length > 40 &&
+        isRelevantWin(m.text)
       )
       .map((m) => {
         const text = (m.text ?? "")
@@ -43,13 +62,11 @@ async function fetchSlackWins(): Promise<string> {
           .replace(/\s{2,}/g, " ")
           .trim();
 
-        // Build Slack permalink from channel + timestamp
         const ts = m.ts ?? "";
         const slackLink = ts
           ? `https://cymate.slack.com/archives/${WINS_CHANNEL}/p${ts.replace(".", "")}`
           : "";
 
-        // Collect any image file URLs attached to this message (permalink preferred, url_private as fallback)
         const imageFiles = (m.files ?? [])
           .filter((f) => f.mimetype?.startsWith("image/"))
           .map((f) => f.permalink ?? f.url_private ?? "")
@@ -61,7 +78,7 @@ async function fetchSlackWins(): Promise<string> {
         return entry;
       })
       .filter((t) => t.length > 30)
-      .slice(0, 25);
+      .slice(0, 20);
 
     return wins.length > 0 ? wins.join("\n") : "";
   } catch {
@@ -456,10 +473,14 @@ CONTENT STRATEGY — STRICTLY ENFORCED:
 - IG is for STRATEGY and WINS only. Every post must be educational, strategic, or results-oriented content directly related to Cymate's work, methodology, or GTM approach.
 - NEVER generate testimonials, client feedback posts, or case studies from clients on Instagram. Do not reference specific clients by name, do not quote client results, do not write posts framed as "a client told us..." or "one of our clients achieved...". These content types are off-limits on IG entirely.
 
-WINS POSTS (Monday + Wednesday): Draw inspiration from the RECENT WINS CONTEXT above. Turn a real win pattern into a punchy, credible post. IMPORTANT: Each win entry in the context may include a [slack: URL] and/or [images: URL] tag. When you use a win as inspiration for a post, copy those URLs into the notes field exactly as-is, on their own line, formatted as:
-"Source: [slack URL]"
-"Images: [image URL(s)]"
-This lets the scheduler find the original Slack message and grab the photo to attach. If no slack/image URL is present for that win, skip those lines.
+WINS POSTS (Monday + Wednesday): Draw inspiration from the RECENT WINS CONTEXT above. Select the 3 to 5 most impactful and relevant wins — prioritize ones with concrete metrics (meetings booked, campaign results, reply rates, deals, pipeline outcomes) over vague shoutouts. Combine these wins into a single strategic narrative post that highlights a pattern or system insight, not just a list of achievements. The post must feel purposeful: extract the "what this proves" angle.
+
+CRITICAL — SOURCE LINKS IN NOTES: Each win entry may include a [slack: URL] and/or [images: URL] tag. For every win you draw from to write this post, copy its links into the notes field as a numbered list. Format exactly like this (repeat for each win used, up to 5):
+"Win sources used:
+1. Source: [slack URL 1] | Images: [image URL(s) 1]
+2. Source: [slack URL 2] | Images: [image URL(s) 2]
+..."
+If a win has no slack/image URL, write "Source: (no link)" for that entry. Never omit this section from wins post notes — even if only 1 win was used.
 
 STYLE GUIDE for wins posts — follow this exactly:
 - Hook = a specific result or metric in the first line, no fluff. Examples: "8-12 meetings booked every week for a client. No ads. No organic. Just cold email." / "New campaign launched. Meeting booked within 2 hours." / "One copy tweak. Two meetings in three days."
@@ -512,10 +533,14 @@ MONDAY (${dates.mon}): A strategy or educational post. Teach something — a con
 
 WEDNESDAY (${dates.wed}): A framework, process, or insight post. Share something actionable — a step-by-step approach, a mental model, or a lesson from running outbound campaigns. Make the reader feel like they're getting access to Cymate's internal playbook. 280-350 words.
 
-FRIDAY (${dates.fri}): A wins-inspired post. Draw from the RECENT WINS CONTEXT above. IMPORTANT: Each win entry may include a [slack: URL] and/or [images: URL] tag. When you use a win as the basis for this post, copy those URLs into the notes field exactly as-is:
-"Source: [slack URL]"
-"Images: [image URL(s)]"
-This lets the scheduler find the original Slack message and grab the photo to attach. If no slack/image URL is present, skip those lines.
+FRIDAY (${dates.fri}): A wins-inspired strategic post. Draw from the RECENT WINS CONTEXT above. Select the 3 to 5 most impactful and relevant wins — prioritize ones with concrete metrics (meetings booked, campaign results, reply rates, deals closed, pipeline outcomes) over vague shoutouts. Synthesize them into one strategic narrative that extracts a pattern, system insight, or lesson. The post must feel purposeful and data-driven — not just a celebration, but proof of a methodology.
+
+CRITICAL — SOURCE LINKS IN NOTES: Each win entry may include a [slack: URL] and/or [images: URL] tag. For every win you draw from, copy its links into the notes field as a numbered list. Format exactly like this:
+"Win sources used:
+1. Source: [slack URL 1] | Images: [image URL(s) 1]
+2. Source: [slack URL 2] | Images: [image URL(s) 2]
+..."
+If a win has no slack/image URL, write "Source: (no link)" for that entry. Never omit this section from the Friday wins post notes.
 
 STYLE GUIDE — follow this exactly, modeled after top-performing outbound thought leadership posts:
 - Hook = a specific result or metric in the very first line. No preamble. Examples: "8-12 meetings booked every week. No ads. No organic. Just cold email." / "New campaign. Meeting booked in 2 hours." / "One copy change. Two meetings in three days."
