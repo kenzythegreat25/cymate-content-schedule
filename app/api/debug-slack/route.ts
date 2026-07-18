@@ -18,24 +18,38 @@ export async function GET() {
   }
 
   // Test channel read
-  const oldest = Math.floor(new Date("2025-04-01T00:00:00Z").getTime() / 1000).toString();
   const histRes = await fetch(
-    `https://slack.com/api/conversations.history?channel=${WINS_CHANNEL}&oldest=${oldest}&limit=5`,
+    `https://slack.com/api/conversations.history?channel=${WINS_CHANNEL}&limit=20`,
     { headers: { Authorization: `Bearer ${SLACK_TOKEN}` } }
   );
   const hist = await histRes.json();
+
+  type SlackFile = { id?: string; mimetype?: string; permalink?: string; url_private?: string };
+  type SlackMsg = { text?: string; ts?: string; files?: SlackFile[] };
+
+  const realMessages = hist.ok
+    ? (hist.messages as SlackMsg[]).filter((m) =>
+        m.text &&
+        !m.text.includes("has joined") &&
+        !m.text.includes("has renamed") &&
+        m.text.length > 20
+      ).slice(0, 5)
+    : [];
 
   return NextResponse.json({
     auth: { user: auth.user, team: auth.team },
     channel_read: hist.ok,
     channel_error: hist.error ?? null,
-    scopes_needed: ["channels:history", "files:read"],
-    sample_messages: hist.ok
-      ? (hist.messages ?? []).slice(0, 3).map((m: { text?: string; ts?: string; files?: { id?: string; mimetype?: string; permalink?: string; url_private?: string }[] }) => ({
-          ts: m.ts,
-          text: (m.text ?? "").slice(0, 80),
-          files: (m.files ?? []).map((f) => ({ id: f.id, mimetype: f.mimetype, permalink: f.permalink, url_private: f.url_private })),
-        }))
-      : [],
+    sample_wins: realMessages.map((m) => ({
+      ts: m.ts,
+      slack_link: `https://cymate.slack.com/archives/${WINS_CHANNEL}/p${(m.ts ?? "").replace(".", "")}`,
+      text: (m.text ?? "").slice(0, 120),
+      files: (m.files ?? []).map((f) => ({
+        id: f.id,
+        mimetype: f.mimetype,
+        permalink: f.permalink ?? null,
+        url_private: f.url_private ?? null,
+      })),
+    })),
   });
 }

@@ -20,9 +20,8 @@ type SlackMessage = {
 async function fetchSlackWins(): Promise<string> {
   if (!SLACK_TOKEN) return "";
   try {
-    const oldest = Math.floor(new Date("2025-04-01T00:00:00Z").getTime() / 1000).toString();
     const res = await fetch(
-      `https://slack.com/api/conversations.history?channel=${WINS_CHANNEL}&oldest=${oldest}&limit=100`,
+      `https://slack.com/api/conversations.history?channel=${WINS_CHANNEL}&limit=100`,
       { headers: { Authorization: `Bearer ${SLACK_TOKEN}` } }
     );
     const data = await res.json();
