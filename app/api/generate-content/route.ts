@@ -435,7 +435,12 @@ CONTENT STRATEGY — STRICTLY ENFORCED:
 - IG is for STRATEGY and WINS only. Every post must be educational, strategic, or results-oriented content directly related to Cymate's work, methodology, or GTM approach.
 - NEVER generate testimonials, client feedback posts, or case studies from clients on Instagram. Do not reference specific clients by name, do not quote client results, do not write posts framed as "a client told us..." or "one of our clients achieved...". These content types are off-limits on IG entirely.
 
-WINS POSTS (Monday + Wednesday): Draw inspiration from the RECENT WINS CONTEXT above. Turn a real win pattern into a strategic insight — e.g. "We booked a meeting with a Fortune 500 on day 1 of a new campaign. Here's what changed." Do NOT name the client. Frame it as a result Cymate achieved, a pattern we noticed, or a lesson we learned. Keep it punchy, specific, and credible.
+WINS POSTS (Monday + Wednesday): Draw inspiration from the RECENT WINS CONTEXT above. Turn a real win pattern into a punchy, credible post. STYLE GUIDE for wins posts — follow this exactly:
+- Hook = a specific result or metric in the first line, no fluff. Examples: "8-12 meetings booked every week for a client. No ads. No organic. Just cold email." / "New campaign launched. Meeting booked within 2 hours." / "One copy tweak. Two meetings in three days."
+- Body = short paragraphs of 1-3 sentences max. Break down the HOW — what system, infrastructure change, or process made it happen. Attribute results to process and methodology, never luck or individual talent.
+- Use specific numbers where possible (draw from wins context — anonymize client names but keep the numbers).
+- Frame as Cymate's result: "We did X. Here's what changed." Never name the client.
+- Tone: confident, direct, conversational. Like a practitioner sharing a real observation, not a marketer writing a case study.
 
 STRATEGY POSTS (Tuesday, Thursday, Friday): Pure educational/framework content. Outbound frameworks, deliverability insights, cold email strategy, ICP definition, pipeline thinking, sequencing tactics, founder GTM lessons, or Cymate's own process shared as a brand. No wins framing needed here — just straight value.
 
@@ -481,7 +486,13 @@ MONDAY (${dates.mon}): A strategy or educational post. Teach something — a con
 
 WEDNESDAY (${dates.wed}): A framework, process, or insight post. Share something actionable — a step-by-step approach, a mental model, or a lesson from running outbound campaigns. Make the reader feel like they're getting access to Cymate's internal playbook. 280-350 words.
 
-FRIDAY (${dates.fri}): A wins-inspired post. Draw from the RECENT WINS CONTEXT above — take a real result pattern (meeting booked day 1, re-engagement campaign reviving a dead account, copy variant turning things around) and turn it into a story-driven post. Do NOT name the client. Frame it as "we tried X, here's what happened." Specific, credible, and punchy. 200-280 words.
+FRIDAY (${dates.fri}): A wins-inspired post. Draw from the RECENT WINS CONTEXT above. STYLE GUIDE — follow this exactly, modeled after top-performing outbound thought leadership posts:
+- Hook = a specific result or metric in the very first line. No preamble. Examples: "8-12 meetings booked every week. No ads. No organic. Just cold email." / "New campaign. Meeting booked in 2 hours." / "One copy change. Two meetings in three days."
+- Body = short paragraphs, 1-3 sentences max. Break down the HOW — the system, infrastructure fix, copy approach, or process change that drove the result. Attribute wins to methodology and process, never luck.
+- Use specific numbers from the wins context where possible. Anonymize client names — never name them.
+- Frame in first person as Cymate: "We launched X. Here's what happened." or "We changed Y. Results:"
+- Tone: confident, direct, practitioner-voice. Like someone sharing a real observation from the trenches, not a polished case study.
+- 200-280 words.
 
 AUDIENCE: B2B founders, sales leaders, and GTM teams at SaaS/tech companies. Many are in Latin America (Colombia, Argentina, Costa Rica, Mexico) — lean teams, founder-led sales, scrappy outbound. Write in English with empathy for that reality.
 
