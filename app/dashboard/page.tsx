@@ -630,7 +630,7 @@ function GenerateModal({ onClose, onGenerated }: { onClose: () => void; onGenera
                   <span className="text-[13px] font-semibold text-ink">{m === "week" ? "Full week" : "Single post"}</span>
                   <span className="text-[11px] leading-snug text-ink-soft">
                     {m === "week"
-                      ? "5 IG posts + 3 LinkedIn posts, Mon – Fri"
+                      ? "5 IG posts + 1 LinkedIn post, Mon – Fri"
                       : "Pick a platform, type, and optional topic"}
                   </span>
                 </button>
@@ -725,7 +725,7 @@ function GenerateModal({ onClose, onGenerated }: { onClose: () => void; onGenera
         <div className="flex items-center justify-between gap-3 border-t border-line px-5 py-4">
           <p className="text-[11px] text-muted leading-snug max-w-[220px]">
             {mode === "week"
-              ? "Generates 8 posts. Blocked if that week already has content."
+              ? "Generates 6 posts. Blocked if that week already has content."
               : `${platform} · ${contentType}${date ? ` · ${date}` : ""}`}
           </p>
           <div className="flex gap-2">
