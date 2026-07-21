@@ -276,11 +276,11 @@ function parseJson(raw: string): PostDraft[] {
 
 // Normalize a title to key words for fuzzy comparison
 function normalizeTitle(t: string): string {
-  return t.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\b(a|an|the|your|our|why|how|what|when|is|are|to|in|on|of|for|and|with|that|this)\b/g, "").replace(/\s+/g, " ").trim();
+  return t.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\b(a|an|the|your|our|why|how|what|when|is|are|to|in|on|of|for|and|with|that|this|it|its|we|i|you|me|be|do|did|was|been|have|has|had|will|would|can|could|should|get|go|make|take|put|use|just|also|then|now|still|more|even|only|very|all|any|some|no|not|so)\b/g, "").replace(/\s+/g, " ").trim();
 }
 
 // Returns true if two strings share enough core words to be considered duplicates
-function textTooSimilar(a: string, b: string, threshold = 0.55): boolean {
+function textTooSimilar(a: string, b: string, threshold = 0.50): boolean {
   const na = normalizeTitle(a).split(" ").filter(w => w.length > 3);
   const nb = normalizeTitle(b).split(" ").filter(w => w.length > 3);
   if (na.length === 0 || nb.length === 0) return false;
@@ -290,9 +290,24 @@ function textTooSimilar(a: string, b: string, threshold = 0.55): boolean {
 
 // Returns true if two full captions/descriptions are too similar in body content
 function descriptionTooSimilar(a: string, b: string): boolean {
-  // Strip hashtags before comparing
   const strip = (s: string) => s.replace(/#\S+/g, "").replace(/\s+/g, " ").trim();
-  return textTooSimilar(strip(a), strip(b), 0.45);
+  return textTooSimilar(strip(a), strip(b), 0.38);
+}
+
+// Extract the key topic keywords from a list of post titles to build a covered-topics list for Claude
+function buildCoveredTopics(titles: string[]): string {
+  // Pull meaningful words (4+ chars) from all titles, dedupe, sort alphabetically
+  const wordCounts: Record<string, number> = {};
+  for (const t of titles) {
+    const words = normalizeTitle(t).split(" ").filter(w => w.length >= 4);
+    for (const w of words) wordCounts[w] = (wordCounts[w] ?? 0) + 1;
+  }
+  // Return top recurring themes AND the original titles for context
+  const topWords = Object.entries(wordCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 40)
+    .map(([w]) => w);
+  return topWords.join(", ");
 }
 
 async function runSinglePostGeneration(
@@ -315,9 +330,10 @@ async function runSinglePostGeneration(
   const allExistingHooks        = allPosts.map(p => (p.description ?? "").split("\n")[0].toLowerCase());
   const allExistingDescriptions = allPosts.map(p => (p.description ?? "").toLowerCase());
   const recentTitles = allPosts.map(p => {
-    const desc = (p.description ?? "").replace(/#\S+/g, "").trim().slice(0, 160);
-    return `[${p.platform}] ${p.title} | caption: "${desc}" (${p.date} · ${p.status})`;
+    const desc = (p.description ?? "").replace(/#\S+/g, "").trim().split("\n")[0];
+    return `[${p.platform}] ${p.title} | hook: "${desc}"`;
   }).join("\n") || "None";
+  const coveredTopicWordsSingle = buildCoveredTopics(allExistingTitles);
 
   const topicLine = topicHint ? `\nTOPIC HINT: The post should be about: "${topicHint}". Use this as the angle — don't ignore it.` : "";
 
@@ -325,10 +341,13 @@ async function runSinglePostGeneration(
 
 ${IG_HASHTAG_POOL}
 
-${platform === "LinkedIn" ? CLIENT_TESTIMONIALS + "\n\n" : ""}EXISTING POSTS — ALL STATUSES:
+${platform === "LinkedIn" ? CLIENT_TESTIMONIALS + "\n\n" : ""}COVERED TOPIC WORDS (already published or scheduled — avoid ALL of these):
+${coveredTopicWordsSingle}
+
+EXISTING POSTS — ALL STATUSES:
 ${recentTitles}
 
-DEDUPLICATION RULE (hard): Every title, hook, and topic above is off-limits — including similar angles, the same subject reframed, and close variations on the same theme. The opening hook line must also be distinct from any existing hook shown above.
+DEDUPLICATION RULE — MOST IMPORTANT RULE: Every post above — regardless of status — is OFF-LIMITS as a topic. This includes the same subject, same angle reframed, or any hook that makes the same opening claim. The new post MUST cover a topic with ZERO overlap with anything listed above.
 ${topicLine}
 
 Generate EXACTLY 1 ${platform} post. Content type: ${contentType}. Date: ${date ?? new Date().toISOString().slice(0, 10)}.
@@ -435,8 +454,9 @@ async function runGeneration(userId: string, opts: { mode?: string; platform?: s
   const allExistingDescriptions = recentPosts?.map(p => (p.description ?? "").toLowerCase()) ?? [];
   const recentTitles = recentPosts?.map(p => {
     const desc = (p.description ?? "").replace(/#\S+/g, "").trim().slice(0, 160);
-    return `[${p.platform}] ${p.title} | caption: "${desc}" (${p.date} · ${p.status})`;
+    return `[${p.platform}] ${p.title} | hook: "${desc.split("\n")[0]}"`;
   }).join("\n") ?? "None";
+  const coveredTopicWords = buildCoveredTopics(allExistingTitles);
 
   const isoWeek = Math.ceil((new Date(dates.mon).getDate() + new Date(new Date(dates.mon).getFullYear(), 0, 1).getDay()) / 7);
   const includeReel = isoWeek % 2 === 1;
@@ -457,10 +477,20 @@ Thursday IG: ${includeReel ? "Reel (45-60s — include beat-by-beat script in no
 
 ${IG_HASHTAG_POOL}
 ${winsContext}
+COVERED TOPIC WORDS (extracted from all existing posts — these themes are ALREADY PUBLISHED or SCHEDULED):
+${coveredTopicWords}
+
 EXISTING POSTS — ALL STATUSES (Drafting, Review, Scheduled, Posted):
 ${recentTitles}
 
-DEDUPLICATION RULE (hard): Every title, hook, and topic above is off-limits — including similar angles, the same subject reframed, and close variations on the same theme. Do not post about reply rates if a reply-rate post already exists. Do not post about deliverability if a deliverability post already exists. The opening hook line of each caption must also be distinct — do not start a caption with the same premise or framing as any existing hook shown above. The test: could someone read both posts and think "this is basically the same topic" or "this hook makes the same point"? If yes, pick something else entirely.
+DEDUPLICATION RULE — THIS IS THE MOST IMPORTANT RULE. FAILURE TO FOLLOW IT WILL RESULT IN UNUSABLE OUTPUT.
+Every single post above — regardless of status (Drafting, Review, Scheduled, or Posted) — is OFF-LIMITS as a topic. This includes:
+- The same keyword, subject, or theme even if titled differently
+- The same angle reframed or "from a different perspective"
+- Any hook that makes the same opening claim as an existing hook
+- Any topic where a reader could say "we already covered this"
+You MUST generate posts on topics that have ZERO overlap with anything listed above. If a topic rhymes with something in the list, discard it and choose something else. Topics not yet covered in B2B outbound include: list segmentation, warm-up infrastructure, spam trap avoidance, founder-led sales handoff, outbound for product-led companies, LinkedIn + email sequencing, time zone targeting, CRM hygiene for outbound, multi-threaded prospecting, re-engagement campaigns, outbound for expansion revenue, hiring outbound talent, outbound post-iOS15, first-line personalization at scale, SDR to AE handoff, and dozens more. Pick from the untouched corners of outbound strategy.
+The opening hook line of every caption must also be completely distinct — no recycled premises, no "X is broken" / "Most companies get X wrong" variations if those framings already exist.
 
 GENERIC REPLY RULE: For every post, include 3 Q&A reply pairs in the notes field. Each pair should anticipate a real comment or question someone might leave on that specific post and provide a warm, genuine response that adds value — not a bot reply, not a sales pitch. The replies should feel like a real person continuing the conversation. Base each Q on a likely reaction to that post's specific content. Format exactly as: Q1: [comment/question] — A: [reply]. Do this for Q1 through Q3. Keep each reply one or two sentences. Also add at the end of notes: "Reminder: share this post to your Stories after posting to boost reach."
 
@@ -519,10 +549,14 @@ Return a JSON array of exactly 5 objects.`;
 
 ${IG_HASHTAG_POOL}
 ${winsContext}
+COVERED TOPIC WORDS (extracted from all existing posts — these themes are ALREADY PUBLISHED or SCHEDULED):
+${coveredTopicWords}
+
 EXISTING POSTS — ALL STATUSES (Drafting, Review, Scheduled, Posted):
 ${recentTitles}
 
-DEDUPLICATION RULE (hard): Every title, hook, and topic above is off-limits — including similar angles, the same subject reframed, and close variations on the same theme. The test: could someone read both posts and think "this is basically the same topic"? If yes, pick something else entirely.
+DEDUPLICATION RULE — THIS IS THE MOST IMPORTANT RULE. FAILURE TO FOLLOW IT WILL RESULT IN UNUSABLE OUTPUT.
+Every single post above — regardless of status — is OFF-LIMITS as a topic. This includes the same keyword, same subject, same angle reframed, or any hook that makes the same opening claim. You MUST generate posts on topics with ZERO overlap with anything listed. If a topic overlaps even slightly, discard it and pick something genuinely untouched. Topics not yet covered in B2B outbound include: list segmentation, warm-up infrastructure, spam trap avoidance, founder-led sales handoff, outbound for product-led companies, LinkedIn + email sequencing, time zone targeting, CRM hygiene, multi-threaded prospecting, re-engagement campaigns, outbound for expansion revenue, hiring outbound talent, first-line personalization at scale, SDR to AE handoff, and many more.
 
 Generate EXACTLY 3 LinkedIn posts for this week:
 1. Monday — ${dates.mon}
