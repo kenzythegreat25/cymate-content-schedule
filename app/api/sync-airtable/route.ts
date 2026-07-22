@@ -17,7 +17,8 @@ function fetchWithTimeout(url: string, options: RequestInit, ms = 8000) {
 
 const STATUS_MAP: Record<string, string> = {
   Posted:    "Posted",
-  Scheduled: "In progress",
+  Scheduled: "Scheduled",
+  Review:    "In Review",
 };
 
 function toAirtableRecord(p: ContentItem) {

@@ -37,6 +37,8 @@ import { useTheme, type Theme } from "../../lib/theme";
 
 type View = "board" | "calendar" | "list" | "tasks";
 
+const SYNCED_STATUSES = new Set(["Review", "Scheduled", "Posted"]);
+
 /* ─── Task types (localStorage-only, never touches content DB) ─── */
 type TaskCategory = "Cold Email" | "Content" | "Client" | "Admin" | "Other";
 const TASK_CATEGORIES: TaskCategory[] = ["Cold Email", "Content", "Client", "Admin", "Other"];
@@ -101,6 +103,29 @@ export default function Home() {
     };
   }, []);
 
+  // Auto-sync any Review/Scheduled/Posted items not yet tracked in Airtable.
+  useEffect(() => {
+    if (loading || userEmail !== "kenc@cymate.io") return;
+    const idMap: Record<string, string> = JSON.parse(localStorage.getItem("airtable_id_map") ?? "{}");
+    const toSync = items.filter((i) => SYNCED_STATUSES.has(i.status) && !idMap[i.id]);
+    if (!toSync.length) return;
+    fetch("/api/sync-airtable", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ posts: toSync }),
+    }).then((r) => r.json()).then((result) => {
+      if (result.newlySyncedIds?.length) {
+        const syncedIds: string[] = JSON.parse(localStorage.getItem("airtable_synced_ids") ?? "[]");
+        localStorage.setItem("airtable_synced_ids", JSON.stringify(Array.from(new Set([...syncedIds, ...result.newlySyncedIds]))));
+      }
+      if (result.airtableIdMap) {
+        const prev: Record<string, string> = JSON.parse(localStorage.getItem("airtable_id_map") ?? "{}");
+        localStorage.setItem("airtable_id_map", JSON.stringify({ ...prev, ...result.airtableIdMap }));
+      }
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, userEmail]);
+
   const flush = (id: string) => {
     const patch = pendingPatches.current[id];
     if (!patch) return;
@@ -158,7 +183,6 @@ export default function Home() {
     const prevItem = items.find((i) => i.id === id);
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
 
-    const SYNCED_STATUSES = new Set(["Posted"]);
     const isAdmin = userEmail === "kenc@cymate.io";
 
     // Moving away from a synced status → delete from Airtable instantly
@@ -458,9 +482,9 @@ function AirtableSyncButton({ items }: { items: ContentItem[] }) {
   const [message, setMessage] = useState("");
 
   const handleSync = async () => {
+    const idMap: Record<string, string> = JSON.parse(localStorage.getItem("airtable_id_map") ?? "{}");
     const syncedIds: string[] = JSON.parse(localStorage.getItem("airtable_synced_ids") ?? "[]");
-    const syncedSet = new Set(syncedIds);
-    const toSync = items.filter((i) => i.status === "Posted" && !syncedSet.has(i.id));
+    const toSync = items.filter((i) => SYNCED_STATUSES.has(i.status) && !idMap[i.id]);
 
     // Nothing new — skip server entirely
     if (!toSync.length) {
