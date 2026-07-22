@@ -1375,7 +1375,7 @@ function CalendarView({
                         setDragId(it.id);
                       }}
                       onDragEnd={() => { setDragId(null); setDragOver(null); }}
-                      className={`block w-full cursor-grab select-none truncate rounded px-1.5 py-1 text-left text-[11px] ring-1 transition hover:scale-[1.02] active:cursor-grabbing ${STATUS_META[it.status].tint} ${STATUS_META[it.status].text} ${STATUS_META[it.status].ring} ${dragId === it.id ? "opacity-50" : ""}`}
+                      className={`block w-full cursor-grab select-none truncate rounded px-1.5 py-1 text-left text-[11px] ring-1 transition hover:scale-[1.02] active:cursor-grabbing ${STATUS_META[it.status]?.tint ?? "bg-stone-100"} ${STATUS_META[it.status]?.text ?? "text-stone-600"} ${STATUS_META[it.status]?.ring ?? "ring-stone-200"} ${dragId === it.id ? "opacity-50" : ""}`}
                     >
                       {it.title || "Untitled"}
                     </button>
@@ -2553,6 +2553,7 @@ function MediaLightbox({
 
 function StatusBadge({ status }: { status: Status }) {
   const m = STATUS_META[status];
+  if (!m) return <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium bg-stone-100 text-stone-600 ring-1 ring-stone-200">{status}</span>;
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ${m.tint} ${m.text} ring-1 ${m.ring}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${m.dot}`} />
@@ -2563,6 +2564,7 @@ function StatusBadge({ status }: { status: Status }) {
 
 function ContentTypeChip({ type }: { type: ContentType }) {
   const m = CONTENT_TYPE_META[type];
+  if (!m) return <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 bg-stone-100 text-stone-600 ring-stone-200">{type}</span>;
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ${m.tint} ${m.text} ${m.ring}`}>
       {type}
@@ -2573,6 +2575,7 @@ function ContentTypeChip({ type }: { type: ContentType }) {
 function ReviewChip({ status }: { status: ReviewStatus }) {
   if (!status || status === "pending") return null;
   const m = REVIEW_STATUS_META[status as Exclude<ReviewStatus, "" | "pending">];
+  if (!m) return null;
   const glyph = status === "approved" ? "✓" : status === "needs-revision" ? "↺" : "⏸";
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ${m.tint} ${m.text} ${m.ring}`} title={m.label}>
