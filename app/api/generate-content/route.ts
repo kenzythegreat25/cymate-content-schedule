@@ -28,10 +28,62 @@ const WINS_RELEVANCE_KEYWORDS = [
   "meetings booked", "responses", "batch", "send volume", "sent",
 ];
 
+// High-value signals that make a win worth featuring
+const HIGH_VALUE_SIGNALS = [
+  // Volume signals — lots of leads/meetings
+  "meetings booked", "multiple meetings", "several meetings",
+  "leads interested", "positive replies", "responses", "interested leads",
+  // Deal/pipeline impact
+  "closed", "signed", "contract", "deal", "pipeline", "revenue", "paid",
+  // Strong engagement
+  "very interested", "highly interested", "ready to move forward", "let's do it",
+  "want to book", "schedule a call", "hop on a call", "let's connect",
+  // Notable volume numbers — matches things like "12 meetings", "40 replies", etc.
+];
+
+// Known/notable company name fragments to up-score wins mentioning them
+const BIG_NAME_SIGNALS = [
+  "series a", "series b", "series c", "funded", "raised",
+  "enterprise", "fortune", "nasdaq", "nyse", "unicorn",
+  "y combinator", "ycombinator", "techstars", "a16z", "sequoia",
+  "ceo", "cto", "vp of sales", "head of sales", "chief",
+  "inc.", " inc,", "corp.", " llc", ".com", "technologies", "solutions",
+];
+
 function isRelevantWin(text: string): boolean {
   const lower = text.toLowerCase();
-  // Must contain at least one outbound/results keyword
   return WINS_RELEVANCE_KEYWORDS.some((kw) => lower.includes(kw));
+}
+
+function scoreWin(text: string, hasImages: boolean): number {
+  const lower = text.toLowerCase();
+  let score = 0;
+
+  // Presence of explicit numbers = stronger win (e.g. "7 meetings", "40 replies")
+  const numberMatches = lower.match(/\b([5-9]|[1-9]\d+)\s*(meetings?|replies|responses|leads?|demos?|calls?|bookings?)\b/g);
+  if (numberMatches) score += numberMatches.length * 4;
+
+  // Single-digit numbers still count but less
+  const smallNumbers = lower.match(/\b[2-4]\s*(meetings?|replies|responses|leads?|demos?|calls?|bookings?)\b/g);
+  if (smallNumbers) score += smallNumbers.length * 2;
+
+  // High-value signals
+  HIGH_VALUE_SIGNALS.forEach((sig) => { if (lower.includes(sig)) score += 3; });
+
+  // Big-name / seniority signals
+  BIG_NAME_SIGNALS.forEach((sig) => { if (lower.includes(sig)) score += 2; });
+
+  // Screenshot attached = visual proof, strongly prefer
+  if (hasImages) score += 5;
+
+  // Longer, more detailed messages tend to be more substantial wins
+  if (text.length > 200) score += 2;
+  if (text.length > 400) score += 2;
+
+  // Penalise very short messages — likely low-context pings
+  if (text.length < 80) score -= 3;
+
+  return score;
 }
 
 async function fetchSlackWins(): Promise<string> {
@@ -44,7 +96,7 @@ async function fetchSlackWins(): Promise<string> {
     const data = await res.json();
     if (!data.ok) return "";
 
-    const wins: string[] = (data.messages as SlackMessage[])
+    const scored = (data.messages as SlackMessage[])
       .filter((m) =>
         m.text &&
         !m.text.includes("has joined") &&
@@ -72,15 +124,21 @@ async function fetchSlackWins(): Promise<string> {
           .map((f) => f.permalink ?? f.url_private ?? "")
           .filter(Boolean);
 
+        const hasImages = imageFiles.length > 0;
+        const score = scoreWin(text, hasImages);
+
         let entry = text;
         if (slackLink) entry += ` [slack: ${slackLink}]`;
-        if (imageFiles.length > 0) entry += ` [images: ${imageFiles.join(", ")}]`;
-        return entry;
+        if (hasImages) entry += ` [images: ${imageFiles.join(", ")}]`;
+        return { entry, score };
       })
-      .filter((t) => t.length > 30)
-      .slice(0, 20);
+      .filter((w) => w.entry.length > 30 && w.score >= 0)
+      // Sort highest-scoring wins first so Claude always sees the best ones
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 15)
+      .map((w) => w.entry);
 
-    return wins.length > 0 ? wins.join("\n") : "";
+    return scored.length > 0 ? scored.join("\n") : "";
   } catch {
     return "";
   }
@@ -505,7 +563,7 @@ CONTENT STRATEGY — STRICTLY ENFORCED:
 - IG is for STRATEGY and WINS only. Every post must be educational, strategic, or results-oriented content directly related to Cymate's work, methodology, or GTM approach.
 - NEVER generate testimonials, client feedback posts, or case studies from clients on Instagram. Do not reference specific clients by name, do not quote client results, do not write posts framed as "a client told us..." or "one of our clients achieved...". These content types are off-limits on IG entirely.
 
-WINS POSTS (Monday + Wednesday): Draw inspiration from the RECENT WINS CONTEXT above. Select the 3 to 5 most impactful and relevant wins — prioritize ones with concrete metrics (meetings booked, campaign results, reply rates, deals, pipeline outcomes) over vague shoutouts. Combine these wins into a single strategic narrative post that highlights a pattern or system insight, not just a list of achievements. The post must feel purposeful: extract the "what this proves" angle.
+WINS POSTS (Monday + Wednesday): Draw inspiration from the RECENT WINS CONTEXT above. The wins are pre-ranked — the ones listed first are the highest-quality (most leads, strongest signals, screenshots attached). Select the 3 to 5 wins from the TOP of that list. Prioritize wins that: (1) mention real numbers of interested leads, meetings booked, or reply volume; (2) involve recognizable or senior contacts (CEO, VP, Head of Sales, funded startups, enterprise names); (3) have screenshots attached (indicated by [images:]); (4) show clear cause-and-effect (we changed X, got Y result). Skip wins that are vague ("great response!"), have no numbers, or feel like low-signal pings. Combine the selected wins into one strategic narrative that extracts the pattern or system behind why these happened.
 
 CRITICAL — SOURCE LINKS IN NOTES: Each win entry may include a [slack: URL] and/or [images: URL] tag. For every win you draw from to write this post, copy its links into the notes field as a numbered list. Format exactly like this (repeat for each win used, up to 5):
 "Win sources used:
@@ -569,7 +627,7 @@ MONDAY (${dates.mon}): A strategy or educational post. Teach something — a con
 
 WEDNESDAY (${dates.wed}): A framework, process, or insight post. Share something actionable — a step-by-step approach, a mental model, or a lesson from running outbound campaigns. Make the reader feel like they're getting access to Cymate's internal playbook. 280-350 words.
 
-FRIDAY (${dates.fri}): A wins-inspired strategic post. Draw from the RECENT WINS CONTEXT above. Select the 3 to 5 most impactful and relevant wins — prioritize ones with concrete metrics (meetings booked, campaign results, reply rates, deals closed, pipeline outcomes) over vague shoutouts. Synthesize them into one strategic narrative that extracts a pattern, system insight, or lesson. The post must feel purposeful and data-driven — not just a celebration, but proof of a methodology.
+FRIDAY (${dates.fri}): A wins-inspired strategic post. Draw from the RECENT WINS CONTEXT above. The wins are pre-ranked — the ones listed first are highest quality. Select the 3 to 5 wins from the TOP of that list. Prioritize: (1) wins with real numbers (meetings booked, volume of interested leads, reply rates); (2) wins involving senior contacts or recognizable companies (CEO, VP, Head of Sales, funded/enterprise names); (3) wins with screenshots ([images:] tag = visual proof); (4) wins showing a clear before/after or cause-and-effect. Skip vague, numberless, or low-signal wins entirely. Synthesize into one strategic narrative that extracts a pattern, system insight, or lesson. The post must feel data-driven — proof of methodology, not a random highlight reel.
 
 CRITICAL — SOURCE LINKS IN NOTES: Each win entry may include a [slack: URL] and/or [images: URL] tag. For every win you draw from, copy its links into the notes field as a numbered list. Format exactly like this:
 "Win sources used:
