@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
+import { createPost } from "../../lib/storage";
 
 type Clip = {
   title: string;
@@ -25,6 +26,8 @@ export default function TranscriptPage() {
   const [clips, setClips] = useState<Clip[]>([]);
   const [errorMsg, setErrorMsg] = useState("");
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [addedIdx, setAddedIdx] = useState<Set<number>>(new Set());
+  const [addingIdx, setAddingIdx] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const toggleLength = (val: string) => {
@@ -79,6 +82,24 @@ export default function TranscriptPage() {
     navigator.clipboard.writeText(clips[idx].description).catch(() => {});
     setCopiedIdx(idx);
     setTimeout(() => setCopiedIdx(null), 2000);
+  };
+
+  const addToReview = async (idx: number) => {
+    if (addingIdx === idx || addedIdx.has(idx)) return;
+    setAddingIdx(idx);
+    const clip = clips[idx];
+    const created = await createPost({
+      title: clip.title,
+      description: clip.description,
+      notes: clip.excerpt,
+      status: "Review",
+      platforms: [],
+      attachments: [],
+    });
+    setAddingIdx(null);
+    if (created) {
+      setAddedIdx((prev) => new Set([...prev, idx]));
+    }
   };
 
   return (
@@ -295,6 +316,23 @@ export default function TranscriptPage() {
                   >
                     {copiedIdx === i ? "Copied!" : "Copy description"}
                   </button>
+                  <button
+                    onClick={() => addToReview(i)}
+                    disabled={addingIdx === i || addedIdx.has(i)}
+                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                      addedIdx.has(i)
+                        ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 cursor-default"
+                        : "border border-accent/30 bg-accent/10 text-accent hover:bg-accent/20 disabled:opacity-50"
+                    }`}
+                  >
+                    {addedIdx.has(i) ? (
+                      <><CheckIcon /> Added to Review</>
+                    ) : addingIdx === i ? (
+                      <><SpinnerIcon /> Adding…</>
+                    ) : (
+                      <><PlusIcon /> Add to Review</>
+                    )}
+                  </button>
                 </div>
               </div>
             ))}
@@ -345,6 +383,22 @@ function SpinnerIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
       <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12"/>
     </svg>
   );
 }
