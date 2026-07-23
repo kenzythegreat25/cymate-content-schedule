@@ -67,6 +67,10 @@ export default function SettingsPage() {
           <ExportRow />
         </Section>
 
+        <Section title="Change email" subtitle="A confirmation link will be sent to the new address.">
+          <ChangeEmailForm currentEmail={email} onChanged={setEmail} />
+        </Section>
+
         <Section title="Theme" subtitle="Pick how the app looks.">
           <ThemeRow />
         </Section>
@@ -215,6 +219,62 @@ function ThemeRow() {
         );
       })}
     </div>
+  );
+}
+
+function ChangeEmailForm({ currentEmail, onChanged }: { currentEmail: string; onChanged: (e: string) => void }) {
+  const [newEmail, setNewEmail] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [ok, setOk] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setOk(false);
+    if (!newEmail.includes("@")) {
+      setError("Enter a valid email address.");
+      return;
+    }
+    if (newEmail === currentEmail) {
+      setError("That's already your current email.");
+      return;
+    }
+    setLoading(true);
+    const supabase = supabaseBrowser();
+    const { error } = await supabase.auth.updateUser({ email: newEmail });
+    setLoading(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setOk(true);
+    onChanged(newEmail);
+    setNewEmail("");
+  };
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-3">
+      <input
+        type="email"
+        value={newEmail}
+        onChange={(e) => setNewEmail(e.target.value)}
+        placeholder="New email address"
+        autoComplete="email"
+        className="settings-input"
+      />
+      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{error}</div>}
+      {ok && <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">Check your new inbox — click the confirmation link to complete the change.</div>}
+      <div className="flex justify-end">
+        <button
+          type="submit"
+          disabled={loading || !newEmail}
+          className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-canvas shadow-card transition-transform hover:scale-[1.01] disabled:opacity-60"
+        >
+          {loading ? "Sending…" : "Update email"}
+        </button>
+      </div>
+    </form>
   );
 }
 
