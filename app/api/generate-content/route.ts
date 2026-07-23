@@ -86,7 +86,7 @@ function scoreWin(text: string, hasImages: boolean): number {
   return score;
 }
 
-async function fetchSlackWins(): Promise<string> {
+async function fetchSlackWins(usedUrls: Set<string> = new Set()): Promise<string> {
   if (!SLACK_TOKEN) return "";
   try {
     const res = await fetch(
@@ -119,6 +119,9 @@ async function fetchSlackWins(): Promise<string> {
           ? `https://cymate.slack.com/archives/${WINS_CHANNEL}/p${ts.replace(".", "")}`
           : "";
 
+        // Skip this win if its Slack URL was already used in a previous post
+        if (slackLink && usedUrls.has(slackLink)) return null;
+
         const imageFiles = (m.files ?? [])
           .filter((f) => f.mimetype?.startsWith("image/"))
           .map((f) => f.permalink ?? f.url_private ?? "")
@@ -132,7 +135,7 @@ async function fetchSlackWins(): Promise<string> {
         if (hasImages) entry += ` [images: ${imageFiles.join(", ")}]`;
         return { entry, score };
       })
-      .filter((w) => w.entry.length > 30 && w.score >= 0)
+      .filter((w): w is { entry: string; score: number } => w !== null && w.entry.length > 30 && w.score >= 0)
       // Sort highest-scoring wins first so Claude always sees the best ones
       .sort((a, b) => b.score - a.score)
       .slice(0, 15)
@@ -378,10 +381,10 @@ async function runSinglePostGeneration(
 ): Promise<Response> {
   const { platform = "Instagram", contentType = "Static", date, topicHint } = opts;
 
-  // Fetch all existing posts for dedup
+  // Fetch all existing posts for dedup and win-source tracking
   const { data: allPostsRaw } = await supabaseAdmin
     .from("posts")
-    .select("title, description, platform, date, status")
+    .select("title, description, platform, date, status, notes")
     .order("created_at", { ascending: false });
 
   const allPosts = (allPostsRaw ?? []) as { title: string; description: string; platform: string; date: string; status: string }[];
@@ -504,10 +507,10 @@ async function runGeneration(userId: string, opts: { mode?: string; platform?: s
   const dates = getWeekDates();
 
 
-  // Fetch ALL existing posts (title + first line of description) for deduplication — no limit
+  // Fetch ALL existing posts for deduplication and win-source tracking
   const { data: recentPosts } = await supabaseAdmin
     .from("posts")
-    .select("title, description, platform, date, status")
+    .select("title, description, platform, date, status, notes")
     .order("created_at", { ascending: false });
   const allExistingTitles       = recentPosts?.map(p => p.title.toLowerCase()) ?? [];
   const allExistingHooks        = recentPosts?.map(p => (p.description ?? "").split("\n")[0].toLowerCase()) ?? [];
@@ -518,11 +521,19 @@ async function runGeneration(userId: string, opts: { mode?: string; platform?: s
   }).join("\n") ?? "None";
   const coveredTopicWords = buildCoveredTopics(allExistingTitles);
 
+  // Extract Slack URLs already used in previous win posts so we never reuse them
+  const usedSlackUrls = new Set<string>();
+  for (const p of recentPosts ?? []) {
+    const notes = (p.notes ?? "") as string;
+    const matches = notes.match(/https:\/\/cymate\.slack\.com\/archives\/[^\s|"'\]]+/g) ?? [];
+    matches.forEach((u) => usedSlackUrls.add(u.trim()));
+  }
+
   const isoWeek = Math.ceil((new Date(dates.mon).getDate() + new Date(new Date(dates.mon).getFullYear(), 0, 1).getDay()) / 7);
   const includeReel = isoWeek % 2 === 1;
   const isFirstWeekOfMonth = new Date(dates.mon).getUTCDate() <= 7;
 
-  const winsRaw = await fetchSlackWins();
+  const winsRaw = await fetchSlackWins(usedSlackUrls);
   const winsContext = winsRaw
     ? `\nRECENT WINS CONTEXT (use as INSPIRATION only — do NOT name specific clients, do NOT write testimonials, anonymize all company and client names, extract the strategic insight or result pattern):\n${winsRaw}\n`
     : "";
