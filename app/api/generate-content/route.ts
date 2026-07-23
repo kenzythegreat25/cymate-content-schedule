@@ -391,7 +391,7 @@ async function runSinglePostGeneration(
   const allExistingDescriptions = allPosts.map(p => (p.description ?? "").toLowerCase());
   const recentTitles = allPosts.map(p => {
     const desc = (p.description ?? "").replace(/#\S+/g, "").trim().split("\n")[0];
-    return `[${p.platform}] ${p.title} | hook: "${desc}"`;
+    return `[${p.status}][${p.platform}] ${p.title} | hook: "${desc}"`;
   }).join("\n") || "None";
   const coveredTopicWordsSingle = buildCoveredTopics(allExistingTitles);
 
@@ -407,7 +407,7 @@ ${coveredTopicWordsSingle}
 EXISTING POSTS — ALL STATUSES:
 ${recentTitles}
 
-DEDUPLICATION RULE — MOST IMPORTANT RULE: Every post above — regardless of status — is OFF-LIMITS as a topic. This includes the same subject, same angle reframed, or any hook that makes the same opening claim. The new post MUST cover a topic with ZERO overlap with anything listed above.
+DEDUPLICATION RULE — MOST IMPORTANT RULE: Every post listed above is OFF-LIMITS, especially anything marked [Review], [Scheduled], or [Posted]. Do not generate any post on the same topic, angle, or hook premise as anything already in those statuses. This includes: the same subject even if titled differently, the same angle reframed, a variation of an existing idea, or an opening hook that makes the same claim. The new post MUST cover a topic with ZERO overlap with anything listed above. If every obvious outbound topic is taken, go deeper — find the untouched corners of the subject.
 ${topicLine}
 
 Generate EXACTLY 1 ${platform} post. Content type: ${contentType}. Date: ${date ?? new Date().toISOString().slice(0, 10)}.
@@ -514,7 +514,7 @@ async function runGeneration(userId: string, opts: { mode?: string; platform?: s
   const allExistingDescriptions = recentPosts?.map(p => (p.description ?? "").toLowerCase()) ?? [];
   const recentTitles = recentPosts?.map(p => {
     const desc = (p.description ?? "").replace(/#\S+/g, "").trim().slice(0, 160);
-    return `[${p.platform}] ${p.title} | hook: "${desc.split("\n")[0]}"`;
+    return `[${p.status}][${p.platform}] ${p.title} | hook: "${desc.split("\n")[0]}"`;
   }).join("\n") ?? "None";
   const coveredTopicWords = buildCoveredTopics(allExistingTitles);
 
