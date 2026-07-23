@@ -23,6 +23,7 @@ const STATUS_MAP: Record<string, string> = {
 
 function toAirtableRecord(p: ContentItem) {
   const fields: Record<string, unknown> = {
+    "Post ID": p.id,          // unique key used for upsert — never duplicates
     "Title":  p.title ?? "",
     "Status": STATUS_MAP[p.status] ?? "In progress",
   };
@@ -65,7 +66,10 @@ export async function POST(req: Request) {
           Authorization: `Bearer ${AIRTABLE_API_KEY}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ records: chunk.map(toAirtableRecord) }),
+        body: JSON.stringify({
+          records: chunk.map(toAirtableRecord),
+          performUpsert: { fieldsToMergeOn: ["Post ID"] },
+        }),
       }).then(async (res) => {
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
