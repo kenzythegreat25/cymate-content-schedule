@@ -580,6 +580,7 @@ STYLE GUIDE for wins posts — follow this exactly:
 - Use specific numbers where possible (draw from wins context — anonymize client names but keep the numbers).
 - Frame as Cymate's result: "We did X. Here's what changed." Never name the client.
 - Tone: confident, direct, conversational. Like a practitioner sharing a real observation, not a marketer writing a case study.
+- UNIFIED NARRATIVE — if the post draws from multiple wins or screenshots, the caption must treat them all as one single story. Do NOT describe each win or image separately one by one. Instead, identify the common thread across all of them (the same system, pattern, or result type) and write the entire caption around that one unifying idea. A reader who sees all the screenshots together should immediately understand they are all proof of the same thing, not a random collection of different moments.
 
 STRATEGY POSTS (Tuesday, Thursday, Friday): Pure educational/framework content. Outbound frameworks, deliverability insights, cold email strategy, ICP definition, pipeline thinking, sequencing tactics, founder GTM lessons, or Cymate's own process shared as a brand. No wins framing needed here — just straight value.
 
@@ -645,6 +646,7 @@ STYLE GUIDE — follow this exactly, modeled after top-performing outbound thoug
 - Frame in first person as Cymate: "We launched X. Here's what happened." or "We changed Y. Results:"
 - Tone: confident, direct, practitioner-voice. Like someone sharing a real observation from the trenches, not a polished case study.
 - 200-280 words.
+- UNIFIED NARRATIVE — when drawing from multiple wins or screenshots, do not describe each one separately. Find the single common thread across all of them — the same system, the same result pattern, the same methodology — and build the entire caption around that one idea. Every win mentioned should feel like further proof of the same point, not a new separate story. A reader should finish the caption with one clear takeaway, not a scattered list of different things that happened.
 
 AUDIENCE: B2B founders, sales leaders, and GTM teams at SaaS/tech companies. Many are in Latin America (Colombia, Argentina, Costa Rica, Mexico) — lean teams, founder-led sales, scrappy outbound. Write in English with empathy for that reality.
 
