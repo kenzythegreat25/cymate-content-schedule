@@ -103,17 +103,23 @@ export default function Home() {
     };
   }, []);
 
-  // Auto-sync all Review/Scheduled/Posted items to Airtable on every page load.
-  // Safe to run unconditionally because the API uses upsert — no duplicates.
+  // Auto-sync: GET existing Airtable Post IDs, then POST only the ones not yet there.
   useEffect(() => {
     if (loading || userEmail !== "kenc@cymate.io") return;
     const toSync = items.filter((i) => SYNCED_STATUSES.has(i.status));
     if (!toSync.length) return;
-    fetch("/api/sync-airtable", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ posts: toSync }),
-    }).catch(() => {});
+    fetch("/api/sync-airtable")
+      .then((r) => r.json())
+      .then(({ map }: { map: Record<string, string> }) => {
+        const newItems = toSync.filter((i) => !map[i.id]);
+        if (!newItems.length) return;
+        fetch("/api/sync-airtable", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ posts: newItems }),
+        }).catch(() => {});
+      })
+      .catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, userEmail]);
 
@@ -176,62 +182,58 @@ export default function Home() {
 
     const isAdmin = userEmail === "kenc@cymate.io";
 
-    // Moving away from a synced status → delete from Airtable instantly
-    if (isAdmin && patch.status && !SYNCED_STATUSES.has(patch.status) && prevItem && SYNCED_STATUSES.has(prevItem.status)) {
-      const map: Record<string, string> = JSON.parse(localStorage.getItem("airtable_id_map") ?? "{}");
-      const airtableId = map[id];
-      if (airtableId) {
-        fetch("/api/sync-airtable", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ airtableId }),
-        }).then(() => {
-          delete map[id];
-          localStorage.setItem("airtable_id_map", JSON.stringify(map));
-          const synced: string[] = JSON.parse(localStorage.getItem("airtable_synced_ids") ?? "[]");
-          localStorage.setItem("airtable_synced_ids", JSON.stringify(synced.filter((s) => s !== id)));
-        });
+    // Status change → sync to Airtable (look up Airtable ID first, no localStorage)
+    if (isAdmin && patch.status) {
+      if (!SYNCED_STATUSES.has(patch.status) && prevItem && SYNCED_STATUSES.has(prevItem.status)) {
+        // Moving away from a synced status → delete from Airtable
+        fetch("/api/sync-airtable")
+          .then((r) => r.json())
+          .then(({ map }: { map: Record<string, string> }) => {
+            const airtableId = map[id];
+            if (airtableId) {
+              fetch("/api/sync-airtable", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ airtableId }),
+              }).catch(() => {});
+            }
+          })
+          .catch(() => {});
+        scheduleFlush(id, patch);
+        return;
       }
-      scheduleFlush(id, patch);
-      return;
+
+      if (SYNCED_STATUSES.has(patch.status)) {
+        const merged = { ...(pendingPatches.current[id] ?? {}), ...patch };
+        delete pendingPatches.current[id];
+        clearTimeout(flushTimers.current[id]);
+        const currentItem = { ...items.find((i) => i.id === id)!, ...merged };
+        updatePost(id, merged);
+        // Look up whether this post is already in Airtable, then PATCH or POST
+        fetch("/api/sync-airtable")
+          .then((r) => r.json())
+          .then(({ map }: { map: Record<string, string> }) => {
+            const existingAirtableId = map[id];
+            if (existingAirtableId) {
+              fetch("/api/sync-airtable", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ airtableId: existingAirtableId, status: patch.status }),
+              }).catch(() => {});
+            } else {
+              fetch("/api/sync-airtable", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ posts: [currentItem] }),
+              }).catch(() => {});
+            }
+          })
+          .catch(() => {});
+        return;
+      }
     }
 
-    if (isAdmin && patch.status && SYNCED_STATUSES.has(patch.status)) {
-      const merged = { ...(pendingPatches.current[id] ?? {}), ...patch };
-      delete pendingPatches.current[id];
-      clearTimeout(flushTimers.current[id]);
-      const currentItem = { ...items.find((i) => i.id === id)!, ...merged };
-      updatePost(id, merged);
-      const syncedIds: string[] = JSON.parse(localStorage.getItem("airtable_synced_ids") ?? "[]");
-      const idMap: Record<string, string> = JSON.parse(localStorage.getItem("airtable_id_map") ?? "{}");
-      const existingAirtableId = idMap[id];
-
-      if (existingAirtableId) {
-        // Already in Airtable — just update the status field
-        fetch("/api/sync-airtable", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ airtableId: existingAirtableId, status: patch.status }),
-        });
-      } else {
-        // Not yet in Airtable — create new record
-        fetch("/api/sync-airtable", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ posts: [currentItem] }),
-        }).then((r) => r.json()).then((result) => {
-          if (result.newlySyncedIds?.length) {
-            const updated = Array.from(new Set([...syncedIds, ...result.newlySyncedIds]));
-            localStorage.setItem("airtable_synced_ids", JSON.stringify(updated));
-          }
-          if (result.airtableIdMap) {
-            localStorage.setItem("airtable_id_map", JSON.stringify({ ...idMap, ...result.airtableIdMap }));
-          }
-        });
-      }
-    } else {
-      scheduleFlush(id, patch);
-    }
+    scheduleFlush(id, patch);
   };
 
   const deleteRow = async (id: string) => {
@@ -473,42 +475,39 @@ function AirtableSyncButton({ items }: { items: ContentItem[] }) {
   const [message, setMessage] = useState("");
 
   const handleSync = async () => {
-    const idMap: Record<string, string> = JSON.parse(localStorage.getItem("airtable_id_map") ?? "{}");
-    const syncedIds: string[] = JSON.parse(localStorage.getItem("airtable_synced_ids") ?? "[]");
-    const toSync = items.filter((i) => SYNCED_STATUSES.has(i.status) && !idMap[i.id]);
-
-    // Nothing new — skip server entirely
-    if (!toSync.length) {
-      setState("done");
-      setMessage("Up to date");
-      setTimeout(() => { setState("idle"); setMessage(""); }, 3000);
-      return;
-    }
-
     setState("syncing");
     setMessage("");
-    const res = await fetch("/api/sync-airtable", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ posts: toSync }),
-    });
-    const result = await res.json();
-    if (result.error) {
+    try {
+      const mapRes = await fetch("/api/sync-airtable");
+      const { map }: { map: Record<string, string> } = await mapRes.json();
+      const toSync = items.filter((i) => SYNCED_STATUSES.has(i.status) && !map[i.id]);
+
+      if (!toSync.length) {
+        setState("done");
+        setMessage("Up to date");
+        setTimeout(() => { setState("idle"); setMessage(""); }, 3000);
+        return;
+      }
+
+      const res = await fetch("/api/sync-airtable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ posts: toSync }),
+      });
+      const result = await res.json();
+      if (result.error) {
+        setState("error");
+        setMessage(result.error);
+        setTimeout(() => { setState("idle"); setMessage(""); }, 5000);
+      } else {
+        setState("done");
+        setMessage(`${result.synced} synced`);
+        setTimeout(() => { setState("idle"); setMessage(""); }, 4000);
+      }
+    } catch {
       setState("error");
-      setMessage(result.error);
+      setMessage("Network error");
       setTimeout(() => { setState("idle"); setMessage(""); }, 5000);
-    } else {
-      if (result.newlySyncedIds?.length) {
-        const updated = Array.from(new Set([...syncedIds, ...result.newlySyncedIds]));
-        localStorage.setItem("airtable_synced_ids", JSON.stringify(updated));
-      }
-      if (result.airtableIdMap) {
-        const map: Record<string, string> = JSON.parse(localStorage.getItem("airtable_id_map") ?? "{}");
-        localStorage.setItem("airtable_id_map", JSON.stringify({ ...map, ...result.airtableIdMap }));
-      }
-      setState("done");
-      setMessage(`${result.synced} synced`);
-      setTimeout(() => { setState("idle"); setMessage(""); }, 4000);
     }
   };
 
