@@ -35,9 +35,22 @@ export async function POST(req: Request) {
     return l;
   }).join(" or ");
 
-  const prompt = `You are a content strategist for Cymate — a B2B cold email and outbound agency. Your job is to find the ${clipCount} best short-form video clips from this transcript that are worth posting as standalone social content.
+  const prompt = `You are a content strategist for Cymate — a B2B cold email and outbound agency. You have just been handed the transcript below.
 
-CYMATE'S CONTENT PILLARS (only cut clips relevant to these):
+STEP 1 — READ AND UNDERSTAND THE FULL TRANSCRIPT BEFORE DOING ANYTHING ELSE.
+Read the entire transcript from start to finish as if you are watching the video yourself. Understand:
+- Who is speaking and what is the overall topic of the conversation
+- What is the narrative arc — how does the discussion develop from start to finish
+- What are the 3-5 core themes the speakers keep coming back to
+- Which specific moments have a complete, self-contained idea that would land for someone who never sees the rest of the video
+- Which moments are just transitions, filler, or only make sense in context of something said earlier
+
+If after reading the full transcript you cannot clearly describe what the video is about in 2 sentences, do not guess — return an empty clips array with an error message in a top-level "error" field explaining that the transcript is unclear or off-topic.
+
+STEP 2 — SELECT CLIPS BASED ON YOUR FULL UNDERSTANDING.
+Only after understanding the whole video, select the ${clipCount} strongest moments to cut as short-form clips. Use your understanding of the full context to pick moments that represent the best, most self-contained ideas in the video.
+
+CYMATE'S CONTENT PILLARS — only cut clips relevant to these:
 - Cold email strategy, deliverability, sequences, copywriting
 - Outbound sales and lead generation for B2B companies
 - Client results: meetings booked, reply rates, campaign performance
@@ -45,24 +58,26 @@ CYMATE'S CONTENT PILLARS (only cut clips relevant to these):
 - Mindset and frameworks for building a sales pipeline
 - Behind-the-scenes of running an outbound agency
 
-CLIP SELECTION RULES — apply all of these strictly:
-1. VERBATIM ONLY — extract the clip exactly as spoken. Do not rephrase, rewrite, or paraphrase a single word. The excerpt must be the original text from the transcript, word for word.
-2. STANDALONE — the clip must make complete sense to someone who has never seen the rest of the video. No "as I mentioned earlier", no dangling context.
-3. Q&A HANDLING — if the clip starts with a question from someone, include the question and the full answer as one clip. Never start a clip mid-answer without including the question that prompted it.
-4. IMMEDIATE CLARITY — the very first sentence of the clip must tell the viewer exactly what the topic is. If someone watches the first 3 seconds and can't tell what it's about, it's the wrong starting point.
-5. CONCRETE POINT — every clip must contain a specific insight, result, framework, or contrarian take. Skip transitions, intros, outros, small talk, and any moment that is vague or generic.
-6. NO REPETITION — each clip must cover a distinctly different idea. Do not cut two clips that make the same point.
-7. LENGTH — each clip should be ${lengthGuide} of spoken content.
-8. RELEVANCE FIRST — if you cannot find ${clipCount} truly relevant clips, return fewer. Never pad with weak content just to hit the number.
+CLIP SELECTION RULES — all must pass:
+1. VERBATIM ONLY — the excerpt must be the exact words from the transcript. Zero rewrites. Zero paraphrasing. If you change even one word, the clip is invalid.
+2. FULL UNDERSTANDING REQUIRED — you must have read the whole video to know this moment is truly one of the best, not just one that sounds good out of context.
+3. STANDALONE — the clip makes complete sense to someone who has never seen anything else from this video. No references to "what I said earlier" or other dangling context.
+4. Q&A HANDLING — if the clip starts mid-answer to a question, go back and include the question first. Never start a clip without the setup that triggered it.
+5. IMMEDIATE CLARITY — the very first sentence tells the viewer exactly what the topic is. If someone watches the first 3 seconds and cannot tell what it is about, find a better starting point in the transcript.
+6. CONCRETE POINT — specific insight, result, framework, or contrarian take. No filler, no transitions, no vague advice that applies to everything.
+7. NO REPETITION — each clip covers a distinctly different idea. Never cut two clips making the same point.
+8. LENGTH — each clip should be ${lengthGuide} of spoken content.
+9. QUALITY OVER COUNT — if you cannot find ${clipCount} clips that genuinely pass all the above, return fewer. Never pad with weak clips just to hit the number.
 
-For each clip, return:
-- title: A clear, specific title that tells the viewer exactly what the clip is about (not clickbait, just clear)
-- excerpt: The verbatim text from the transcript for this clip — exact words, nothing changed
+STEP 3 — RETURN JSON.
+For each clip return:
+- title: Clear, specific, no clickbait — tells the viewer exactly what the clip is about
+- excerpt: Verbatim text from the transcript, word for word, nothing changed
 - estimatedDuration: Estimated spoken duration (e.g. "~45 sec", "~2 min")
-- description: A ready-to-post caption for LinkedIn or Instagram. Written in first person. No URLs. If there's a booking CTA, say "Booking link in the comments." If linking to something, say "Link in the comments." No em dashes.
-- why: One sentence explaining why this clip meets the selection criteria (internal use, not shown publicly)
+- description: Ready-to-post caption for LinkedIn or Instagram. First person. No URLs. Booking CTA = "Booking link in the comments." Other links = "Link in the comments." No em dashes.
+- why: One sentence — why this specific moment, based on your understanding of the full video, is one of the best clips to cut
 
-Respond ONLY with valid JSON in this exact format:
+Respond ONLY with valid JSON:
 {
   "clips": [
     {
