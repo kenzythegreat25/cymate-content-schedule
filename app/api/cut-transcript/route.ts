@@ -87,7 +87,8 @@ ${transcript}`;
     },
     body: JSON.stringify({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 4096,
+      max_tokens: 8192,
+      system: "You are a JSON-only responder. Always respond with valid, complete JSON and nothing else. Never truncate your response. Never add prose before or after the JSON.",
       messages: [{ role: "user", content: prompt }],
     }),
   });
