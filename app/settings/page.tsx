@@ -11,8 +11,13 @@ export default function SettingsPage() {
   const [email, setEmail] = useState("");
   const [joinedAt, setJoinedAt] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [emailError, setEmailError] = useState(false);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("email_error")) setEmailError(true);
+    }
     (async () => {
       const supabase = supabaseBrowser();
       const { data } = await supabase.auth.getUser();
@@ -68,6 +73,11 @@ export default function SettingsPage() {
         </Section>
 
         <Section title="Change email" subtitle="A confirmation link will be sent to the new address.">
+          {emailError && (
+            <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              The confirmation link didn&apos;t work. Please try again.
+            </div>
+          )}
           <ChangeEmailForm currentEmail={email} onChanged={setEmail} />
         </Section>
 
