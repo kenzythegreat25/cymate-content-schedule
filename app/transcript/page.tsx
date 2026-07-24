@@ -10,6 +10,7 @@ type Clip = {
   estimatedDuration: string;
   description: string;
   why: string;
+  score?: number;
 };
 
 const LENGTH_OPTIONS = [
@@ -28,6 +29,7 @@ export default function TranscriptPage() {
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [addedIdx, setAddedIdx] = useState<Set<number>>(new Set());
   const [addingIdx, setAddingIdx] = useState<number | null>(null);
+  const [regeneratingIdx, setRegeneratingIdx] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const toggleLength = (val: string) => {
@@ -82,6 +84,33 @@ export default function TranscriptPage() {
     navigator.clipboard.writeText(clips[idx].description).catch(() => {});
     setCopiedIdx(idx);
     setTimeout(() => setCopiedIdx(null), 2000);
+  };
+
+  const regenerateClip = async (idx: number) => {
+    if (regeneratingIdx !== null) return;
+    setRegeneratingIdx(idx);
+    try {
+      const existingClips = clips
+        .filter((_, i) => i !== idx)
+        .map((c) => ({ title: c.title, excerpt: c.excerpt }));
+      const res = await fetch("/api/cut-transcript", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transcript,
+          lengths: Array.from(selectedLengths),
+          regenerate: true,
+          existingClips,
+        }),
+      });
+      const data = await res.json();
+      if (data.clips?.length) {
+        setClips((prev) => prev.map((c, i) => (i === idx ? (data.clips[0] as Clip) : c)));
+        setAddedIdx((prev) => { const next = new Set(prev); next.delete(idx); return next; });
+      }
+    } finally {
+      setRegeneratingIdx(null);
+    }
   };
 
   const addToReview = async (idx: number) => {
@@ -277,7 +306,18 @@ export default function TranscriptPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold leading-snug">{clip.title}</div>
-                    <div className="mt-1 text-xs text-muted">{clip.estimatedDuration}</div>
+                    <div className="mt-1 flex items-center gap-2 text-xs text-muted">
+                      <span>{clip.estimatedDuration}</span>
+                      {clip.score != null && (
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums ${
+                          clip.score >= 8 ? "bg-emerald-500/10 text-emerald-600"
+                          : clip.score >= 6 ? "bg-amber-500/10 text-amber-600"
+                          : "bg-red-500/10 text-red-500"
+                        }`}>
+                          {clip.score}/10
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -310,6 +350,14 @@ export default function TranscriptPage() {
 
                 {/* Clip footer */}
                 <div className="flex justify-end gap-2 border-t border-line px-5 py-3">
+                  <button
+                    onClick={() => regenerateClip(i)}
+                    disabled={regeneratingIdx !== null || addedIdx.has(i)}
+                    className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:border-line-strong hover:bg-surface-2 hover:text-ink disabled:opacity-40"
+                    title="Find a different clip from the transcript"
+                  >
+                    {regeneratingIdx === i ? <><SpinnerIcon /> Regenerating…</> : <><RefreshIcon /> Regenerate</>}
+                  </button>
                   <button
                     onClick={() => copyDescription(i)}
                     className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-soft transition hover:border-line-strong hover:bg-surface-2 hover:text-ink"
@@ -383,6 +431,15 @@ function SpinnerIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
       <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+    </svg>
+  );
+}
+
+function RefreshIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
     </svg>
   );
 }

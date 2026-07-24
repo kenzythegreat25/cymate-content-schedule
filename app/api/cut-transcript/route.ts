@@ -7,12 +7,53 @@ const ALLOWED_EMAIL  = "kenc@cymate.io";
 const ANTHROPIC_URL  = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_KEY  = process.env.ANTHROPIC_API_KEY ?? "";
 
+const SYSTEM_PROMPT = "You are a JSON-only responder. Always respond with valid, complete JSON and nothing else. Never truncate your response. Never add prose before or after the JSON.";
+
 async function authCheck() {
   const supabase = await supabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
   return user?.email === ALLOWED_EMAIL ? user : null;
 }
 
+function lengthGuideText(lengths: string[]) {
+  return lengths.map((l) => {
+    if (l === "30–60s") return "short (30–60 seconds of spoken content, roughly 75–150 words)";
+    if (l === "60–90s") return "medium (60–90 seconds of spoken content, roughly 150–225 words)";
+    if (l === "3–10min") return "long (3–10 minutes of spoken content, roughly 450–1500 words)";
+    return l;
+  }).join(" or ");
+}
+
+async function callClaude(prompt: string): Promise<unknown[]> {
+  const res = await fetch(ANTHROPIC_URL, {
+    method: "POST",
+    headers: {
+      "x-api-key": ANTHROPIC_KEY,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 8192,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(JSON.stringify(err));
+  }
+
+  const data = await res.json() as { content: { type: string; text: string }[] };
+  const raw = data.content.find((c) => c.type === "text")?.text ?? "";
+  const jsonMatch = raw.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error("No JSON found in response");
+  const parsed = JSON.parse(jsonMatch[0]) as { clips: unknown[] };
+  return parsed.clips ?? [];
+}
+
+// POST — full cut or single-clip regenerate
 export async function POST(req: Request) {
   if (!ANTHROPIC_KEY) return NextResponse.json({ error: "ANTHROPIC_API_KEY not set." }, { status: 500 });
   const user = await authCheck();
@@ -22,19 +63,30 @@ export async function POST(req: Request) {
     transcript?: string;
     clipCount?: number;
     lengths?: string[];
+    // Regenerate mode — replace one specific clip
+    regenerate?: boolean;
+    existingClips?: { title: string; excerpt: string }[];
   };
 
-  const { transcript = "", clipCount = 10, lengths = ["60–90s"] } = body;
+  const { transcript = "", clipCount = 10, lengths = ["60–90s"], regenerate = false, existingClips = [] } = body;
   if (!transcript.trim()) return NextResponse.json({ error: "No transcript provided." }, { status: 400 });
 
-  const lengthLabel = lengths.join(", ");
-  const lengthGuide = lengths.map((l) => {
-    if (l === "30–60s") return "short (30–60 seconds of spoken content, roughly 75–150 words)";
-    if (l === "60–90s") return "medium (60–90 seconds of spoken content, roughly 150–225 words)";
-    if (l === "3–10min") return "long (3–10 minutes of spoken content, roughly 450–1500 words)";
-    return l;
-  }).join(" or ");
+  const lengthGuide = lengthGuideText(lengths);
 
+  try {
+    if (regenerate) {
+      const clips = await regenerateClip(transcript, lengths, lengthGuide, existingClips);
+      return NextResponse.json({ clips });
+    } else {
+      const clips = await cutTranscript(transcript, clipCount, lengthGuide);
+      return NextResponse.json({ clips, lengths: lengths.join(", ") });
+    }
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
+}
+
+async function cutTranscript(transcript: string, clipCount: number, lengthGuide: string): Promise<unknown[]> {
   const prompt = `You are a content strategist for Cymate — a B2B cold email and outbound agency. You have just been handed the transcript below.
 
 STEP 1 — READ AND UNDERSTAND THE FULL TRANSCRIPT BEFORE DOING ANYTHING ELSE.
@@ -47,8 +99,8 @@ Read the entire transcript from start to finish as if you are watching the video
 
 If after reading the full transcript you cannot clearly describe what the video is about in 2 sentences, do not guess — return an empty clips array with an error message in a top-level "error" field explaining that the transcript is unclear or off-topic.
 
-STEP 2 — SELECT CLIPS BASED ON YOUR FULL UNDERSTANDING.
-Only after understanding the whole video, select the ${clipCount} strongest moments to cut as short-form clips. Use your understanding of the full context to pick moments that represent the best, most self-contained ideas in the video.
+STEP 2 — SELECT AND SCORE CLIPS BASED ON YOUR FULL UNDERSTANDING.
+Only after understanding the whole video, select the ${clipCount} strongest moments to cut as short-form clips. For each clip, also assign a score from 1–10 based on how strong it is as standalone content (10 = immediately compelling to someone with no context, would stop the scroll; 1 = only makes sense if you watched the whole thing).
 
 CYMATE'S CONTENT PILLARS — only cut clips relevant to these:
 - Cold email strategy, deliverability, sequences, copywriting
@@ -69,15 +121,7 @@ CLIP SELECTION RULES — all must pass:
 8. LENGTH — each clip should be ${lengthGuide} of spoken content.
 9. QUALITY OVER COUNT — if you cannot find ${clipCount} clips that genuinely pass all the above, return fewer. Never pad with weak clips just to hit the number.
 
-STEP 3 — RETURN JSON.
-For each clip return:
-- title: Clear, specific, no clickbait — tells the viewer exactly what the clip is about
-- excerpt: Verbatim text from the transcript, word for word, nothing changed
-- estimatedDuration: Estimated spoken duration (e.g. "~45 sec", "~2 min")
-- description: Ready-to-post caption for LinkedIn or Instagram. First person. No URLs. Booking CTA = "Booking link in the comments." Other links = "Link in the comments." No em dashes.
-- why: One sentence — why this specific moment, based on your understanding of the full video, is one of the best clips to cut
-
-Respond ONLY with valid JSON:
+STEP 3 — RETURN JSON. Sort clips by score descending (highest first).
 {
   "clips": [
     {
@@ -85,7 +129,61 @@ Respond ONLY with valid JSON:
       "excerpt": "...",
       "estimatedDuration": "...",
       "description": "...",
-      "why": "..."
+      "why": "...",
+      "score": 8
+    }
+  ]
+}
+
+Field definitions:
+- title: Clear, specific, no clickbait — tells the viewer exactly what the clip is about
+- excerpt: Verbatim text from the transcript, word for word, nothing changed
+- estimatedDuration: Estimated spoken duration (e.g. "~45 sec", "~2 min")
+- description: Ready-to-post caption for LinkedIn or Instagram. First person. No URLs. Booking CTA = "Booking link in the comments." Other links = "Link in the comments." No em dashes.
+- why: One sentence — why this specific moment is one of the best clips based on your full understanding of the video
+- score: Integer 1–10. How strong this clip is as completely standalone content.
+
+TRANSCRIPT:
+${transcript}`;
+
+  return callClaude(prompt);
+}
+
+async function regenerateClip(
+  transcript: string,
+  lengths: string[],
+  lengthGuide: string,
+  existingClips: { title: string; excerpt: string }[]
+): Promise<unknown[]> {
+  const existingList = existingClips
+    .map((c, i) => `${i + 1}. "${c.title}" — excerpt starts: "${c.excerpt.slice(0, 80)}..."`)
+    .join("\n");
+
+  const prompt = `You are a content strategist for Cymate — a B2B cold email and outbound agency.
+
+You previously cut clips from a transcript. The user was not satisfied with one clip and wants a replacement. Find ONE new clip from the transcript that:
+1. Has NOT already been selected (see existing clips below — do not overlap in topic, excerpt, or premise)
+2. Passes all the same quality rules as before
+3. Is verbatim from the transcript — zero rewrites
+4. Stands completely alone with no context needed
+5. Has a concrete point — specific insight, result, framework, or contrarian take relevant to Cymate's content pillars (cold email, outbound, B2B lead gen, deliverability, client results)
+6. Is ${lengthGuide} of spoken content
+
+CLIPS ALREADY SELECTED (do not repeat or overlap any of these):
+${existingList || "None"}
+
+Score the clip 1–10 on standalone strength (10 = stops the scroll immediately).
+
+Return ONLY valid JSON with exactly 1 clip:
+{
+  "clips": [
+    {
+      "title": "...",
+      "excerpt": "...",
+      "estimatedDuration": "...",
+      "description": "...",
+      "why": "...",
+      "score": 8
     }
   ]
 }
@@ -93,35 +191,5 @@ Respond ONLY with valid JSON:
 TRANSCRIPT:
 ${transcript}`;
 
-  const res = await fetch(ANTHROPIC_URL, {
-    method: "POST",
-    headers: {
-      "x-api-key": ANTHROPIC_KEY,
-      "anthropic-version": "2023-06-01",
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 8192,
-      system: "You are a JSON-only responder. Always respond with valid, complete JSON and nothing else. Never truncate your response. Never add prose before or after the JSON.",
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    return NextResponse.json({ error: JSON.stringify(err) }, { status: 500 });
-  }
-
-  const data = await res.json() as { content: { type: string; text: string }[] };
-  const raw = data.content.find((c) => c.type === "text")?.text ?? "";
-
-  try {
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("No JSON found");
-    const parsed = JSON.parse(jsonMatch[0]) as { clips: unknown[] };
-    return NextResponse.json({ clips: parsed.clips, lengths: lengthLabel });
-  } catch {
-    return NextResponse.json({ error: "Failed to parse Claude response.", raw }, { status: 500 });
-  }
+  return callClaude(prompt);
 }
