@@ -4,18 +4,6 @@ import { createClient } from "@supabase/supabase-js";
 export const maxDuration = 60;
 
 const ALLOWED_EMAIL = "kenc@cymate.io";
-
-const DESCRIPTION_HEADER = `Done-For-You Lead Gen: https://cymate.io
-Free outbound course: https://thecoldacademy.com/
-
---------------------------------------------------
-
-`;
-
-function withHeader(description: string): string {
-  const body = (description ?? "").trim();
-  return body ? `${DESCRIPTION_HEADER}${body}` : body;
-}
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY ?? "";
 const SUPABASE_URL  = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
@@ -484,7 +472,7 @@ Return a JSON array with EXACTLY 1 object using the same schema as always.`;
     title: post.title ?? "",
     date: post.date || date || null,
     on_screen_text: post.on_screen_text ?? "",
-    description: withHeader(post.description ?? ""),
+    description: post.description ?? "",
     platforms: [platform],
     content_type: post.content_type ?? contentType,
     status: "Drafting",
@@ -745,7 +733,7 @@ Return a JSON array of exactly 3 objects.`;
     title: p.title ?? "",
     date: p.date || null,
     on_screen_text: p.on_screen_text ?? "",
-    description: withHeader(p.description ?? ""),
+    description: p.description ?? "",
     platforms: [p.platform],
     content_type: p.content_type ?? "",
     status: "Drafting",

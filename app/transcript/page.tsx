@@ -113,13 +113,15 @@ export default function TranscriptPage() {
     }
   };
 
+  const TRANSCRIPT_HEADER = `Done-For-You Lead Gen: https://cymate.io\nFree outbound course: https://thecoldacademy.com/\n\n--------------------------------------------------\n\n`;
+
   const addToReview = async (idx: number) => {
     if (addingIdx === idx || addedIdx.has(idx)) return;
     setAddingIdx(idx);
     const clip = clips[idx];
     const created = await createPost({
       title: clip.title,
-      description: clip.description,
+      description: `${TRANSCRIPT_HEADER}${clip.description.trim()}`,
       notes: clip.excerpt,
       status: "Review",
       platforms: [],
