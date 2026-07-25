@@ -78,7 +78,7 @@ export async function POST(req: Request) {
       const clips = await regenerateClip(transcript, lengths, lengthGuide, existingClips);
       return NextResponse.json({ clips });
     } else {
-      const clips = await cutTranscript(transcript, clipCount, lengthGuide);
+      const clips = await cutTranscript(transcript, clipCount, lengths, lengthGuide);
       return NextResponse.json({ clips, lengths: lengths.join(", ") });
     }
   } catch (e) {
@@ -86,7 +86,23 @@ export async function POST(req: Request) {
   }
 }
 
-async function cutTranscript(transcript: string, clipCount: number, lengthGuide: string): Promise<unknown[]> {
+async function cutTranscript(transcript: string, clipCount: number, lengths: string[], lengthGuide: string): Promise<unknown[]> {
+  const isMediumForm = lengths.includes("3–10min");
+  const isShortForm = lengths.some((l) => l === "30–60s" || l === "60–90s");
+
+  const descriptionInstructions = isMediumForm && !isShortForm
+    ? `- description: A YouTube-style video description. Follow this exact structure and tone — do not use social caption format, hashtags, or short CTAs:
+
+  1. HOOK LINE — One sentence naming the problem most people have with this topic. Direct, no fluff. ("Most people are bad at X. Not because of Y, but because Z.")
+  2. CONTEXT LINE — One sentence placing this clip in Cymate's broader system or series. ("This is part of our full [topic] system at Cymate: [pillars].")
+  3. WHAT YOU'LL LEARN — A flowing paragraph (not a bullet list) listing the key things covered in the clip, connected with natural language. ("You'll learn X, the Y technique, how Z works, why W matters, and the [framework name] with a real example.")
+  4. PAYOFF LINE — One sentence on what they walk away with. ("Get [X] right, and you're doing [result]. Because in a sense, you [did/are].")
+  5. SERIES CALLOUT — One line starting with 📌 that connects this to the larger series or system it belongs to.
+  6. CLOSING INVITE — One warm, short sentence inviting them to watch. ("Get comfortable, this is the part most people rush." style — relaxed, not salesy.)
+
+  No hashtags. No booking CTAs. No em dashes. Write in second person where natural.`
+    : `- description: Ready-to-post caption for LinkedIn or Instagram. First person. No URLs. Booking CTA = "Booking link in the comments." Other links = "Link in the comments." No em dashes. End with 5 relevant hashtags on their own line.`;
+
   const prompt = `You are a content strategist for Cymate — a B2B cold email and outbound agency. You have just been handed the transcript below.
 
 STEP 1 — READ AND UNDERSTAND THE FULL TRANSCRIPT BEFORE DOING ANYTHING ELSE.
@@ -139,7 +155,7 @@ Field definitions:
 - title: Clear, specific, no clickbait — tells the viewer exactly what the clip is about
 - excerpt: Verbatim text from the transcript, word for word, nothing changed
 - estimatedDuration: Estimated spoken duration (e.g. "~45 sec", "~2 min")
-- description: Ready-to-post caption for LinkedIn or Instagram. First person. No URLs. Booking CTA = "Booking link in the comments." Other links = "Link in the comments." No em dashes.
+${descriptionInstructions}
 - why: One sentence — why this specific moment is one of the best clips based on your full understanding of the video
 - score: Integer 1–10. How strong this clip is as completely standalone content.
 
@@ -155,6 +171,11 @@ async function regenerateClip(
   lengthGuide: string,
   existingClips: { title: string; excerpt: string }[]
 ): Promise<unknown[]> {
+  const isMediumForm = lengths.includes("3–10min");
+  const isShortForm = lengths.some((l) => l === "30–60s" || l === "60–90s");
+  const descFormat = isMediumForm && !isShortForm
+    ? `YouTube-style description following this structure: (1) hook line naming the problem, (2) context line placing it in Cymate's system, (3) flowing "you'll learn" paragraph of key takeaways, (4) payoff line, (5) 📌 series callout, (6) warm closing invite. No hashtags, no CTAs, no em dashes.`
+    : `Ready-to-post LinkedIn or Instagram caption. First person. No URLs. Booking CTA = "Booking link in the comments." No em dashes. End with 5 hashtags.`;
   const existingList = existingClips
     .map((c, i) => `${i + 1}. "${c.title}" — excerpt starts: "${c.excerpt.slice(0, 80)}..."`)
     .join("\n");
@@ -173,6 +194,8 @@ CLIPS ALREADY SELECTED (do not repeat or overlap any of these):
 ${existingList || "None"}
 
 Score the clip 1–10 on standalone strength (10 = stops the scroll immediately).
+
+For the description field, use: ${descFormat}
 
 Return ONLY valid JSON with exactly 1 clip:
 {
