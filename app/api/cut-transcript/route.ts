@@ -152,7 +152,7 @@ STEP 3 — RETURN JSON. Sort clips by score descending (highest first).
 }
 
 Field definitions:
-- title: Clear, specific, no clickbait — tells the viewer exactly what the clip is about
+- title: ${isMediumForm && !isShortForm ? 'Must start with "How to" — then clearly describe what the viewer will learn from this clip. No clickbait.' : "Clear, specific, no clickbait — tells the viewer exactly what the clip is about"}
 - excerpt: Verbatim text from the transcript, word for word, nothing changed
 - estimatedDuration: Estimated spoken duration (e.g. "~45 sec", "~2 min")
 ${descriptionInstructions}
