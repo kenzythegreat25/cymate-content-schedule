@@ -421,7 +421,12 @@ Rules:
 - End with 5 relevant hashtags on their own line.
 - POSTING TIME: Include "Post at: 8:00 PM PHT" at the top of the notes field.
 - Include 3 Q&A reply pairs in notes (Q1–Q3 format).
-- Before returning, verify: strong hook, exactly ONE primary ask, no em dashes.
+- FINAL SELF-CHECK before returning — if any fail, fix before returning:
+  [ ] Instagram: caption ends with a CTA line (e.g. "Booking link in the comments.") followed by exactly 5 hashtags on their own line. A caption missing either is invalid.
+  [ ] Engaging question present before the CTA.
+  [ ] Strong hook on the first line.
+  [ ] No em dashes anywhere.
+  [ ] Exactly ONE primary ask — not stacked.
 
 Return a JSON array with EXACTLY 1 object using the same schema as always.`;
 
@@ -614,7 +619,12 @@ Rules:
 - Do not duplicate any topic or angle from the recently published posts listed above.
 - POSTING TIME: Include "Post at: 8:00 PM PHT" at the top of every notes field so the scheduler knows exactly when to publish. (Audience peaks at 9 PM PHT — post 1 hour before to warm up distribution.)
 - The JSON array must have EXACTLY 5 objects — one per day listed above. Count them before returning.
-- Before returning the JSON, check each post: does the first line work as a hook with zero context, is there exactly ONE primary ask (not stacked), and does it end with a CTA? Revise any post that fails any of these checks.
+FINAL SELF-CHECK — run this on every Instagram post before returning. If any check fails, rewrite that post before including it:
+[ ] Does the caption end with a CTA line (e.g. "Booking link in the comments." or "Link in the comments.") before the hashtags? If not, add it.
+[ ] Does the caption end with exactly 5 hashtags on their own line? If not, add them.
+[ ] Is there an engaging question before the CTA? If not, add one.
+[ ] Does the first line work as a standalone hook with zero context? If not, rewrite it.
+A caption without a CTA or hashtags is incomplete and must not be returned.
 Return a JSON array of exactly 5 objects.`;
 
   const liWeeklyPrompt = `${BASE_INSTRUCTIONS}
