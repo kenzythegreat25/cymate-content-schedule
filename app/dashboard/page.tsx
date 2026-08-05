@@ -244,6 +244,14 @@ export default function Home() {
     await deletePost(id);
   };
 
+  const duplicateRow = async (id: string) => {
+    const src = items.find((i) => i.id === id);
+    if (!src) return;
+    const { id: _id, createdAt: _ca, shareToken: _st, ...rest } = src;
+    const created = await createPost({ ...rest, title: `${src.title} (copy)`, status: "Drafting" });
+    if (created) setItems((prev) => [...prev, created]);
+  };
+
   const bulkDeleteRows = async (ids: string[]) => {
     setItems((prev) => prev.filter((i) => !ids.includes(i.id)));
     if (editingId && ids.includes(editingId)) setEditingId(null);
@@ -330,7 +338,7 @@ export default function Home() {
               />
             )}
             {view === "list" && (
-              <ListView items={filtered} onEdit={setEditingId} onDelete={deleteRow} onBulkDelete={bulkDeleteRows} />
+              <ListView items={filtered} onEdit={setEditingId} onDelete={deleteRow} onDuplicate={duplicateRow} onBulkDelete={bulkDeleteRows} />
             )}
           </div>
         )}
@@ -342,6 +350,7 @@ export default function Home() {
           onClose={() => setEditingId(null)}
           onChange={(patch) => updateRow(editing.id, patch)}
           onDelete={() => deleteRow(editing.id)}
+          onDuplicate={() => { duplicateRow(editing.id); setEditingId(null); }}
         />
       )}
     </div>
@@ -1438,11 +1447,13 @@ function ListView({
   items,
   onEdit,
   onDelete,
+  onDuplicate,
   onBulkDelete,
 }: {
   items: ContentItem[];
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
+  onDuplicate: (id: string) => void;
   onBulkDelete: (ids: string[]) => void;
 }) {
   const [bulkMode, setBulkMode] = useState(false);
@@ -1546,15 +1557,26 @@ function ListView({
                 <div><PlatformStack platforms={it.platforms} /></div>
                 <div className="md:block">{it.performanceScore || <span className="text-muted">—</span>}</div>
               </div>
-              <div className="hidden md:block md:text-right">
+              <div className="hidden md:flex md:items-center md:justify-end md:gap-1">
                 {!bulkMode && (
-                  <span
-                    role="button"
-                    onClick={(e) => { e.stopPropagation(); if (confirm("Delete this post?")) onDelete(it.id); }}
-                    className="inline-block rounded p-1 opacity-0 transition group-hover:opacity-100 text-muted hover:text-red-600"
-                  >
-                    <TrashIcon />
-                  </span>
+                  <>
+                    <span
+                      role="button"
+                      title="Duplicate"
+                      onClick={(e) => { e.stopPropagation(); onDuplicate(it.id); }}
+                      className="inline-block rounded p-1 opacity-0 transition group-hover:opacity-100 text-muted hover:text-accent"
+                    >
+                      <CopyIcon />
+                    </span>
+                    <span
+                      role="button"
+                      title="Delete"
+                      onClick={(e) => { e.stopPropagation(); if (confirm("Delete this post?")) onDelete(it.id); }}
+                      className="inline-block rounded p-1 opacity-0 transition group-hover:opacity-100 text-muted hover:text-red-600"
+                    >
+                      <TrashIcon />
+                    </span>
+                  </>
                 )}
               </div>
             </div>
@@ -1585,11 +1607,13 @@ function EditDrawer({
   onClose,
   onChange,
   onDelete,
+  onDuplicate,
 }: {
   item: ContentItem;
   onClose: () => void;
   onChange: (patch: Partial<ContentItem>) => void;
   onDelete: () => void;
+  onDuplicate: () => void;
 }) {
   return (
     <>
@@ -1765,14 +1789,22 @@ function EditDrawer({
         </div>
 
         <div className="flex items-center justify-between gap-2 border-t border-line px-6 py-3">
-          <button
-            onClick={() => {
-              if (confirm("Delete this post?")) onDelete();
-            }}
-            className="text-sm text-red-600 hover:text-red-700"
-          >
-            Delete post
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                if (confirm("Delete this post?")) onDelete();
+              }}
+              className="text-sm text-red-600 hover:text-red-700"
+            >
+              Delete post
+            </button>
+            <button
+              onClick={onDuplicate}
+              className="text-sm text-ink-soft hover:text-ink"
+            >
+              Duplicate
+            </button>
+          </div>
           <div className="flex items-center gap-2">
             <ShareButton item={item} onChange={onChange} />
             <button
@@ -3090,6 +3122,11 @@ function MenuIcon() {
 function TrashIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+  );
+}
+function CopyIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
   );
 }
 function SparkIcon() {
