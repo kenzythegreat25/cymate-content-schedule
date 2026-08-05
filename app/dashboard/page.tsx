@@ -248,7 +248,7 @@ export default function Home() {
     const src = items.find((i) => i.id === id);
     if (!src) return;
     const { id: _id, createdAt: _ca, shareToken: _st, ...rest } = src;
-    const created = await createPost({ ...rest, title: `${src.title} (copy)`, status: "Drafting" });
+    const created = await createPost({ ...rest, title: `${src.title} (copy)`, status: "Review" });
     if (created) setItems((prev) => [...prev, created]);
   };
 
