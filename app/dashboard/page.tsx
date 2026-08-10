@@ -2228,8 +2228,8 @@ function MediaPicker({
 
     const accepted: File[] = [];
     for (const f of list) {
-      if (!f.type.startsWith("image/") && !f.type.startsWith("video/")) {
-        setError(`Skipped "${f.name}" — only images and videos are supported.`);
+      if (!f.type.startsWith("image/") && !f.type.startsWith("video/") && f.type !== "application/pdf") {
+        setError(`Skipped "${f.name}" — only images, videos, and PDFs are supported.`);
         continue;
       }
       if (f.size > MAX_BYTES) {
@@ -2343,10 +2343,10 @@ function MediaPicker({
             ? "Drop images or videos, or click to upload"
             : "Add more"}
         </span>
-        <span className="text-[11px] text-muted">PNG · JPG · WebP · MP4 · MOV — up to 50MB each</span>
+        <span className="text-[11px] text-muted">PNG · JPG · WebP · MP4 · MOV · PDF — up to 50MB each</span>
         <input
           type="file"
-          accept="image/*,video/*"
+          accept="image/*,video/*,application/pdf"
           multiple
           className="hidden"
           disabled={uploading > 0}
