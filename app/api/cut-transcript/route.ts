@@ -104,6 +104,26 @@ async function cutTranscript(transcript: string, clipCount: number, lengths: str
   No hashtags. No booking CTAs. No em dashes. Write in second person where natural.`
     : `- description: Ready-to-post caption for LinkedIn or Instagram. First person. No URLs. Booking CTA = "Booking link in the comments." Other links = "Link in the comments." No em dashes. End with 5 relevant hashtags on their own line.`;
 
+  const mediumFormRules = isMediumForm && !isShortForm ? `
+MEDIUM-FORM SPECIFIC RULES (3–10 min clips) — these override everything else for this format:
+A medium-form clip is NOT a random excerpt that happens to be long. It is a COMPLETE STANDALONE MINI-EPISODE on a single topic.
+
+WHAT MAKES A VALID MEDIUM-FORM CLIP:
+- It covers ONE topic from start to finish — setup, explanation, examples, conclusion. The viewer knows exactly what the video is about from second one, and feels satisfied when it ends.
+- It has a natural opening — either a question being asked, a problem being introduced, or the speaker clearly stating what they're about to cover. Never starts mid-sentence, mid-thought, or mid-answer without the question that triggered it.
+- It has a natural close — the speaker wraps up the point, gives a final takeaway, or transitions to a new topic. Never cuts off mid-explanation or mid-story.
+- A stranger who has never seen this channel can watch the clip and walk away having learned one specific, complete thing. They don't need context from before or after.
+
+WHAT DISQUALIFIES A MEDIUM-FORM CLIP:
+- The clip jumps between multiple unrelated topics without a unifying thread.
+- The clip starts mid-answer, mid-story, or mid-example with no setup for what triggered it.
+- The clip ends abruptly — the speaker is still mid-point when it cuts.
+- The clip is "long" only because it includes filler, tangents, or repeated points — length alone does not make it medium-form.
+- The clip requires the viewer to have watched something before it to understand what's being discussed.
+
+For each candidate clip, mentally ask: "If I posted only this segment as a standalone YouTube video with its own title, would it make complete sense and feel satisfying?" If no, it is not a valid medium-form clip — find a different segment.
+` : "";
+
   const prompt = `You are a content strategist for Cymate — a B2B cold email and outbound agency. You have just been handed the transcript below.
 
 STEP 1 — READ AND UNDERSTAND THE FULL TRANSCRIPT BEFORE DOING ANYTHING ELSE.
@@ -117,7 +137,7 @@ Read the entire transcript from start to finish as if you are watching the video
 If after reading the full transcript you cannot clearly describe what the video is about in 2 sentences, do not guess — return an empty clips array with an error message in a top-level "error" field explaining that the transcript is unclear or off-topic.
 
 STEP 2 — SELECT AND SCORE CLIPS BASED ON YOUR FULL UNDERSTANDING.
-Only after understanding the whole video, select the ${clipCount} strongest moments to cut as short-form clips. For each clip, also assign a score from 1–10 based on how strong it is as standalone content (10 = immediately compelling to someone with no context, would stop the scroll; 1 = only makes sense if you watched the whole thing).
+Only after understanding the whole video, select the ${clipCount} strongest moments to cut as clips. For each clip, also assign a score from 1–10 based on how strong it is as standalone content (10 = immediately compelling to someone with no context, would stop the scroll; 1 = only makes sense if you watched the whole thing).
 
 CYMATE'S CONTENT PILLARS — only cut clips relevant to these:
 - Cold email strategy, deliverability, sequences, copywriting
@@ -137,6 +157,7 @@ CLIP SELECTION RULES — all must pass:
 7. NO REPETITION — each clip covers a distinctly different idea. Never cut two clips making the same point.
 8. LENGTH — each clip should be ${lengthGuide} of spoken content.
 9. QUALITY OVER COUNT — if you cannot find ${clipCount} clips that genuinely pass all the above, return fewer. Never pad with weak clips just to hit the number.
+${mediumFormRules}
 
 STEP 3 — RETURN JSON. Sort clips by score descending (highest first).
 {
