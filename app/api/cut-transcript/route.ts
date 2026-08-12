@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "../../../lib/supabase/server";
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const ALLOWED_EMAIL  = "kenc@cymate.io";
 const ANTHROPIC_URL  = "https://api.anthropic.com/v1/messages";
