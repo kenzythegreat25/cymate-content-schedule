@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const ALLOWED_EMAIL = "kenc@cymate.io";
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
@@ -180,11 +180,12 @@ async function callClaude(prompt: string): Promise<string> {
         headers: {
           "x-api-key": ANTHROPIC_KEY,
           "anthropic-version": "2023-06-01",
+          "anthropic-beta": "output-128k-2025-02-19",
           "content-type": "application/json",
         },
         body: JSON.stringify({
           model: "claude-haiku-4-5-20251001",
-          max_tokens: 5000,
+          max_tokens: 16000,
           messages: [{ role: "user", content: prompt }],
         }),
         signal: controller.signal,
