@@ -393,8 +393,9 @@ async function runSinglePostGeneration(
   const allExistingHooks        = allPosts.map(p => (p.description ?? "").split("\n")[0].toLowerCase());
   const allExistingDescriptions = allPosts.map(p => (p.description ?? "").toLowerCase());
   const recentTitles = allPosts.map(p => {
-    const desc = (p.description ?? "").replace(/#\S+/g, "").trim().split("\n")[0];
-    return `[${p.status}][${p.platform}] ${p.title} | hook: "${desc}"`;
+    const lines = (p.description ?? "").replace(/#\S+/g, "").trim().split("\n").filter(Boolean);
+    const summary = lines.slice(0, 2).join(" ").slice(0, 200);
+    return `[${p.status}][${p.platform}] ${p.title} | summary: "${summary}"`;
   }).join("\n") || "None";
   const coveredTopicWordsSingle = buildCoveredTopics(allExistingTitles);
 
@@ -421,7 +422,13 @@ Rules:
 - End with 5 relevant hashtags on their own line.
 - POSTING TIME: Include "Post at: 8:00 PM PHT" at the top of the notes field.
 - Include 3 Q&A reply pairs in notes (Q1–Q3 format).
+- TOPIC SELF-CHECK (do this BEFORE writing any JSON):
+  1. In one sentence, state the exact topic of the post you are about to generate.
+  2. Scan every entry in the EXISTING POSTS list above. If your topic matches — even loosely — any title, summary, or theme already listed under any status (Drafting, Review, Scheduled, Posted), STOP and pick a completely different topic. Repeat until your chosen topic has zero overlap with anything on the list.
+  3. Only after confirming zero overlap, proceed to generate the post.
+
 - FINAL SELF-CHECK before returning — if any fail, fix before returning:
+  [ ] Topic confirmed unique — not covered by any existing post in any status.
   [ ] Instagram: caption ends with a CTA line (e.g. "Booking link in the comments.") followed by exactly 5 hashtags on their own line. A caption missing either is invalid.
   [ ] Engaging question present before the CTA.
   [ ] Strong hook on the first line.
@@ -521,8 +528,9 @@ async function runGeneration(userId: string, opts: { mode?: string; platform?: s
   const allExistingHooks        = recentPosts?.map(p => (p.description ?? "").split("\n")[0].toLowerCase()) ?? [];
   const allExistingDescriptions = recentPosts?.map(p => (p.description ?? "").toLowerCase()) ?? [];
   const recentTitles = recentPosts?.map(p => {
-    const desc = (p.description ?? "").replace(/#\S+/g, "").trim().slice(0, 160);
-    return `[${p.status}][${p.platform}] ${p.title} | hook: "${desc.split("\n")[0]}"`;
+    const lines = (p.description ?? "").replace(/#\S+/g, "").trim().split("\n").filter(Boolean);
+    const summary = lines.slice(0, 2).join(" ").slice(0, 200);
+    return `[${p.status}][${p.platform}] ${p.title} | summary: "${summary}"`;
   }).join("\n") ?? "None";
   const coveredTopicWords = buildCoveredTopics(allExistingTitles);
 
@@ -619,7 +627,10 @@ Rules:
 - Do not duplicate any topic or angle from the recently published posts listed above.
 - POSTING TIME: Include "Post at: 8:00 PM PHT" at the top of every notes field so the scheduler knows exactly when to publish. (Audience peaks at 9 PM PHT — post 1 hour before to warm up distribution.)
 - The JSON array must have EXACTLY 5 objects — one per day listed above. Count them before returning.
+TOPIC SELF-CHECK — do this BEFORE writing any JSON:
+For each of the 5 posts, state the exact topic in one sentence. Then scan the EXISTING POSTS list above. If that topic matches — even loosely — any title, summary, or theme already listed under any status (Drafting, Review, Scheduled, Posted), discard it and pick a completely different topic. Only proceed once all 5 topics are confirmed unique with zero overlap.
 FINAL SELF-CHECK — run this on every Instagram post before returning. If any check fails, rewrite that post before including it:
+[ ] Topic confirmed unique — not covered by any existing post in any status.
 [ ] Does the caption end with a CTA line (e.g. "Booking link in the comments." or "Link in the comments.") before the hashtags? If not, add it.
 [ ] Does the caption end with exactly 5 hashtags on their own line? If not, add them.
 [ ] Is there an engaging question before the CTA? If not, add one.
@@ -685,6 +696,14 @@ RULES FOR ALL 3 POSTS:
 - POSTING TIME: Include "Post at: 8:00 PM PHT" at the top of each notes field
 - Include 3 Q&A reply pairs in notes (Q1/Q2/Q3 format, warm and genuine)
 - The JSON array must have EXACTLY 3 objects. Count before returning.
+TOPIC SELF-CHECK — do this BEFORE writing any JSON:
+For each of the 3 posts, state the exact topic in one sentence. Then scan the EXISTING POSTS list above. If that topic matches — even loosely — any title, summary, or theme already listed under any status (Drafting, Review, Scheduled, Posted), discard it and pick a completely different topic. Only proceed once all 3 topics are confirmed unique with zero overlap.
+FINAL SELF-CHECK — run on every LinkedIn post before returning:
+[ ] Topic confirmed unique — not covered by any existing post in any status.
+[ ] Engaging question present (ends with "?").
+[ ] Soft CTA present after the question.
+[ ] No em dashes anywhere.
+[ ] 5 hashtags on their own line.
 
 Return a JSON array of exactly 3 objects.`;
 
