@@ -408,13 +408,21 @@ async function runSinglePostGeneration(
     matches.forEach((u) => usedSlackUrlsSingle.add(u.trim()));
   }
 
-  const topicLine = topicHint ? `\nTOPIC HINT: The post should be about: "${topicHint}". Use this as the angle — don't ignore it.` : "";
+  const isWinsPost = /\bwin(s)?\b/i.test(topicHint ?? "");
+  const winsRawSingle = isWinsPost ? await fetchSlackWins(usedSlackUrlsSingle) : "";
+  const winsContextSingle = winsRawSingle
+    ? `\nRECENT WINS CONTEXT (use these as the basis for this post — pick the freshest, strongest wins from the TOP of this list that haven't been used before. Anonymize client names. Extract the pattern or result behind the wins):\n${winsRawSingle}\n`
+    : "";
+
+  const topicLine = isWinsPost
+    ? `\nTHIS IS A WINS POST: Draw directly from the RECENT WINS CONTEXT above. Pick the best unused wins (prioritize: real numbers, senior contacts, screenshots, clear cause-and-effect). Build one unified narrative around them — not a scattered list. Anonymize all client names. Include win source links in notes exactly like:\nWin sources used:\n1. Source: [slack URL] | Images: [image URL]\nNever omit the source section.`
+    : topicHint ? `\nTOPIC HINT: The post should be about: "${topicHint}". Use this as the angle — don't ignore it.` : "";
 
   const prompt = `${BASE_INSTRUCTIONS}
 
 ${IG_HASHTAG_POOL}
 
-${platform === "LinkedIn" ? CLIENT_TESTIMONIALS + "\n\n" : ""}COVERED TOPIC WORDS (already published or scheduled — avoid ALL of these):
+${platform === "LinkedIn" ? CLIENT_TESTIMONIALS + "\n\n" : ""}${winsContextSingle}COVERED TOPIC WORDS (already published or scheduled — avoid ALL of these):
 ${coveredTopicWordsSingle}
 
 EXISTING POSTS — ALL STATUSES:
