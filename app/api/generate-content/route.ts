@@ -89,14 +89,31 @@ function scoreWin(text: string, hasImages: boolean): number {
 async function fetchSlackWins(usedUrls: Set<string> = new Set()): Promise<string> {
   if (!SLACK_TOKEN) return "";
   try {
-    const res = await fetch(
-      `https://slack.com/api/conversations.history?channel=${WINS_CHANNEL}&limit=100`,
-      { headers: { Authorization: `Bearer ${SLACK_TOKEN}` } }
-    );
-    const data = await res.json();
-    if (!data.ok) return "";
+    // Fetch wins from March 1 2026 onwards — paginate until we have 15 unused or run out
+    const oldest = Math.floor(new Date("2026-03-01").getTime() / 1000).toString();
+    const allMessages: SlackMessage[] = [];
+    let cursor: string | undefined;
 
-    const scored = (data.messages as SlackMessage[])
+    for (let page = 0; page < 10; page++) {
+      const url = new URL("https://slack.com/api/conversations.history");
+      url.searchParams.set("channel", WINS_CHANNEL);
+      url.searchParams.set("limit", "200");
+      url.searchParams.set("oldest", oldest);
+      if (cursor) url.searchParams.set("cursor", cursor);
+
+      const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${SLACK_TOKEN}` } });
+      const data = await res.json();
+      if (!data.ok) break;
+
+      allMessages.push(...(data.messages as SlackMessage[]));
+      if (!data.response_metadata?.next_cursor) break;
+      cursor = data.response_metadata.next_cursor;
+
+      // Stop early if we already have plenty to work with
+      if (allMessages.length >= 1000) break;
+    }
+
+    const scored = allMessages
       .filter((m) =>
         m.text &&
         !m.text.includes("has joined") &&
@@ -107,20 +124,20 @@ async function fetchSlackWins(usedUrls: Set<string> = new Set()): Promise<string
         isRelevantWin(m.text)
       )
       .map((m) => {
+        const ts = m.ts ?? "";
+        const slackLink = ts
+          ? `https://cymate.slack.com/archives/${WINS_CHANNEL}/p${ts.replace(".", "")}`
+          : "";
+
+        // Skip wins already used in a previous post
+        if (slackLink && usedUrls.has(slackLink)) return null;
+
         const text = (m.text ?? "")
           .replace(/<@[A-Z0-9]+(\|[^>]+)?>/g, "a team member")
           .replace(/<https?:\/\/[^>]+>/g, "")
           .replace(/:[a-z_]+:/g, "")
           .replace(/\s{2,}/g, " ")
           .trim();
-
-        const ts = m.ts ?? "";
-        const slackLink = ts
-          ? `https://cymate.slack.com/archives/${WINS_CHANNEL}/p${ts.replace(".", "")}`
-          : "";
-
-        // Skip this win if its Slack URL was already used in a previous post
-        if (slackLink && usedUrls.has(slackLink)) return null;
 
         const imageFiles = (m.files ?? [])
           .filter((f) => f.mimetype?.startsWith("image/"))
@@ -136,7 +153,6 @@ async function fetchSlackWins(usedUrls: Set<string> = new Set()): Promise<string
         return { entry, score };
       })
       .filter((w): w is { entry: string; score: number } => w !== null && w.entry.length > 30 && w.score >= 0)
-      // Sort highest-scoring wins first so Claude always sees the best ones
       .sort((a, b) => b.score - a.score)
       .slice(0, 15)
       .map((w) => w.entry);
