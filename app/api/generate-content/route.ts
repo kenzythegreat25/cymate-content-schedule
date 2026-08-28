@@ -427,11 +427,11 @@ async function runSinglePostGeneration(
   const isWinsPost = /\bwin(s)?\b/i.test(topicHint ?? "");
   const winsRawSingle = isWinsPost ? await fetchSlackWins(usedSlackUrlsSingle) : "";
   const winsContextSingle = winsRawSingle
-    ? `\nRECENT WINS CONTEXT (use these as the basis for this post — pick the freshest, strongest wins from the TOP of this list that haven't been used before. Anonymize client names. Extract the pattern or result behind the wins):\n${winsRawSingle}\n`
+    ? `\nRECENT WINS CONTEXT (wins are pre-ranked — highest quality first. Use ONLY wins that meet ALL of these criteria: (1) contain real numbers — meetings booked, reply volume, reply rates, or lead counts; (2) involve senior or recognizable contacts — CEO, VP, Head of Sales, funded startups, enterprise names; (3) show a clear cause-and-effect — we changed X and got Y result; (4) are not vague ("great response!") or low-signal. Skip any win that does not meet these criteria.\n\n${winsRawSingle}\n`
     : "";
 
   const topicLine = isWinsPost
-    ? `\nTHIS IS A WINS POST: Draw directly from the RECENT WINS CONTEXT above. Pick the best unused wins (prioritize: real numbers, senior contacts, screenshots, clear cause-and-effect). Build one unified narrative around them — not a scattered list. Anonymize all client names. Include win source links in notes exactly like:\nWin sources used:\n1. Source: [slack URL] | Images: [image URL]\nNever omit the source section.`
+    ? `\nTHIS IS A WINS POST: Draw directly from the RECENT WINS CONTEXT above. You MUST use 3 to 4 wins minimum as proof and support — not just one. Each win you use must have a concrete result and a Slack source URL. Build ONE unified narrative that ties all selected wins together around a single insight or pattern. Do not list them separately — weave them into one story where each win reinforces the same point. Anonymize all client names but keep the numbers and job titles. In the notes field, list every win source used:\nWin sources used:\n1. Source: [slack URL] | Images: [image URL]\n2. Source: [slack URL] | Images: [image URL]\n3. Source: [slack URL] | Images: [image URL]\n(continue for each win used — minimum 3 entries. Never omit this section.)`
     : topicHint ? `\nTOPIC HINT: The post should be about: "${topicHint}". Use this as the angle — don't ignore it.` : "";
 
   const prompt = `${BASE_INSTRUCTIONS}
@@ -622,14 +622,15 @@ CONTENT STRATEGY — STRICTLY ENFORCED:
 - IG is for STRATEGY and WINS only. Every post must be educational, strategic, or results-oriented content directly related to Cymate's work, methodology, or GTM approach.
 - NEVER generate testimonials, client feedback posts, or case studies from clients on Instagram. Do not reference specific clients by name, do not quote client results, do not write posts framed as "a client told us..." or "one of our clients achieved...". These content types are off-limits on IG entirely.
 
-WINS POSTS (Monday + Wednesday): Draw inspiration from the RECENT WINS CONTEXT above. The wins are pre-ranked — the ones listed first are the highest-quality (most leads, strongest signals, screenshots attached). Select the 3 to 5 wins from the TOP of that list. Prioritize wins that: (1) mention real numbers of interested leads, meetings booked, or reply volume; (2) involve recognizable or senior contacts (CEO, VP, Head of Sales, funded startups, enterprise names); (3) have screenshots attached (indicated by [images:]); (4) show clear cause-and-effect (we changed X, got Y result). Skip wins that are vague ("great response!"), have no numbers, or feel like low-signal pings. Combine the selected wins into one strategic narrative that extracts the pattern or system behind why these happened.
+WINS POSTS (Monday + Wednesday): You MUST select 3 to 4 wins minimum to use as proof and support — not just one. The wins are pre-ranked, highest quality first. Only use wins that meet ALL of these criteria: (1) contain real numbers — meetings booked, reply rates, lead counts, or reply volume; (2) involve senior or recognizable contacts — CEO, VP, Head of Sales, funded startups, or enterprise names; (3) show a clear cause-and-effect — we changed X and got Y; (4) have screenshots attached ([images:] tag = visual proof). Skip any win that is vague ("great response!"), has no numbers, or feels like a low-signal ping — these are not usable. Build ONE unified narrative that ties all 3 to 4 selected wins together around a single pattern or insight. Do not list them separately — weave them into one story where each win is further proof of the same point.
 
-CRITICAL — SOURCE LINKS IN NOTES: Each win entry may include a [slack: URL] and/or [images: URL] tag. For every win you draw from to write this post, copy its links into the notes field as a numbered list. Format exactly like this (repeat for each win used, up to 5):
+CRITICAL — SOURCE LINKS IN NOTES: Each win entry may include a [slack: URL] and/or [images: URL] tag. For every win you draw from, copy its links into the notes field as a numbered list. Minimum 3 entries required. Format exactly:
 "Win sources used:
 1. Source: [slack URL 1] | Images: [image URL(s) 1]
 2. Source: [slack URL 2] | Images: [image URL(s) 2]
+3. Source: [slack URL 3] | Images: [image URL(s) 3]
 ..."
-If a win has no slack/image URL, write "Source: (no link)" for that entry. Never omit this section from wins post notes — even if only 1 win was used.
+If a win has no slack/image URL, write "Source: (no link)". Never omit this section and never include fewer than 3 sources.
 
 STYLE GUIDE for wins posts — follow this exactly:
 - Hook = a specific result or metric in the first line, no fluff. Examples: "8-12 meetings booked every week for a client. No ads. No organic. Just cold email." / "New campaign launched. Meeting booked within 2 hours." / "One copy tweak. Two meetings in three days."
@@ -695,14 +696,15 @@ MONDAY (${dates.mon}): A strategy or educational post. Teach something — a con
 
 WEDNESDAY (${dates.wed}): A framework, process, or insight post. Share something actionable — a step-by-step approach, a mental model, or a lesson from running outbound campaigns. Make the reader feel like they're getting access to Cymate's internal playbook. 280-350 words.
 
-FRIDAY (${dates.fri}): A wins-inspired strategic post. Draw from the RECENT WINS CONTEXT above. The wins are pre-ranked — the ones listed first are highest quality. Select the 3 to 5 wins from the TOP of that list. Prioritize: (1) wins with real numbers (meetings booked, volume of interested leads, reply rates); (2) wins involving senior contacts or recognizable companies (CEO, VP, Head of Sales, funded/enterprise names); (3) wins with screenshots ([images:] tag = visual proof); (4) wins showing a clear before/after or cause-and-effect. Skip vague, numberless, or low-signal wins entirely. Synthesize into one strategic narrative that extracts a pattern, system insight, or lesson. The post must feel data-driven — proof of methodology, not a random highlight reel.
+FRIDAY (${dates.fri}): A wins-inspired strategic post. Draw from the RECENT WINS CONTEXT above. You MUST select 3 to 4 wins minimum — not just one. Only use wins that meet ALL of these criteria: (1) real numbers — meetings booked, reply rates, lead counts; (2) senior or recognizable contacts — CEO, VP, Head of Sales, funded or enterprise names; (3) clear cause-and-effect — we changed X, got Y; (4) screenshots attached ([images:] = visual proof). Skip vague, numberless, or low-signal wins entirely. Synthesize into ONE unified narrative — find the single pattern or system insight across all selected wins and build the whole post around that one idea. Every win is additional proof of the same point, not a separate story. The post must feel data-driven — proof of methodology.
 
-CRITICAL — SOURCE LINKS IN NOTES: Each win entry may include a [slack: URL] and/or [images: URL] tag. For every win you draw from, copy its links into the notes field as a numbered list. Format exactly like this:
+CRITICAL — SOURCE LINKS IN NOTES: Each win entry may include a [slack: URL] and/or [images: URL] tag. For every win you draw from, copy its links into the notes field as a numbered list. Minimum 3 entries required. Format exactly:
 "Win sources used:
 1. Source: [slack URL 1] | Images: [image URL(s) 1]
 2. Source: [slack URL 2] | Images: [image URL(s) 2]
+3. Source: [slack URL 3] | Images: [image URL(s) 3]
 ..."
-If a win has no slack/image URL, write "Source: (no link)" for that entry. Never omit this section from the Friday wins post notes.
+If a win has no slack/image URL, write "Source: (no link)". Never omit this section and never include fewer than 3 sources.
 
 STYLE GUIDE — follow this exactly, modeled after top-performing outbound thought leadership posts:
 - Hook = a specific result or metric in the very first line. No preamble. Examples: "8-12 meetings booked every week. No ads. No organic. Just cold email." / "New campaign. Meeting booked in 2 hours." / "One copy change. Two meetings in three days."
