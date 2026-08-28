@@ -388,7 +388,7 @@ async function runSinglePostGeneration(
     .select("title, description, platform, date, status, notes")
     .order("created_at", { ascending: false });
 
-  const allPosts = (allPostsRaw ?? []) as { title: string; description: string; platform: string; date: string; status: string }[];
+  const allPosts = (allPostsRaw ?? []) as { title: string; description: string; platform: string; date: string; status: string; notes: string }[];
 
   const allExistingTitles       = allPosts.map(p => p.title.toLowerCase());
   const allExistingHooks        = allPosts.map(p => (p.description ?? "").split("\n")[0].toLowerCase());
@@ -399,6 +399,14 @@ async function runSinglePostGeneration(
     return `[${p.status}][${p.platform}] ${p.title} | summary: "${summary}"`;
   }).join("\n") || "None";
   const coveredTopicWordsSingle = buildCoveredTopics(allExistingTitles);
+
+  // Extract Slack URLs already used in win posts so we never reuse them
+  const usedSlackUrlsSingle = new Set<string>();
+  for (const p of allPosts) {
+    const notes = (p.notes ?? "") as string;
+    const matches = notes.match(/https:\/\/cymate\.slack\.com\/archives\/[^\s|"'\]]+/g) ?? [];
+    matches.forEach((u) => usedSlackUrlsSingle.add(u.trim()));
+  }
 
   const topicLine = topicHint ? `\nTOPIC HINT: The post should be about: "${topicHint}". Use this as the angle — don't ignore it.` : "";
 
