@@ -287,6 +287,8 @@ AVOID VAGUE OR AWKWARD CONTENT:
 - If a post reads as obvious, generic, or something the audience already knows — scrap it and find a more specific angle.
 - Avoid posts that are technically about GTM but feel disconnected from real outbound work. Stay grounded in execution, not theory.
 
+GTM CONNECTION RULE: Every post, regardless of its specific topic, must connect to the larger GTM system it belongs to. The specific topic (domain warm-up, subject lines, ICP segmentation, multi-threading) is the entry point — GTM is always the destination. This connection must feel natural, not forced. It can appear in the opening frame, in the body, or in the closing takeaway. Never repeat "GTM" every paragraph. One clear connection is enough. The reader should always finish the post understanding this is about building or fixing a go-to-market motion, not just a standalone tip or tactic.
+
 AVOID AI-SOUNDING PATTERNS: Do not use: "In today's competitive landscape", "It's no secret that", "At the end of the day", "Game-changer", "Leverage", "Unlock", "Cutting-edge", "Seamless", "Robust", "Dive deep", "Delve into", "Skyrocket", "Navigate", "Landscape", "Harness", "Empower", or any phrase that feels templated or generated. If a sentence could appear in any generic B2B post, rewrite it until it could only come from Cymate.
 
 EM DASH RULE: NEVER use em dashes (—) anywhere in any post. This is a hard rule with no exceptions. Replace with a comma, a period, or break into a new sentence.
