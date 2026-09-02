@@ -233,7 +233,7 @@ Field definitions:
 - answer: The guest's exact verbatim answer, word for word from the transcript
 - excerpt: The full Q&A combined (question + answer), verbatim, as it would appear in one block
 - estimatedDuration: Estimated spoken duration of the answer only (e.g. "~60 sec")
-- description: Ready-to-post caption for LinkedIn or Instagram. First person. No URLs. Booking CTA = "Booking link in the comments." No em dashes. End with 5 relevant hashtags on their own line.
+- description: Short 2-3 sentence teaser caption for this clip (what the viewer will learn, why it matters). No URLs. No hashtags. No em dashes. Keep it under 60 words.
 - why: One sentence — why this Q&A exchange is one of the strongest clips from this podcast
 - score: Integer 1–10. How strong this clip is as completely standalone content.
 

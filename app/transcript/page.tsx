@@ -26,6 +26,7 @@ export default function TranscriptPage() {
   const [selectedLengths, setSelectedLengths] = useState<Set<string>>(new Set(["60–90s"]));
   const [clipCount, setClipCount] = useState(10);
   const [isPodcast, setIsPodcast] = useState(false);
+  const maxClips = isPodcast ? 6 : 10;
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [clips, setClips] = useState<Clip[]>([]);
   const [errorMsg, setErrorMsg] = useState("");
@@ -48,7 +49,7 @@ export default function TranscriptPage() {
     });
   };
 
-  const setCount = (n: number) => setClipCount(Math.min(10, Math.max(1, n)));
+  const setCount = (n: number) => setClipCount(Math.min(maxClips, Math.max(1, n)));
 
   const handleCut = async () => {
     if (!transcript.trim()) {
@@ -202,7 +203,7 @@ export default function TranscriptPage() {
               ].map(({ label, value }) => (
                 <button
                   key={label}
-                  onClick={() => setIsPodcast(value)}
+                  onClick={() => { setIsPodcast(value); if (value) setClipCount((c) => Math.min(c, 6)); }}
                   className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-all ${
                     isPodcast === value
                       ? "bg-accent/15 text-accent ring-1 ring-inset ring-accent/40"
@@ -256,7 +257,7 @@ export default function TranscriptPage() {
                   </span>
                   <button
                     onClick={() => setCount(clipCount + 1)}
-                    disabled={clipCount >= 10}
+                    disabled={clipCount >= maxClips}
                     className="flex h-8 w-8 items-center justify-center text-ink-soft hover:bg-line hover:text-ink disabled:opacity-30 transition-colors"
                   >
                     +
@@ -264,7 +265,7 @@ export default function TranscriptPage() {
                 </div>
                 {/* Dot picker */}
                 <div className="flex items-center gap-1">
-                  {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                  {Array.from({ length: maxClips }, (_, i) => i + 1).map((n) => (
                     <button
                       key={n}
                       onClick={() => setCount(n)}
