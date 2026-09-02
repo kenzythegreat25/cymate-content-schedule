@@ -64,18 +64,22 @@ export async function POST(req: Request) {
     transcript?: string;
     clipCount?: number;
     lengths?: string[];
+    podcast?: boolean;
     // Regenerate mode — replace one specific clip
     regenerate?: boolean;
     existingClips?: { title: string; excerpt: string }[];
   };
 
-  const { transcript = "", clipCount = 10, lengths = ["60–90s"], regenerate = false, existingClips = [] } = body;
+  const { transcript = "", clipCount = 10, lengths = ["60–90s"], podcast = false, regenerate = false, existingClips = [] } = body;
   if (!transcript.trim()) return NextResponse.json({ error: "No transcript provided." }, { status: 400 });
 
   const lengthGuide = lengthGuideText(lengths);
 
   try {
-    if (regenerate) {
+    if (podcast) {
+      const clips = await cutPodcast(transcript, clipCount, lengths, lengthGuide);
+      return NextResponse.json({ clips });
+    } else if (regenerate) {
       const clips = await regenerateClip(transcript, lengths, lengthGuide, existingClips);
       return NextResponse.json({ clips });
     } else {
@@ -179,6 +183,58 @@ Field definitions:
 - estimatedDuration: Estimated spoken duration (e.g. "~45 sec", "~2 min")
 ${descriptionInstructions}
 - why: One sentence — why this specific moment is one of the best clips based on your full understanding of the video
+- score: Integer 1–10. How strong this clip is as completely standalone content.
+
+TRANSCRIPT:
+${transcript}`;
+
+  return callClaude(prompt);
+}
+
+async function cutPodcast(transcript: string, clipCount: number, lengths: string[], lengthGuide: string): Promise<unknown[]> {
+  const prompt = `You are a content strategist for Cymate — a GTM engineering company. You have been given a podcast transcript.
+
+STEP 1 — READ THE FULL TRANSCRIPT FIRST.
+Read the entire podcast from start to finish. Identify:
+- Who is the host and who is the guest
+- What are the 3-5 core themes discussed
+- Which questions from the host generated the most specific, standalone, valuable answers
+- Which Q&A exchanges would make complete sense to someone who has never heard this podcast before
+
+STEP 2 — SELECT THE BEST Q&A PAIRS.
+Select the ${clipCount} strongest question-and-answer exchanges. Each clip must be:
+1. A complete Q&A exchange — the host's full question plus the guest's complete answer
+2. The answer must fully resolve the question — never cut mid-thought or mid-story
+3. Standalone — someone who never heard this podcast understands the full context from just this clip
+4. Verbatim — every word is exact from the transcript, zero rewrites or paraphrasing
+5. Relevant to Cymate's content pillars: GTM strategy, outbound, cold email, ICP, pipeline, deliverability, founder-led sales, revenue motion
+6. The answer should be ${lengthGuide} of spoken content
+7. QUALITY OVER COUNT — if fewer than ${clipCount} exchanges genuinely pass, return fewer
+
+STEP 3 — RETURN JSON. Sort by score descending.
+{
+  "clips": [
+    {
+      "title": "...",
+      "question": "...",
+      "answer": "...",
+      "excerpt": "...",
+      "estimatedDuration": "...",
+      "description": "...",
+      "why": "...",
+      "score": 8
+    }
+  ]
+}
+
+Field definitions:
+- title: Short, specific — what the viewer will learn from this exchange. No clickbait.
+- question: The host's exact verbatim question, word for word from the transcript
+- answer: The guest's exact verbatim answer, word for word from the transcript
+- excerpt: The full Q&A combined (question + answer), verbatim, as it would appear in one block
+- estimatedDuration: Estimated spoken duration of the answer only (e.g. "~60 sec")
+- description: Ready-to-post caption for LinkedIn or Instagram. First person. No URLs. Booking CTA = "Booking link in the comments." No em dashes. End with 5 relevant hashtags on their own line.
+- why: One sentence — why this Q&A exchange is one of the strongest clips from this podcast
 - score: Integer 1–10. How strong this clip is as completely standalone content.
 
 TRANSCRIPT:

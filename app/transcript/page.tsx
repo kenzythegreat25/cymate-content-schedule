@@ -11,6 +11,8 @@ type Clip = {
   description: string;
   why: string;
   score?: number;
+  question?: string;
+  answer?: string;
 };
 
 const LENGTH_OPTIONS = [
@@ -23,6 +25,7 @@ export default function TranscriptPage() {
   const [transcript, setTranscript] = useState("");
   const [selectedLengths, setSelectedLengths] = useState<Set<string>>(new Set(["60–90s"]));
   const [clipCount, setClipCount] = useState(10);
+  const [isPodcast, setIsPodcast] = useState(false);
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [clips, setClips] = useState<Clip[]>([]);
   const [errorMsg, setErrorMsg] = useState("");
@@ -64,6 +67,7 @@ export default function TranscriptPage() {
           transcript,
           clipCount,
           lengths: Array.from(selectedLengths),
+          podcast: isPodcast,
         }),
       });
       const data = await res.json();
@@ -187,6 +191,39 @@ export default function TranscriptPage() {
               })}
             </div>
           </div>
+
+          {/* Mode toggle */}
+          <div className="flex items-center gap-3 border-b border-line bg-surface-2 px-5 py-2.5">
+            <span className="text-xs text-muted">Content type</span>
+            <div className="flex gap-1.5">
+              {[
+                { label: "Standard", value: false },
+                { label: "Podcast", value: true },
+              ].map(({ label, value }) => (
+                <button
+                  key={label}
+                  onClick={() => setIsPodcast(value)}
+                  className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-all ${
+                    isPodcast === value
+                      ? "bg-accent/15 text-accent ring-1 ring-inset ring-accent/40"
+                      : "text-ink-soft hover:text-ink"
+                  }`}
+                >
+                  {value ? <MicIcon /> : <ScissorsIcon />}
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Podcast hint */}
+          {isPodcast && (
+            <div className="border-b border-line bg-accent/5 px-5 py-2.5">
+              <p className="text-xs text-accent/80">
+                Podcast mode cuts by question and answer pairs. Each clip starts with the interviewer&apos;s question and ends when the answer fully wraps up.
+              </p>
+            </div>
+          )}
 
           {/* Textarea */}
           <textarea
@@ -329,9 +366,22 @@ export default function TranscriptPage() {
                     <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted">
                       Transcript Excerpt
                     </div>
-                    <div className="rounded-lg border-l-2 border-accent bg-surface-2 px-4 py-3 font-mono text-[12.5px] leading-relaxed text-ink-soft">
-                      {clip.excerpt}
-                    </div>
+                    {isPodcast && clip.question ? (
+                      <div className="space-y-2">
+                        <div className="rounded-lg bg-surface-2 px-4 py-3">
+                          <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-muted">Question</div>
+                          <div className="font-mono text-[12.5px] leading-relaxed text-ink-soft italic">{clip.question}</div>
+                        </div>
+                        <div className="rounded-lg border-l-2 border-accent bg-surface-2 px-4 py-3">
+                          <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-accent">Answer</div>
+                          <div className="font-mono text-[12.5px] leading-relaxed text-ink-soft">{clip.answer ?? clip.excerpt}</div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border-l-2 border-accent bg-surface-2 px-4 py-3 font-mono text-[12.5px] leading-relaxed text-ink-soft">
+                        {clip.excerpt}
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -458,6 +508,17 @@ function CheckIcon() {
   return (
     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="20 6 9 17 4 12"/>
+    </svg>
+  );
+}
+
+function MicIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+      <line x1="12" y1="19" x2="12" y2="23"/>
+      <line x1="8" y1="23" x2="16" y2="23"/>
     </svg>
   );
 }
