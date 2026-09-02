@@ -228,7 +228,7 @@ STEP 3 — RETURN JSON. Sort by score descending.
 }
 
 Field definitions:
-- title: Short, specific — what the viewer will learn from this exchange. No clickbait.
+- title: Must start with "How to" — then clearly describe what the viewer will learn from this exchange. No clickbait.
 - question: The host's exact verbatim question, word for word from the transcript
 - answer: The guest's exact verbatim answer, word for word from the transcript
 - excerpt: The full Q&A combined (question + answer), verbatim, as it would appear in one block
