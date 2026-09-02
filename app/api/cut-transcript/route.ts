@@ -133,6 +133,8 @@ For each candidate clip, mentally ask: "If I posted only this segment as a stand
 MOST IMPORTANT RULE — READ THIS FIRST:
 The "excerpt" field must be copied LETTER FOR LETTER, WORD FOR WORD from the transcript below. Do not change a single word. Do not clean up grammar. Do not fix filler words. Do not rephrase for clarity. If a speaker says "um, like, you know" — that stays. The excerpt is a direct copy-paste from the transcript. If you paraphrase even one word, the clip is invalid and unusable.
 
+The excerpt must also be ONE CONTINUOUS BLOCK of text — no skipping, no jumping, no ellipsis (...), no combining lines from different parts of the transcript. Pick a start point and an end point, then copy everything in between exactly as it appears. The user must be able to search for the first few words of the excerpt in the original transcript and find the entire clip from there.
+
 STEP 1 — READ AND UNDERSTAND THE FULL TRANSCRIPT BEFORE DOING ANYTHING ELSE.
 Read the entire transcript from start to finish as if you are watching the video yourself. Understand:
 - Who is speaking and what is the overall topic of the conversation
