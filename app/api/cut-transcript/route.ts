@@ -229,9 +229,9 @@ STEP 3 — RETURN JSON. Sort by score descending.
 
 Field definitions:
 - title: Must start with "How to" — then clearly describe what the viewer will learn from this exchange. No clickbait.
-- question: The host's exact verbatim question, word for word from the transcript (keep under 60 words)
-- answer: The most impactful verbatim portion of the guest's answer — the core of what they said, not the full answer. Under 120 words. Start from where they get specific.
-- excerpt: The full Q&A combined (question + trimmed answer), verbatim
+- question: The host's exact verbatim question, word for word from the transcript
+- answer: The guest's complete verbatim answer, word for word from the transcript — do not cut or summarize
+- excerpt: The full Q&A combined (question + full answer), verbatim
 - estimatedDuration: Estimated spoken duration of the answer only (e.g. "~60 sec")
 - description: Short 2-3 sentence teaser caption for this clip (what the viewer will learn, why it matters). No URLs. No hashtags. No em dashes. Keep it under 60 words.
 - why: One sentence — why this Q&A exchange is one of the strongest clips from this podcast

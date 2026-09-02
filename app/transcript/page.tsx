@@ -27,6 +27,8 @@ export default function TranscriptPage() {
   const [clipCount, setClipCount] = useState(10);
   const [isPodcast, setIsPodcast] = useState(false);
   const maxClips = isPodcast ? 4 : 10;
+  // Keep clipCount within bounds whenever mode changes
+  if (clipCount > maxClips) setClipCount(maxClips);
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [clips, setClips] = useState<Clip[]>([]);
   const [errorMsg, setErrorMsg] = useState("");
