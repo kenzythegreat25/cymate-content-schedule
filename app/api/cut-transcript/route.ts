@@ -7,7 +7,7 @@ const ALLOWED_EMAIL  = "kenc@cymate.io";
 const ANTHROPIC_URL  = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_KEY  = process.env.ANTHROPIC_API_KEY ?? "";
 
-const SYSTEM_PROMPT = "You are a JSON-only responder. Always respond with valid, complete JSON and nothing else. Never truncate your response. Never add prose before or after the JSON.";
+const SYSTEM_PROMPT = "You are a JSON-only responder. Always respond with valid, complete JSON and nothing else. Never truncate your response. Never add prose before or after the JSON. CRITICAL: Every excerpt field must be copied VERBATIM from the transcript — exact words, exact order, zero changes. Never paraphrase, summarize, or rephrase any part of any excerpt.";
 
 async function authCheck() {
   const supabase = await supabaseServer();
@@ -129,6 +129,9 @@ For each candidate clip, mentally ask: "If I posted only this segment as a stand
 ` : "";
 
   const prompt = `You are a content strategist for Cymate — a B2B cold email and outbound agency. You have just been handed the transcript below.
+
+MOST IMPORTANT RULE — READ THIS FIRST:
+The "excerpt" field must be copied LETTER FOR LETTER, WORD FOR WORD from the transcript below. Do not change a single word. Do not clean up grammar. Do not fix filler words. Do not rephrase for clarity. If a speaker says "um, like, you know" — that stays. The excerpt is a direct copy-paste from the transcript. If you paraphrase even one word, the clip is invalid and unusable.
 
 STEP 1 — READ AND UNDERSTAND THE FULL TRANSCRIPT BEFORE DOING ANYTHING ELSE.
 Read the entire transcript from start to finish as if you are watching the video yourself. Understand:
